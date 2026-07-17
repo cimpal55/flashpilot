@@ -20,3 +20,35 @@ Codex performed the following concrete work under human-approved scope:
 Codex did not implement checkpoints, GPT providers, repair execution, process
 killing, a Recovery Gate, HTML, packaging, or any later milestone feature.
 
+## Milestone 1
+
+Codex performed the following concrete work under the binding Prompt 1 scope:
+
+- refactored the deterministic loop into reusable runtime, train, and summary
+  primitives while retaining Prompt 0 control semantics;
+- added strict Pydantic schemas for the safe-full manifest, checksum document,
+  completion marker, profile snapshot, and checkpoint state;
+- implemented normalized path models plus resolved run-root containment and
+  symlink-escape rejection;
+- implemented payload and metadata file flushing, file `fsync`, checksum
+  generation, temp-directory commit, same-filesystem rename, and post-rename
+  commit callback ordering;
+- implemented an explicit Windows best-effort directory-sync result rather than
+  claiming unavailable durability guarantees;
+- implemented fail-closed loader validation, corruption rejection,
+  incomplete-temp exclusion, and latest-valid discovery with fallback;
+- implemented containment-safe retention that separately preserves an explicit
+  latest verified checkpoint;
+- implemented `safe_full` serialization and direct restoration of model,
+  optimizer, scheduler, step, Python/NumPy/Torch RNG, profile, and loss history;
+- implemented measured logical checkpoint bytes, checkpoint duration, and
+  restore duration;
+- added `flashpilot control` and `flashpilot safe-full` CLI commands;
+- added unit and integration coverage for integrity, containment, atomic commit,
+  restore equality, RNG restoration, retention, metrics, and CLI behavior;
+- diagnosed and corrected Windows `fsync` behavior, where `_commit` requires a
+  descriptor opened with write access even when no bytes are modified.
+
+Codex did not implement Prompt 2 adapter abstractions or adapter-aware state,
+GPT providers, process termination, a Recovery Gate, repair logic, HTML,
+packaging/release artifacts, plugin discovery, or additional frameworks.

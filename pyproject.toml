@@ -16,6 +16,9 @@ dependencies = [
     "typer>=0.12,<1",
 ]
 
+[project.scripts]
+flashpilot = "flashpilot.cli:app"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2,<9",

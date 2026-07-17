@@ -13,6 +13,7 @@ functionality.
 
 - [x] Deterministic CPU-only control workload has no downloads.
 - [x] Repeated CI control runs match.
+- [x] `safe_full` writes complete training state and direct restore matches the control.
 - [ ] Safe full and safe adapter-aware recovery pass the deterministic Recovery Gate.
 - [ ] Primary valid-but-incomplete checkpoint fails for the intended continuation reasons.
 - [ ] Parent performs a real kill and a new process restores.
@@ -32,4 +33,3 @@ functionality.
 - [ ] Repository URL, installation instructions, and release artifact are ready.
 - [ ] `/feedback` is run in the primary Codex thread and the real Session ID is saved.
 - [ ] Devpost submission is completed before the official deadline.
-

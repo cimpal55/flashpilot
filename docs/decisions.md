@@ -42,6 +42,34 @@ may carry incompatible ACLs when the same checkout is used from a normal Windows
 PowerShell session and a sandboxed development process. The entire generated
 directory is ignored by Git; tests continue to use `tmp_path` normally.
 
+## D-007: Safe full is the only Prompt 1 checkpoint strategy
+
+`safe_full` persists the complete model, optimizer, scheduler, global step,
+Python RNG, NumPy RNG, Torch RNG, immutable profile configuration, and loss
+history. Direct restore loads only after manifest and SHA-256 validation and
+uses `torch.load(..., weights_only=True)` for tensor-bearing payloads. The
+direct-restore comparison is not a Recovery Gate verdict.
+
+## D-008: Atomic commit and Windows durability boundary
+
+Checkpoint payloads are written to a unique temporary sibling directory, file
+contents are flushed and `fsync`ed, SHA-256 checksums and the manifest are
+written, and `COMPLETE` is created before a same-filesystem directory rename.
+No committed callback is invoked until the rename succeeds. Linux and other
+POSIX systems attempt directory `fsync` before and after rename and fail closed
+if it fails. Python does not expose usable directory `fsync` on Windows, so
+payload and metadata file synchronization plus directory rename are implemented,
+while directory metadata durability is explicitly reported as best-effort.
+
+## D-009: Resolve containment before managed I/O or retention
+
+Manifest paths must be normalized relative paths. Runtime paths are resolved
+against an explicit run sandbox; traversal, absolute managed paths, containment
+escapes, and symlink escapes are rejected. Retention considers only validated
+direct checkpoint children, keeps the newest requested count, and separately
+protects the explicitly supplied latest verified checkpoint. Prompt 1 does not
+itself declare any checkpoint Recovery-Gate verified.
+
 ## Binding decisions for later milestones
 
 - The primary failure will be a valid, loadable checkpoint that intentionally
@@ -60,5 +88,5 @@ directory is ignored by Git; tests continue to use `tmp_path` normally.
   Reducing logical writes may reduce overhead, but no physical-lifetime claim is
   permitted.
 - Linux is the intended strongest atomic-commit target. Windows is the current
-  Prompt 0 development environment; checkpoint durability behavior remains
-  unimplemented and unverified.
+  development environment; file synchronization and rename are tested, but
+  directory `fsync` remains unavailable and durability is therefore best-effort.
