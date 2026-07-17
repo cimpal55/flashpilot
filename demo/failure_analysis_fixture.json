@@ -1,5 +1,5 @@
 {
-  "schema_version": "failure-analysis-v1",
+  "schema_version": "failure-analysis-v2",
   "root_cause_hypothesis": "The restored adapter and global step are consistent, but optimizer, scheduler, and random-generator continuation state are absent from the serialized state. Training therefore resumes with reset update history and different dropout draws, matching the observed final-state and trajectory divergence.",
   "affected_gate_checks": [
     "state.optimizer",

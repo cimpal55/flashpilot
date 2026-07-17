@@ -22,6 +22,58 @@ GateCategory = Literal[
     "Safety and rollback",
 ]
 GateStatus = Literal["pass", "fail", "not_applicable"]
+RecoveryGateCheckId = Literal[
+    "integrity.manifest_schema",
+    "integrity.completion_marker",
+    "integrity.checksums",
+    "integrity.base_present",
+    "integrity.base_hash",
+    "state.global_step",
+    "state.model_or_adapter",
+    "state.optimizer",
+    "state.scheduler",
+    "state.python_rng",
+    "state.numpy_rng",
+    "state.torch_rng",
+    "process.next_step",
+    "process.original_pid",
+    "process.expected_termination",
+    "process.new_recovery_pid",
+    "process.recovery_exit",
+    "rollback.hard_limit",
+    "trajectory.checkpoint_evaluation",
+    "trajectory.final_trainable",
+    "trajectory.final_evaluation",
+    "trajectory.loss_history",
+    "safety.path_containment",
+    "contract.no_mandatory_omission",
+]
+RecoveryEvidenceId = Literal[
+    "manifest:schema",
+    "integrity:completion-marker",
+    "integrity:sha256",
+    "base:presence",
+    "base:sha256",
+    "manifest:global-step",
+    "restore:model-state",
+    "restore:optimizer-state",
+    "restore:scheduler-state",
+    "restore:python-rng",
+    "restore:numpy-rng",
+    "restore:torch-rng",
+    "process:next-step",
+    "process:original-pid",
+    "process:termination",
+    "process:recovery-pid",
+    "process:recovery-exit",
+    "rollback:achieved",
+    "trajectory:checkpoint-evaluation",
+    "trajectory:final-trainable",
+    "trajectory:final-evaluation",
+    "trajectory:loss-history",
+    "safety:path-containment",
+    "contract:mandatory-state",
+]
 
 
 class StrictRecoveryModel(BaseModel):
@@ -159,11 +211,11 @@ class ComparisonPolicy(StrictRecoveryModel):
 
 
 class GateCheck(StrictRecoveryModel):
-    check_id: str = Field(min_length=1)
+    check_id: RecoveryGateCheckId
     category: GateCategory
     label: str = Field(min_length=1)
     status: GateStatus
-    evidence_ids: tuple[str, ...]
+    evidence_ids: tuple[RecoveryEvidenceId, ...]
     expected: str | None = None
     actual: str | None = None
     details: str | None = None

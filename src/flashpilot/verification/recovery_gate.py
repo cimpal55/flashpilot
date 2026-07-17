@@ -15,6 +15,8 @@ from flashpilot.domain.recovery import (
     CrashMetadata,
     GateCategory,
     GateCheck,
+    RecoveryEvidenceId,
+    RecoveryGateCheckId,
     RecoveryGateResult,
     RecoveryProcessMetadata,
     RecoveryWorkerResult,
@@ -23,12 +25,12 @@ from flashpilot.domain.recovery import (
 
 
 def _check(
-    check_id: str,
+    check_id: RecoveryGateCheckId,
     category: GateCategory,
     label: str,
     *,
     passed: bool,
-    evidence_id: str,
+    evidence_id: RecoveryEvidenceId,
     expected: str,
     actual: str,
     details: str | None = None,
@@ -46,11 +48,11 @@ def _check(
 
 
 def _not_applicable(
-    check_id: str,
+    check_id: RecoveryGateCheckId,
     category: GateCategory,
     label: str,
     *,
-    evidence_id: str,
+    evidence_id: RecoveryEvidenceId,
     details: str,
 ) -> GateCheck:
     return GateCheck(

@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from flashpilot.adapters.native_pytorch import NativePyTorchAdapter
 from flashpilot.agent.fixture_provider import FixtureContractProvider, FixtureFailureProvider
+from flashpilot.agent.guardrails import GuardrailViolation
 from flashpilot.agent.openai_provider import (
     OpenAIContractProvider,
     OpenAIFailureProvider,
@@ -23,6 +24,7 @@ from flashpilot.agent.service import (
 from flashpilot.domain.agent import (
     CheckpointContract,
     FailureAnalysis,
+    FailureProviderResult,
     ProviderResponseMetadata,
 )
 from flashpilot.domain.recovery import SanitizedFailureArtifact
@@ -114,9 +116,11 @@ def test_contract_fixture_is_typed_labeled_and_guarded(tmp_path: Path) -> None:
     )
     assert metadata["provider"] == "fixture"
     assert metadata["live_or_fixture"] == "fixture"
+    assert metadata["source"] == "deterministic_local_fixture"
     assert metadata["fixture_provenance"] == "deterministic_local_fixture"
     assert metadata["model"] == "gpt-5.6"
     assert metadata["store"] is False
+    assert metadata["validation_status"] == "accepted"
     assert "api_key" not in json.dumps(metadata).lower()
 
 
@@ -144,7 +148,9 @@ def test_failure_fixture_is_typed_labeled_and_accepts_six_actions(tmp_path: Path
         (tmp_path / "run/agent/failure/metadata.json").read_text(encoding="utf-8")
     )
     assert metadata["live_or_fixture"] == "fixture"
+    assert metadata["source"] == "deterministic_local_fixture"
     assert metadata["fixture_provenance"] == "deterministic_local_fixture"
+    assert metadata["validation_status"] == "accepted"
 
 
 @pytest.mark.parametrize("forbidden", FORBIDDEN_FAILURE_PAYLOAD_TERMS)
@@ -192,6 +198,15 @@ def test_live_provider_fails_if_parsed_output_is_absent() -> None:
         OpenAIContractProvider(client).infer_contract(contract_request())
 
 
+def test_live_provider_fails_if_response_id_is_absent() -> None:
+    fixture = FixtureContractProvider().infer_contract(contract_request()).output
+    client = RecordingClient(fixture)
+    client.responses.response_id = ""
+
+    with pytest.raises(OpenAIProviderError, match="response ID"):
+        OpenAIContractProvider(client).infer_contract(contract_request())
+
+
 def test_fixture_provider_rejects_invalid_structured_output(tmp_path: Path) -> None:
     fixture = tmp_path / "invalid.json"
     fixture.write_text('{"schema_version":"checkpoint-contract-v1","extra":true}', encoding="utf-8")
@@ -215,3 +230,58 @@ def test_provider_metadata_rejects_mislabeled_live_and_fixture_sources() -> None
             response_id="not-allowed",
             fixture_provenance="live_gpt_5_6_capture",
         )
+
+
+def test_rejected_live_failure_output_is_preserved_with_audit_metadata(
+    tmp_path: Path,
+) -> None:
+    request = failure_request()
+    fixture = FixtureFailureProvider().analyze_failure(request).output
+    rejected_output = fixture.model_copy(
+        update={
+            "affected_gate_checks": fixture.affected_gate_checks
+            + ("state.optimizer [restore:optimizer-state]",)
+        }
+    )
+
+    class RejectedLiveProvider:
+        def analyze_failure(self, _: SanitizedFailureArtifact) -> FailureProviderResult:
+            return FailureProviderResult(
+                output=rejected_output,
+                provider_metadata=ProviderResponseMetadata(
+                    provider="openai",
+                    live_or_fixture="live",
+                    response_id="resp_rejected_live",
+                    fixture_provenance="not_applicable",
+                ),
+            )
+
+    run_root = tmp_path / "rejected-live"
+    with pytest.raises(GuardrailViolation, match="unknown gate checks"):
+        analyze_recovery_failure(
+            provider=RejectedLiveProvider(),
+            request=request,
+            run_root=run_root,
+        )
+
+    artifact_root = run_root / "agent/failure"
+    persisted_response = json.loads(
+        (artifact_root / "response.parsed.rejected.json").read_text(encoding="utf-8")
+    )
+    metadata = json.loads((artifact_root / "metadata.json").read_text(encoding="utf-8"))
+    rejection = json.loads((artifact_root / "validation.rejected.json").read_text(encoding="utf-8"))
+    assert (artifact_root / "request.redacted.json").is_file()
+    assert persisted_response == rejected_output.model_dump(mode="json")
+    assert metadata["provider"] == "openai"
+    assert metadata["model"] == "gpt-5.6"
+    assert metadata["source"] == "captured_live_response"
+    assert metadata["live_or_fixture"] == "live"
+    assert metadata["response_id"] == "resp_rejected_live"
+    assert metadata["store"] is False
+    assert metadata["validation_status"] == "rejected"
+    assert rejection["validation_status"] == "rejected"
+    assert rejection["error_type"] == "GuardrailViolation"
+    assert "unknown gate checks" in rejection["reason"]
+    assert "state.optimizer [restore:optimizer-state]" in rejection["reason"]
+    assert not (artifact_root / "response.parsed.json").exists()
+    assert not (artifact_root / "validation.json").exists()

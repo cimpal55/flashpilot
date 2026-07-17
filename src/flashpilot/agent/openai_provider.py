@@ -56,12 +56,15 @@ class OpenAIContractProvider:
         output = getattr(response, "output_parsed", None)
         if not isinstance(output, CheckpointContract):
             raise OpenAIProviderError("live contract response did not contain parsed output")
+        response_id = _response_id(response)
+        if response_id is None:
+            raise OpenAIProviderError("live contract response did not contain a response ID")
         return ContractProviderResult(
             output=output,
             provider_metadata=ProviderResponseMetadata(
                 provider="openai",
                 live_or_fixture="live",
-                response_id=_response_id(response),
+                response_id=response_id,
                 fixture_provenance="not_applicable",
             ),
         )
@@ -88,12 +91,15 @@ class OpenAIFailureProvider:
         output = getattr(response, "output_parsed", None)
         if not isinstance(output, FailureAnalysis):
             raise OpenAIProviderError("live failure response did not contain parsed output")
+        response_id = _response_id(response)
+        if response_id is None:
+            raise OpenAIProviderError("live failure response did not contain a response ID")
         return FailureProviderResult(
             output=output,
             provider_metadata=ProviderResponseMetadata(
                 provider="openai",
                 live_or_fixture="live",
-                response_id=_response_id(response),
+                response_id=response_id,
                 fixture_provenance="not_applicable",
             ),
         )

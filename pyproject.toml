@@ -30,7 +30,7 @@ dev = [
 where = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "-ra -p no:cacheprovider"
+addopts = "-ra -p no:cacheprovider -p flashpilot.pytest_plugin"
 pythonpath = ["src"]
 testpaths = ["tests"]
 

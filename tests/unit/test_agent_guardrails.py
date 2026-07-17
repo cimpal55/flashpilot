@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import get_args
 
 import pytest
+from pydantic import ValidationError
 
 from flashpilot.agent.fixture_provider import FixtureContractProvider, FixtureFailureProvider
 from flashpilot.agent.guardrails import (
@@ -14,7 +16,8 @@ from flashpilot.agent.guardrails import (
     validate_checkpoint_contract,
     validate_failure_analysis,
 )
-from flashpilot.domain.agent import ContractRequirement, RepairAction
+from flashpilot.domain.agent import ContractRequirement, FailureAnalysis, RepairAction
+from flashpilot.domain.recovery import RecoveryEvidenceId, RecoveryGateCheckId
 from tests.unit.test_agent_providers import contract_request, failure_request
 
 
@@ -195,6 +198,78 @@ def test_failure_analysis_cannot_mark_a_passing_check_as_affected() -> None:
 
     with pytest.raises(GuardrailViolation, match="unknown gate checks"):
         validate_failure_analysis(request, analysis)
+
+
+def test_failure_analysis_schema_contains_only_exact_gate_and_evidence_ids() -> None:
+    assert get_args(RecoveryGateCheckId) == (
+        "integrity.manifest_schema",
+        "integrity.completion_marker",
+        "integrity.checksums",
+        "integrity.base_present",
+        "integrity.base_hash",
+        "state.global_step",
+        "state.model_or_adapter",
+        "state.optimizer",
+        "state.scheduler",
+        "state.python_rng",
+        "state.numpy_rng",
+        "state.torch_rng",
+        "process.next_step",
+        "process.original_pid",
+        "process.expected_termination",
+        "process.new_recovery_pid",
+        "process.recovery_exit",
+        "rollback.hard_limit",
+        "trajectory.checkpoint_evaluation",
+        "trajectory.final_trainable",
+        "trajectory.final_evaluation",
+        "trajectory.loss_history",
+        "safety.path_containment",
+        "contract.no_mandatory_omission",
+    )
+    assert get_args(RecoveryEvidenceId) == (
+        "manifest:schema",
+        "integrity:completion-marker",
+        "integrity:sha256",
+        "base:presence",
+        "base:sha256",
+        "manifest:global-step",
+        "restore:model-state",
+        "restore:optimizer-state",
+        "restore:scheduler-state",
+        "restore:python-rng",
+        "restore:numpy-rng",
+        "restore:torch-rng",
+        "process:next-step",
+        "process:original-pid",
+        "process:termination",
+        "process:recovery-pid",
+        "process:recovery-exit",
+        "rollback:achieved",
+        "trajectory:checkpoint-evaluation",
+        "trajectory:final-trainable",
+        "trajectory:final-evaluation",
+        "trajectory:loss-history",
+        "safety:path-containment",
+        "contract:mandatory-state",
+    )
+
+
+def test_failure_analysis_keeps_gate_and_evidence_ids_in_separate_fields() -> None:
+    analysis = FixtureFailureProvider().analyze_failure(failure_request()).output
+
+    assert analysis.affected_gate_checks[0] == "state.optimizer"
+    assert analysis.confirming_evidence[0] == "restore:optimizer-state"
+    assert analysis.repair_plan.actions[0].evidence_ids == ("restore:optimizer-state",)
+
+
+def test_failure_analysis_schema_rejects_combined_identifier_without_repair() -> None:
+    analysis = FixtureFailureProvider().analyze_failure(failure_request()).output
+    payload = analysis.model_dump(mode="json")
+    payload["affected_gate_checks"][0] = "state.optimizer [restore:optimizer-state]"
+
+    with pytest.raises(ValidationError, match="Input should be"):
+        FailureAnalysis.model_validate(payload)
 
 
 @pytest.mark.parametrize(

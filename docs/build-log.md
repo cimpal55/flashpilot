@@ -710,3 +710,186 @@ Focused agent output using the requested PowerShell continuation syntax:
 
 The final output contains no ACL failure and no unknown `cache_dir` option
 warning. Prompt 5 was not started.
+
+## Prompt 4 live-validation entry point
+
+- Date: 2026-07-17
+- Scope: the outstanding live-validation path only; Prompt 5 remains
+  unstarted.
+- Existing inspection result: the OpenAI contract and failure providers,
+  strict Pydantic schemas, Responses API structured parsing, `gpt-5.6`,
+  `store=False`, no-tools behavior, and deterministic guardrails already
+  existed. There was no supported live CLI entry point.
+- Added `live-contract` and `live-failure` commands. Each command admits one
+  live provider call and requires a new role-specific output directory. The
+  failure command has no input-file option and reads only
+  `runs/manual-prompt3-incomplete/agent/request.redacted.json`.
+- Live metadata now requires a nonempty response ID and records
+  `source=captured_live_response`. Fixture metadata remains explicitly
+  labeled and cannot validate as captured live output.
+- The preserved failure request passed the existing sanitizer unchanged. Its
+  canonical redacted-request SHA-256 is
+  `eaa6f7818ecdaf482525081514dccfbfe748ae79b0d17c1a719a5e60bfc5ba2e`.
+- `OPENAI_API_KEY` availability was `false` in the validation environment. No
+  live call was attempted, no live response or response ID is claimed, and no
+  model output was invented or edited.
+
+Exact live commands from the repository root, after setting the API key in the
+process environment without printing it:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli live-contract `
+  --run-dir .\runs\manual-prompt4-live-contract
+
+.\.venv\Scripts\python.exe -m flashpilot.cli live-failure `
+  --run-dir .\runs\manual-prompt4-live-failure
+```
+
+Actual focused entry-point, provider, and guardrail output:
+
+```text
+.\.venv\Scripts\python.exe -m pytest .\tests\unit\test_agent_providers.py .\tests\unit\test_agent_guardrails.py .\tests\unit\test_live_cli.py -q
+...........................................                              [100%]
+43 passed in 1.73s
+```
+
+Final quality-gate output:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+63 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 66%]
+...............................s....                                     [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314]
+107 passed, 1 skipped in 62.75s (0:01:02)
+```
+
+The live commands do not execute a repair or launch another crash. Prompt 5
+was not started.
+
+## Prompt 4 strict-ID, rejection-audit, and pytest-isolation correction
+
+- Date: 2026-07-17
+- Scope: Prompt 4 corrections only. No live API call was made during this
+  correction and Prompt 5 remains unstarted.
+
+### Independent live results carried into the correction
+
+The independently captured checkpoint-contract call was accepted with:
+
+```text
+provider=openai
+model=gpt-5.6
+source=captured_live_response
+store=false
+response_id=<nonempty>
+```
+
+All deterministic contract guardrails passed. The first live
+failure-analysis call reached GPT-5.6 and produced a parsed response, but the
+model combined a Gate check ID and evidence ID in values such as:
+
+```text
+state.optimizer [restore:optimizer-state]
+```
+
+The exact deterministic rejection category was:
+
+```text
+failure analysis references unknown gate checks
+```
+
+The valid Gate ID is `state.optimizer`; `restore:optimizer-state` is a separate
+evidence ID. The guardrail correctly failed closed. The pre-correction service
+validated before writing artifacts, so that rejected response was not
+persisted. One failure-analysis retry is required after this correction:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli live-failure --run-dir .\runs\manual-prompt4-live-failure-retry
+```
+
+This retry was documented but not executed by Codex.
+
+### Corrections
+
+- Failure-analysis schema v2 uses exact `Literal` values for all 24 supported
+  Recovery Gate check IDs and all 24 supported evidence IDs. Gate IDs,
+  confirming evidence IDs, and per-action evidence IDs remain separate fields.
+- Failure prompt v2 requires exact identifiers copied from failed
+  `gate_checks` and `evidence_catalog` and forbids concatenating, annotating,
+  wrapping, splitting, trimming, or rewriting them.
+- There is no normalization or repair path. The malformed combined identifier
+  fails Pydantic validation, and a constructed malformed provider result still
+  fails the deterministic unknown-check guard.
+- Deterministically rejected parsed output is preserved unchanged at
+  `agent/failure/response.parsed.rejected.json`, with the redacted request,
+  `metadata.json`, and `validation.rejected.json` written before the guardrail
+  exception is re-raised. Metadata includes `validation_status=rejected`.
+- No action capability, allowlist, tolerance, Recovery Gate check, redaction
+  boundary, test skip, or xfail was changed.
+
+### Both Windows ACL collision mechanisms
+
+1. Fixed repository-local `.pytest-local/temp` and `.pytest-local/cache`
+   directories collided when host-user and sandbox principals shared the
+   checkout.
+2. Pytest's normal `%TEMP%/pytest-of-<username>` parent also collided because
+   the predictable parent was shared across those security contexts.
+
+The project now explicitly loads `flashpilot.pytest_plugin`, which assigns a
+fresh `flashpilot-pytest-<uuid4 hex>` direct child of
+`tempfile.gettempdir()` before `TempPathFactory` is initialized. It preserves a
+caller-supplied `--basetemp`; the cache provider remains disabled. No username,
+home path, fixed repository path, PID-only identifier, administrator access,
+`icacls`, or `takeown` is used.
+
+Actual default-command output:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+65 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 62%]
+...................................s.......                              [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314]
+114 passed, 1 skipped in 58.61s
+```
+
+The default run's platform-skip path used the UUID root
+`flashpilot-pytest-a04093977927411cb2bebf5030b9b48b`. A direct default-config
+probe produced a separate UUID root and passed:
+
+```text
+FLASHPILOT_BASETEMP=<system temp>\flashpilot-pytest-bb10f4f059b1423cba93e49a5b2c833a
+1 passed in 0.02s
+```
+
+Focused agent and live-CLI output:
+
+```text
+.\.venv\Scripts\python.exe -m pytest .\tests\unit\test_agent_providers.py .\tests\unit\test_agent_guardrails.py .\tests\unit\test_live_cli.py -q
+...............................................                          [100%]
+47 passed in 1.28s
+```
+
+Focused pytest-plugin output:
+
+```text
+.\.venv\Scripts\python.exe -m pytest .\tests\unit\test_pytest_plugin.py -q
+...                                                                      [100%]
+3 passed in 8.20s
+```
+
+No live API call, repair, second crash, or Prompt 5 functionality was executed
+or added.

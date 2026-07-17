@@ -1,20 +1,64 @@
-"""Control, direct-checkpoint, and real process recovery commands."""
+"""Control, recovery, and guarded live-validation commands."""
 
 from __future__ import annotations
 
+import os
 import uuid
 from pathlib import Path
 from typing import Annotated, cast
 
 import typer
 
+from flashpilot.adapters.native_pytorch import NativePyTorchAdapter
+from flashpilot.agent.openai_provider import OpenAIContractProvider, OpenAIFailureProvider
+from flashpilot.agent.service import (
+    analyze_recovery_failure,
+    build_contract_request,
+    infer_checkpoint_contract,
+)
 from flashpilot.checkpoints.strategies import baseline_json, run_safe_full_baseline
-from flashpilot.domain.recovery import CheckpointStrategy
+from flashpilot.domain.agent import AgentCallMetadata
+from flashpilot.domain.recovery import CheckpointStrategy, SanitizedFailureArtifact
 from flashpilot.orchestration.experiment import run_crash_recovery_experiment
 from flashpilot.verification.console import render_recovery_gate
 from flashpilot.workload.control import run_control
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
+
+_CAPTURED_FAILURE_REQUEST = Path("runs/manual-prompt3-incomplete/agent/request.redacted.json")
+_LIVE_CONTRACT_OBJECTIVE = (
+    "Lose no completed steps. Recovery correctness is more important than checkpoint size."
+)
+
+
+def _require_live_preconditions(*, run_dir: Path, role: str) -> None:
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise typer.BadParameter("OpenAI API key is not set")
+    artifact_root = run_dir / "agent" / role
+    if artifact_root.exists():
+        raise typer.BadParameter(
+            "live capture directory already exists; choose a new run directory",
+            param_hint="--run-dir",
+        )
+
+
+def _load_live_metadata(*, run_dir: Path, role: str) -> AgentCallMetadata:
+    metadata_path = run_dir / "agent" / role / "metadata.json"
+    metadata = AgentCallMetadata.model_validate_json(metadata_path.read_text(encoding="utf-8"))
+    if metadata.provider != "openai" or metadata.source != "captured_live_response":
+        raise RuntimeError("persisted metadata is not a captured live OpenAI response")
+    return metadata
+
+
+def _render_live_capture(*, run_dir: Path, role: str) -> None:
+    metadata = _load_live_metadata(run_dir=run_dir, role=role)
+    artifact_root = run_dir / "agent" / role
+    typer.echo(f"Live {role} response captured and accepted by all guardrails.")
+    typer.echo(f"Response ID: {metadata.response_id}")
+    typer.echo(f"Request: {artifact_root / 'request.redacted.json'}")
+    typer.echo(f"Parsed response: {artifact_root / 'response.parsed.json'}")
+    typer.echo(f"Validation: {artifact_root / 'validation.json'}")
+    typer.echo(f"Metadata: {artifact_root / 'metadata.json'}")
 
 
 @app.command()
@@ -64,6 +108,52 @@ def safe_full(
     except ValueError as error:
         raise typer.BadParameter(str(error)) from error
     typer.echo(baseline_json(result), nl=False)
+
+
+@app.command("live-contract")
+def live_contract(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New isolated directory for one live contract capture."),
+    ],
+) -> None:
+    """Make one guarded live checkpoint-contract inference call."""
+
+    _require_live_preconditions(run_dir=run_dir, role="contract")
+    request = build_contract_request(
+        adapter=NativePyTorchAdapter(),
+        user_objective=_LIVE_CONTRACT_OBJECTIVE,
+        hard_rollback_limit_steps=0,
+    )
+    infer_checkpoint_contract(
+        provider=OpenAIContractProvider(),
+        request=request,
+        run_root=run_dir,
+    )
+    _render_live_capture(run_dir=run_dir, role="contract")
+
+
+@app.command("live-failure")
+def live_failure(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New isolated directory for one live failure-analysis capture."),
+    ],
+) -> None:
+    """Make one guarded live analysis call from the fixed Prompt 3 capture."""
+
+    _require_live_preconditions(run_dir=run_dir, role="failure")
+    if not _CAPTURED_FAILURE_REQUEST.is_file():
+        raise typer.BadParameter("the captured Prompt 3 redacted failure request is unavailable")
+    request = SanitizedFailureArtifact.model_validate_json(
+        _CAPTURED_FAILURE_REQUEST.read_text(encoding="utf-8")
+    )
+    analyze_recovery_failure(
+        provider=OpenAIFailureProvider(),
+        request=request,
+        run_root=run_dir,
+    )
+    _render_live_capture(run_dir=run_dir, role="failure")
 
 
 @app.command("crash-demo")

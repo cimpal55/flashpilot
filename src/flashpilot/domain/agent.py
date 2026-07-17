@@ -8,6 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from flashpilot.domain.capabilities import SaveRestoreSummary, StateName, WorkloadCapabilities
+from flashpilot.domain.recovery import RecoveryEvidenceId, RecoveryGateCheckId
 
 IntegrityControl = Literal[
     "manifest",
@@ -21,6 +22,12 @@ Confidence = Literal["low", "medium", "high"]
 AgentRole = Literal["checkpoint-contract", "failure-analysis"]
 ProviderName = Literal["openai", "fixture"]
 LiveOrFixture = Literal["live", "fixture"]
+ValidationStatus = Literal["accepted", "rejected"]
+AgentResponseSource = Literal[
+    "captured_live_response",
+    "deterministic_local_fixture",
+    "captured_live_response_replay",
+]
 
 RepairActionType = Literal[
     "persist_model_state",
@@ -109,7 +116,7 @@ class ContractValidationResult(StrictAgentModel):
 class RepairAction(StrictAgentModel):
     action: RepairActionType
     reason: str = Field(min_length=1, max_length=500)
-    evidence_ids: tuple[str, ...] = Field(default_factory=tuple)
+    evidence_ids: tuple[RecoveryEvidenceId, ...] = Field(default_factory=tuple)
 
 
 class RepairPlan(StrictAgentModel):
@@ -120,10 +127,10 @@ class RepairPlan(StrictAgentModel):
 
 
 class FailureAnalysis(StrictAgentModel):
-    schema_version: Literal["failure-analysis-v1"] = "failure-analysis-v1"
+    schema_version: Literal["failure-analysis-v2"] = "failure-analysis-v2"
     root_cause_hypothesis: str = Field(min_length=1, max_length=2_000)
-    affected_gate_checks: tuple[str, ...]
-    confirming_evidence: tuple[str, ...]
+    affected_gate_checks: tuple[RecoveryGateCheckId, ...]
+    confirming_evidence: tuple[RecoveryEvidenceId, ...]
     repair_plan: RepairPlan
     confidence: Confidence
     limitations: tuple[str, ...]
@@ -133,7 +140,7 @@ class RepairActionDecision(StrictAgentModel):
     action: RepairActionType
     disposition: Literal["accepted", "rejected", "unsupported"]
     reason: str = Field(min_length=1)
-    evidence_ids: tuple[str, ...]
+    evidence_ids: tuple[RecoveryEvidenceId, ...]
 
 
 class RepairPlanValidationResult(StrictAgentModel):
@@ -184,6 +191,8 @@ class ProviderResponseMetadata(StrictAgentModel):
         if self.provider == "openai":
             if self.live_or_fixture != "live" or self.fixture_provenance != "not_applicable":
                 raise ValueError("OpenAI provider metadata must be labeled live")
+            if self.response_id is None:
+                raise ValueError("OpenAI provider metadata requires a response ID")
         elif (
             self.live_or_fixture != "fixture"
             or self.response_id is not None
@@ -201,9 +210,10 @@ class AgentCallMetadata(StrictAgentModel):
     provider: ProviderName
     model: Literal["gpt-5.6"] = "gpt-5.6"
     role: AgentRole
-    prompt_version: Literal["v1"] = "v1"
+    prompt_version: Literal["v1", "v2"]
     output_schema_version: str = Field(min_length=1)
     live_or_fixture: LiveOrFixture
+    source: AgentResponseSource
     fixture_provenance: Literal[
         "not_applicable",
         "deterministic_local_fixture",
@@ -213,6 +223,7 @@ class AgentCallMetadata(StrictAgentModel):
     timestamp: datetime
     request_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     store: Literal[False] = False
+    validation_status: ValidationStatus = "accepted"
 
     @model_validator(mode="after")
     def validate_timestamp(self) -> AgentCallMetadata:
@@ -221,6 +232,10 @@ class AgentCallMetadata(StrictAgentModel):
         if self.provider == "openai":
             if self.live_or_fixture != "live" or self.fixture_provenance != "not_applicable":
                 raise ValueError("OpenAI call metadata must be labeled live")
+            if self.source != "captured_live_response" or self.response_id is None:
+                raise ValueError(
+                    "OpenAI call metadata requires captured-live provenance and a response ID"
+                )
         elif (
             self.live_or_fixture != "fixture"
             or self.response_id is not None
@@ -230,7 +245,23 @@ class AgentCallMetadata(StrictAgentModel):
                 "fixture call metadata must be labeled fixture with explicit provenance "
                 "and without response ID"
             )
+        elif (
+            self.fixture_provenance == "deterministic_local_fixture"
+            and self.source != "deterministic_local_fixture"
+        ) or (
+            self.fixture_provenance == "live_gpt_5_6_capture"
+            and self.source != "captured_live_response_replay"
+        ):
+            raise ValueError("fixture call metadata source does not match its provenance")
         return self
+
+
+class AgentValidationRejection(StrictAgentModel):
+    schema_version: Literal["agent-validation-rejection-v1"] = "agent-validation-rejection-v1"
+    validation_status: Literal["rejected"] = "rejected"
+    validator: Literal["deterministic_guardrails"] = "deterministic_guardrails"
+    error_type: Literal["GuardrailViolation"] = "GuardrailViolation"
+    reason: str = Field(min_length=1, max_length=2_000)
 
 
 class ContractProviderResult(StrictAgentModel):
