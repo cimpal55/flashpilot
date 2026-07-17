@@ -50,7 +50,7 @@ class AtomicCommitResult:
     atomic_rename_succeeded: bool
 
 
-def _write_model_durable(path: Path, model: BaseModel) -> None:
+def write_model_durable(path: Path, model: BaseModel) -> None:
     serialized = model.model_dump_json(indent=2) + "\n"
     with path.open("x", encoding="utf-8", newline="\n") as stream:
         stream.write(serialized)
@@ -58,14 +58,14 @@ def _write_model_durable(path: Path, model: BaseModel) -> None:
         os.fsync(stream.fileno())
 
 
-def _fsync_file(path: Path) -> None:
+def fsync_file(path: Path) -> None:
     # Windows' _commit requires a descriptor opened with write access even when
     # no bytes are changed. The payload writer has already closed the file.
     with path.open("r+b") as stream:
         os.fsync(stream.fileno())
 
 
-def _fsync_directory(path: Path) -> DirectorySyncStatus:
+def fsync_directory(path: Path) -> DirectorySyncStatus:
     if os.name == "nt":
         return DirectorySyncStatus(
             supported=False,
@@ -133,7 +133,7 @@ def commit_checkpoint(
                 raise AtomicCommitError(
                     f"payload writer did not create a regular file: {relative_path}"
                 )
-            _fsync_file(payload_path)
+            fsync_file(payload_path)
             checksum_entries.append(
                 ChecksumEntry(
                     path=normalized_path,
@@ -143,7 +143,7 @@ def commit_checkpoint(
             )
 
         checksums = ChecksumDocument(files=tuple(checksum_entries))
-        _write_model_durable(
+        write_model_durable(
             temporary_sandbox.resolve_relative("checksums.json"),
             checksums,
         )
@@ -158,20 +158,20 @@ def commit_checkpoint(
         }
         if manifest_entries != checksum_mapping:
             raise AtomicCommitError("manifest payload metadata does not match checksums")
-        _write_model_durable(
+        write_model_durable(
             temporary_sandbox.resolve_relative("manifest.json"),
             manifest,
         )
-        _write_model_durable(
+        write_model_durable(
             temporary_sandbox.resolve_relative("COMPLETE"),
             CompletionMarker(checkpoint_id=normalized_id),
         )
 
-        temp_directory_sync = _fsync_directory(temporary_path)
+        temp_directory_sync = fsync_directory(temporary_path)
         if temp_directory_sync.supported and not temp_directory_sync.succeeded:
             raise AtomicCommitError(temp_directory_sync.detail)
         os.rename(temporary_path, final_path)
-        parent_directory_sync = _fsync_directory(checkpoint_root)
+        parent_directory_sync = fsync_directory(checkpoint_root)
         if parent_directory_sync.supported and not parent_directory_sync.succeeded:
             raise AtomicCommitError(parent_directory_sync.detail)
         result = AtomicCommitResult(

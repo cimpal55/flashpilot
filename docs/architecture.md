@@ -9,21 +9,23 @@ The intended architecture is deliberately narrow and staged:
 5. CI and demo profiles bound runtime and require no downloads or external datasets.
 6. An uninterrupted control persists JSON-safe final-state, optimizer, scheduler, loss, and evaluation summaries.
 7. The checkpoint layer validates manifests, checksums, completion markers, containment, and same-filesystem atomic directory commits.
-8. A future `TrainerAdapter` boundary will expose only `NativePyTorchAdapter` in P0 through a plain lookup function.
+8. A minimal `TrainerAdapter` boundary exposes only `NativePyTorchAdapter` in P0 through a plain lookup function.
 9. A future parent orchestrator will kill a worker only after a validated committed-checkpoint event and restore in a new process.
 10. A future deterministic Recovery Gate will compare resumed evidence with the uninterrupted control and be the only recovery authority.
 11. Future GPT-5.6 providers will consume bounded capability summaries or sanitized failure evidence and emit typed outputs without executing changes.
 12. A future repair executor will copy a typed strategy configuration, apply only six supported field changes, and run one isolated retry.
 13. Future JSON and Markdown reports will derive from deterministic results and show storage impact only after recovery passes.
 
-## Milestone status through Prompt 1
+## Milestone status through Prompt 2
 
-Items 1 through 7 are implemented. `safe_full` stores the complete model,
-optimizer, scheduler, global step, Python/NumPy/Torch RNG, profile configuration,
-manifest, checksums, and completion marker. A minimal CLI exposes control and
-safe-full direct-restore baselines. There is still no adapter abstraction,
-adapter-aware checkpoint, crash orchestration, Recovery Gate, GPT integration,
-repair execution, HTML, or release packaging.
+Items 1 through 8 are implemented. `safe_full` remains the complete-state
+baseline. `safe_adapter_aware` references one immutable hash-identified frozen
+base and stores complete recurring adapter training state.
+`missing_training_state` is checksum-valid and loadable but intentionally omits
+optimizer, scheduler, and relevant RNG state; continued dropout-enabled
+training diverges from the control. There is still no crash orchestration,
+Recovery Gate, GPT integration, repair execution, HTML, release packaging,
+plugin discovery, or additional framework adapter.
 
 ## Three largest implementation risks
 

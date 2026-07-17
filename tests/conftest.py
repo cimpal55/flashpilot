@@ -11,6 +11,12 @@ from flashpilot.workload.profiles import CI_PROFILE
 from flashpilot.workload.trainer import TrainingRuntime, create_training_runtime, train_until
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """Create the ignored parent required by pytest's repository-local basetemp."""
+
+    (config.rootpath / ".pytest-local").mkdir(exist_ok=True)
+
+
 @dataclass(frozen=True, slots=True)
 class SafeFullFixture:
     run_root: Path

@@ -15,7 +15,7 @@ functionality.
 - [x] Repeated CI control runs match.
 - [x] `safe_full` writes complete training state and direct restore matches the control.
 - [ ] Safe full and safe adapter-aware recovery pass the deterministic Recovery Gate.
-- [ ] Primary valid-but-incomplete checkpoint fails for the intended continuation reasons.
+- [x] Primary valid-but-incomplete checkpoint loads but diverges for the intended continuation reasons.
 - [ ] Parent performs a real kill and a new process restores.
 - [ ] GPT-5.6 contract and diagnosis roles work live or through labeled fixtures.
 - [ ] Sanitized failure request excludes every forbidden disclosure.

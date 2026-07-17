@@ -211,3 +211,104 @@ above; no test was disabled, xfailed, or weakened.
   `tests/integration/test_safe_full.py`, and the Prompt 1 unit test modules;
 - `docs/architecture.md`, `docs/decisions.md`, `docs/build-log.md`,
   `docs/codex-contributions.md`, and `docs/submission-checklist.md`.
+
+## Milestone 2 — adapter-aware and incomplete recovery fixture
+
+- Date: 2026-07-17
+- Objective: implement only the minimal native adapter boundary, immutable-base
+  adapter-aware checkpoints, and the valid-but-incomplete continuation fixture.
+- Human constraints: Section 28.5 remains binding; Prompt 2 is the only
+  authorized milestone; Prompt 0 determinism, Prompt 1 integrity/containment,
+  repository-local pytest paths, CPU-only execution, and the Windows durability
+  limitation remain unchanged.
+- Local validation runtime: Python 3.12.13, PyTorch 2.13.0+cpu, NumPy 2.5.1,
+  Windows 11. Python 3.11 remains the project and Ruff compatibility target.
+- Pytest ACL note: the first tool-side focused run could not remove an existing
+  host-owned `.pytest-local/temp`. The inaccessible ignored tree could not be
+  read, reset, or removed by the non-administrator account, so it was moved to
+  `C:\tmp\flashpilot-pytest-local-acl-backup-20260717`. Pytest then recreated
+  the exact configured repository-local paths. `tests/conftest.py` now creates
+  only the ignored `.pytest-local` parent on clean checkouts; `tmp_path`, the
+  integration tests, and the configured temp/cache locations are unchanged.
+- Measurement correction: the first metrics command evaluated `load_succeeded`
+  after the incomplete runtime had already advanced from step 12 to step 24,
+  producing a false observation. A fresh run captured the loaded step before
+  continuation; the corrected actual result below reports `true` and step 12.
+
+### Measured demo-profile checkpoint structure
+
+The corrected measurement used checkpoint step 12 of 24:
+
+| Quantity | Actual logical bytes |
+| --- | ---: |
+| `safe_full` checkpoint | 126,218 |
+| Frozen-base payload (`base.pt`) | 93,987 |
+| Complete immutable base artifact | 94,448 |
+| Recurring `safe_adapter_aware` checkpoint | 32,743 |
+| First adapter-aware checkpoint including base | 127,191 |
+
+Actual file-byte sums matched the reported logical bytes for both the
+126,218-byte full checkpoint and 32,743-byte recurring adapter checkpoint. The
+recurring structural reduction is 93,475 bytes (74.0583751921279%). The first
+adapter-aware write is 973 bytes larger than `safe_full` because it includes the
+one-time base. This is structural accounting only, not a storage-savings or
+Recovery Gate verdict.
+
+Actual timing and identity evidence from the corrected run:
+
+```text
+safe_full.commit_seconds: 0.1317292999883648
+safe_full.restore_seconds: 0.042678199999500066
+safe_adapter_aware.base_commit_seconds: 0.035418399987975135
+safe_adapter_aware.recurring_commit_seconds: 0.08929259999422356
+safe_adapter_aware.restore_seconds: 0.043570100009674206
+base_sha256: 9a8da8bdc2b9e7fc6b84c04f83940db56da8fa76c1f8b3c002339eea2a3dbce5
+safe_full.direct_restore_matches_control: true
+safe_adapter_aware.direct_restore_matches_control: true
+```
+
+`missing_training_state` validation and loading both succeeded at global step
+12. After real dropout-enabled continuation to step 24, final step still
+matched, while loss suffix, trainable-state digest, evaluation digest,
+optimizer digest, and scheduler digest all differed from the uninterrupted
+control. Its manifest explicitly omitted optimizer, scheduler, Python RNG,
+NumPy RNG, and Torch RNG state.
+
+### Final quality-gate output
+
+```text
+.\.venv\Scripts\ruff.exe check .
+All checks passed!
+
+.\.venv\Scripts\ruff.exe format --check .
+40 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................s....                            [100%]
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314]
+44 passed, 1 skipped in 4.71s
+```
+
+The platform-conditional symlink test remains enabled and unchanged. Windows
+does not permit this non-administrator host to create its fixture. Payload and
+metadata files are synchronized and the directory rename is atomic; directory
+`fsync` remains unsupported through Python on Windows and is reported as
+best-effort.
+
+### Prompt 2 acceptance audit
+
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| Minimal `TrainerAdapter` abstraction | PASS | Capability, summary, state partition, and strict restore methods only; no process or repair surface. |
+| `NativePyTorchAdapter` only | PASS | Fixed `get_adapter("native-pytorch")`; unsupported names fail. |
+| `WorkloadCapabilities` and `SaveRestoreSummary` | PASS | Strict deterministic models and exact strategy summaries. |
+| Complete `safe_adapter_aware` | PASS | One immutable base plus recurring adapter, optimizer, scheduler, step, Python/NumPy/Torch RNG, manifest, checksums, and marker. |
+| Valid `missing_training_state` | PASS | Checksum validation and direct loading succeed; exact omissions are explicit. |
+| Direct restore for each strategy | PASS | Safe adapter-aware matches control exactly; incomplete state loads at step 12. |
+| Measured byte comparison | PASS | Actual table and file-byte equality above; no padding or baseline inflation. |
+| Missing-base and wrong-hash rejection | PASS | Both fail closed before base tensor deserialization. |
+| Incomplete continuation divergence | PASS | Real dropout-enabled continuation differs in loss, trainable, evaluation, optimizer, and scheduler digests. |
+| Established-practice positioning | PASS | `docs/research.md` explicitly disclaims invention and limits the result. |
+| Required quality gates | PASS | Ruff and pytest output above. |
+
+No Prompt 3 or later functionality was started.

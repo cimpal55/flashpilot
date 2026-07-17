@@ -32,9 +32,10 @@ def validate_managed_relative_path(value: str) -> str:
 
 
 ManagedRelativePath = Annotated[str, AfterValidator(validate_managed_relative_path)]
-PayloadRole = Literal["model", "optimizer", "scheduler", "rng", "state"]
+PayloadRole = Literal["model", "adapter", "optimizer", "scheduler", "rng", "state"]
 SerializedStateName = Literal[
     "model",
+    "adapter",
     "optimizer",
     "scheduler",
     "global_step",
@@ -42,6 +43,7 @@ SerializedStateName = Literal[
     "numpy_rng",
     "torch_rng",
     "config",
+    "base_model_identity",
 ]
 
 SAFE_FULL_PAYLOADS: dict[PayloadRole, str] = {
@@ -60,6 +62,41 @@ SAFE_FULL_SERIALIZED_STATE: tuple[SerializedStateName, ...] = (
     "numpy_rng",
     "torch_rng",
     "config",
+)
+SAFE_ADAPTER_AWARE_PAYLOADS: dict[PayloadRole, str] = {
+    "adapter": "adapter.pt",
+    "optimizer": "optimizer.pt",
+    "scheduler": "scheduler.pt",
+    "rng": "rng.pt",
+    "state": "state.json",
+}
+SAFE_ADAPTER_AWARE_SERIALIZED_STATE: tuple[SerializedStateName, ...] = (
+    "adapter",
+    "optimizer",
+    "scheduler",
+    "global_step",
+    "python_rng",
+    "numpy_rng",
+    "torch_rng",
+    "config",
+    "base_model_identity",
+)
+MISSING_TRAINING_STATE_PAYLOADS: dict[PayloadRole, str] = {
+    "adapter": "adapter.pt",
+    "state": "state.json",
+}
+MISSING_TRAINING_STATE_SERIALIZED_STATE: tuple[SerializedStateName, ...] = (
+    "adapter",
+    "global_step",
+    "config",
+    "base_model_identity",
+)
+MISSING_TRAINING_STATE_OMISSIONS: tuple[SerializedStateName, ...] = (
+    "optimizer",
+    "scheduler",
+    "python_rng",
+    "numpy_rng",
+    "torch_rng",
 )
 
 
@@ -94,27 +131,55 @@ class ManifestPayload(StrictModel):
     size_bytes: int = Field(ge=0)
 
 
+class BaseArtifactReference(StrictModel):
+    identity: str = Field(min_length=1)
+    path: ManagedRelativePath
+    sha256: str = Field(pattern=SHA256_PATTERN)
+    size_bytes: int = Field(gt=0)
+
+
 class CheckpointManifest(StrictModel):
     schema_version: Literal["checkpoint-manifest-v1"] = "checkpoint-manifest-v1"
     checkpoint_id: str = Field(pattern=CHECKPOINT_ID_PATTERN)
-    strategy: Literal["safe_full"] = "safe_full"
+    strategy: Literal["safe_full", "safe_adapter_aware", "missing_training_state"] = "safe_full"
     profile: Literal["ci", "demo"]
     global_step: int = Field(ge=0)
     created_at: datetime
     serialized_state: tuple[SerializedStateName, ...]
+    omitted_state: tuple[SerializedStateName, ...] = ()
+    base_artifact: BaseArtifactReference | None = None
     payloads: tuple[ManifestPayload, ...]
 
     @model_validator(mode="after")
-    def validate_safe_full_contract(self) -> CheckpointManifest:
+    def validate_strategy_contract(self) -> CheckpointManifest:
         if self.created_at.tzinfo is None:
             raise ValueError("created_at must include a timezone")
-        if tuple(self.serialized_state) != SAFE_FULL_SERIALIZED_STATE:
-            raise ValueError("safe_full must declare the complete serialized state")
         payload_mapping = {payload.role: payload.path for payload in self.payloads}
         if len(payload_mapping) != len(self.payloads):
             raise ValueError("manifest payload roles must be unique")
-        if payload_mapping != SAFE_FULL_PAYLOADS:
-            raise ValueError("safe_full manifest payload set is incomplete")
+        if self.strategy == "safe_full":
+            if tuple(self.serialized_state) != SAFE_FULL_SERIALIZED_STATE:
+                raise ValueError("safe_full must declare the complete serialized state")
+            if self.omitted_state or self.base_artifact is not None:
+                raise ValueError("safe_full must not declare omitted or external base state")
+            if payload_mapping != SAFE_FULL_PAYLOADS:
+                raise ValueError("safe_full manifest payload set is incomplete")
+        elif self.strategy == "safe_adapter_aware":
+            if tuple(self.serialized_state) != SAFE_ADAPTER_AWARE_SERIALIZED_STATE:
+                raise ValueError("safe_adapter_aware serialized state is incomplete")
+            if self.omitted_state or self.base_artifact is None:
+                raise ValueError("safe_adapter_aware requires a base and no omissions")
+            if payload_mapping != SAFE_ADAPTER_AWARE_PAYLOADS:
+                raise ValueError("safe_adapter_aware manifest payload set is incomplete")
+        else:
+            if tuple(self.serialized_state) != MISSING_TRAINING_STATE_SERIALIZED_STATE:
+                raise ValueError("missing_training_state serialized state is invalid")
+            if tuple(self.omitted_state) != MISSING_TRAINING_STATE_OMISSIONS:
+                raise ValueError("missing_training_state must declare every intentional omission")
+            if self.base_artifact is None:
+                raise ValueError("missing_training_state requires the frozen base reference")
+            if payload_mapping != MISSING_TRAINING_STATE_PAYLOADS:
+                raise ValueError("missing_training_state manifest payload set is invalid")
         return self
 
 
@@ -151,4 +216,36 @@ class SafeFullState(StrictModel):
             raise ValueError("global_step exceeds the profile's final step")
         if len(self.loss_history) != self.global_step:
             raise ValueError("loss history must contain one entry per completed step")
+        return self
+
+
+class AdapterCheckpointState(StrictModel):
+    schema_version: Literal["adapter-checkpoint-state-v1"] = "adapter-checkpoint-state-v1"
+    checkpoint_id: str = Field(pattern=CHECKPOINT_ID_PATTERN)
+    strategy: Literal["safe_adapter_aware", "missing_training_state"]
+    global_step: int = Field(ge=0)
+    profile: WorkloadProfileSnapshot
+    loss_history: tuple[float, ...]
+    base_artifact: BaseArtifactReference
+
+    @model_validator(mode="after")
+    def validate_progress(self) -> AdapterCheckpointState:
+        if self.global_step > self.profile.steps:
+            raise ValueError("global_step exceeds the profile's final step")
+        if len(self.loss_history) != self.global_step:
+            raise ValueError("loss history must contain one entry per completed step")
+        return self
+
+
+class BaseArtifactMetadata(StrictModel):
+    schema_version: Literal["base-artifact-v1"] = "base-artifact-v1"
+    adapter_name: Literal["native-pytorch"] = "native-pytorch"
+    profile: Literal["ci", "demo"]
+    artifact: BaseArtifactReference
+
+    @model_validator(mode="after")
+    def validate_native_identity(self) -> BaseArtifactMetadata:
+        expected_identity = f"native-pytorch:{self.profile}:{self.artifact.sha256}"
+        if self.artifact.identity != expected_identity:
+            raise ValueError("base artifact identity must include its profile and SHA-256")
         return self

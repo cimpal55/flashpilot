@@ -46,3 +46,18 @@ FlashRecovery paper.
 3. Recovery and large-scale failures: OPT, MegaScale, and FlashRecovery.
 4. Application-level write reduction: adapter-aware state selection and honest logical-byte measurement.
 5. SSD-level roadmap only: REO, MiDAS, FDP/WARP, and related device research.
+
+## Adapter-aware checkpoint positioning
+
+Saving only trainable adapter weights while retaining an immutable frozen base
+is treated here as established parameter-efficient training practice, not a
+FlashPilot invention. Prompt 2's narrower engineering contribution is the
+explicit continuation contract around that structure: the recurring safe
+checkpoint also carries optimizer, scheduler, global step, and relevant RNG
+state; it binds the external base by identity and SHA-256; and direct restore is
+compared with the uninterrupted control.
+
+The measured recurring-byte difference is a structural result for this one
+controlled model and serialization format. The immutable base is counted
+separately and included in first-write cost. No general compression, physical
+device savings, SSD lifetime improvement, or recovery verdict is inferred.

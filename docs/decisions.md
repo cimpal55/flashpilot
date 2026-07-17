@@ -41,6 +41,9 @@ isolates tests from host-global temporary directories and cache directories that
 may carry incompatible ACLs when the same checkout is used from a normal Windows
 PowerShell session and a sandboxed development process. The entire generated
 directory is ignored by Git; tests continue to use `tmp_path` normally.
+The test configuration creates only the ignored `.pytest-local` parent during
+pytest startup because pytest does not create the parent of `--basetemp` on a
+clean checkout. The configured temp and cache paths themselves are unchanged.
 
 ## D-007: Safe full is the only Prompt 1 checkpoint strategy
 
@@ -69,6 +72,45 @@ escapes, and symlink escapes are rejected. Retention considers only validated
 direct checkpoint children, keeps the newest requested count, and separately
 protects the explicitly supplied latest verified checkpoint. Prompt 1 does not
 itself declare any checkpoint Recovery-Gate verified.
+
+## D-010: Fixed native adapter boundary
+
+P0 exposes one minimal `TrainerAdapter` implementation,
+`NativePyTorchAdapter`, through `get_adapter("native-pytorch")`. The adapter
+reports deterministic capabilities and save/restore summaries and partitions
+the controlled model into frozen-base and trainable-adapter state. There is no
+plugin discovery, entry-point loading, framework detection, external adapter
+loading, command construction, or repair execution.
+
+## D-011: Immutable base plus recurring adapter state
+
+`safe_adapter_aware` stores the frozen non-adapter state once at the fixed,
+contained `artifacts/frozen-base/base.pt` location. Its identity includes the
+profile and payload SHA-256. A recurring checkpoint references that identity,
+path, hash, and size and stores the adapter, optimizer, scheduler, global step,
+Python/NumPy/Torch RNG, immutable profile, manifest, checksums, and completion
+marker. Existing base artifacts are validated and compared tensor-for-tensor
+with the current runtime before reuse; they are never replaced in place.
+
+## D-012: Loadability and continuation correctness are separate
+
+`missing_training_state` is intentionally a valid, checksum-valid checkpoint.
+It restores the frozen base, trainable adapter, global step, profile, and loss
+history, while its manifest explicitly omits optimizer, scheduler, and
+Python/NumPy/Torch RNG state. Direct loading is therefore allowed. Continued
+training uses the real dropout-enabled path and diverges from the uninterrupted
+control, demonstrating that integrity and loadability do not prove exact
+continuation. Prompt 2 does not add or simulate a Recovery Gate.
+
+## D-013: Separate recurring structure from first-write cost
+
+Prompt 2 reports three adapter-aware byte quantities separately: immutable base
+artifact bytes, recurring checkpoint bytes, and their first-checkpoint total.
+The structural comparison is `safe_full` recurring bytes minus adapter-aware
+recurring bytes. It is not called a storage-savings verdict because the
+deterministic Recovery Gate is not implemented yet. No padding, synthetic
+baseline inflation, physical NAND estimate, or write-amplification claim is
+permitted.
 
 ## Binding decisions for later milestones
 

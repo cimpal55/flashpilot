@@ -52,3 +52,33 @@ Codex performed the following concrete work under the binding Prompt 1 scope:
 Codex did not implement Prompt 2 adapter abstractions or adapter-aware state,
 GPT providers, process termination, a Recovery Gate, repair logic, HTML,
 packaging/release artifacts, plugin discovery, or additional frameworks.
+
+## Milestone 2
+
+Codex performed the following concrete work under the binding Prompt 2 scope:
+
+- added a deliberately minimal `TrainerAdapter` abstraction and the only P0
+  implementation, `NativePyTorchAdapter`, with a fixed plain lookup function;
+- added strict `WorkloadCapabilities` and `SaveRestoreSummary` models without
+  plugin discovery, command builders, framework detection, or repair methods;
+- partitioned native model state into the immutable frozen base and trainable
+  residual adapter with strict key validation on restore;
+- implemented atomic one-time frozen-base persistence with payload and metadata
+  file synchronization, same-filesystem rename, fixed contained paths, identity,
+  SHA-256, size, completion marker, and tensor-for-tensor reuse validation;
+- implemented `safe_adapter_aware` recurring checkpoints containing adapter,
+  optimizer, scheduler, step, Python/NumPy/Torch RNG, profile, base reference,
+  manifest, checksums, and completion marker;
+- implemented `missing_training_state` as a valid, loadable checkpoint whose
+  manifest explicitly declares the omitted optimizer, scheduler, and RNG state;
+- implemented direct restore for both strategies, validating checkpoint and base
+  integrity before deserializing tensors with `weights_only=True`;
+- added tests proving exact adapter-aware continuation, one-time base reuse,
+  immutable-base enforcement, structural byte reduction, missing/wrong-base
+  rejection, and real dropout-path divergence after incomplete-state loading;
+- measured demo-profile full, base, recurring adapter, first-write, restore, and
+  divergence evidence without adding padding or claiming storage savings.
+
+Codex did not implement GPT integration or disclosure labels, subprocess
+workers or termination, a Recovery Gate, bounded repair, HTML, packaging,
+Docker, Hugging Face support, plugin discovery, or any additional adapter.
