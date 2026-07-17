@@ -474,3 +474,239 @@ SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [Wi
 | Prompt 4 exclusion | PASS | No GPT provider, contract inference, diagnosis, repair, HTML, or packaging. |
 
 No Prompt 4 or later functionality was started.
+
+## Milestone 4 — GPT-5.6 contract and blind failure analyst
+
+- Date: 2026-07-17
+- Objective: implement exactly the checkpoint-contract and blind
+  failure-diagnosis roles with typed bounded repair proposals, live and fixture
+  providers, deterministic guardrails, and no repair execution.
+- Binding scope: Section 28.5 remains authoritative. Prompt 0 determinism,
+  Prompt 1 integrity and containment, Prompt 2 strategies, Prompt 3 process
+  proof and exact Recovery Gate, one native adapter, and project-local pytest
+  paths remain unchanged.
+- Local runtime: Python 3.12.13, OpenAI Python SDK 2.46.0, PyTorch 2.13.0+cpu,
+  NumPy 2.5.1, Windows 11. Python 3.11 remains the compatibility target.
+- `OPENAI_API_KEY` availability check: `false`. No live call was attempted and
+  no live result is claimed. One live contract call and one live diagnosis call
+  remain an explicit manual task.
+- The official Docs MCP was not available in the session. The required
+  `codex mcp add openaiDeveloperDocs --url https://developers.openai.com/mcp`
+  attempt was denied by the host, so implementation verification used the
+  official OpenAI structured-output, Responses API, and GPT-5.6 model pages.
+- Local SDK inspection confirmed `OpenAI().responses.parse` supports
+  `text_format` and `store`. Strict-schema generation succeeded for both
+  Pydantic output models (`CheckpointContract`: 1,768 JSON-schema bytes;
+  `FailureAnalysis`: 2,456 JSON-schema bytes).
+
+### Provider and fixture evidence
+
+Both live providers call `responses.parse` with:
+
+```text
+model="gpt-5.6"
+text_format=<role-specific Pydantic model>
+store=False
+tools omitted
+```
+
+Recording-SDK tests assert those exact arguments. The fixture providers use
+the same typed interfaces and persist labels:
+
+```text
+provider: fixture
+live_or_fixture: fixture
+fixture_provenance: deterministic_local_fixture
+model: gpt-5.6
+store: false
+```
+
+The provenance is intentionally not `live_gpt_5_6_capture`: the committed
+fixtures are deterministic local Prompt 4 fixtures because no API key was
+available. They must be replaced or supplemented only after real live calls.
+
+Fixture replay against the preserved Prompt 3 red artifact produced:
+
+```text
+contract required state:
+  adapter, optimizer, scheduler, global_step,
+  python_rng, numpy_rng, torch_rng, base_model_identity
+contract integrity controls:
+  manifest, checksums, completion_marker, atomic_commit, base_artifact_hash
+failure confidence: high
+accepted actions:
+  persist_optimizer_state
+  persist_scheduler_state
+  persist_python_rng_state
+  persist_numpy_rng_state
+  persist_torch_rng_state
+  restore_state_before_next_batch
+rejected actions: none
+unsupported actions: none
+execution_performed: false
+```
+
+A separate deterministic classification probe reported:
+
+```text
+accepted: persist_optimizer_state
+unsupported: persist_sampler_state
+rejected: duplicate persist_optimizer_state
+rejected: command-bearing persist_scheduler_state
+attempt_number: 1
+execution_performed: false
+```
+
+This proves known public actions remain parseable but are explicitly
+unsupported when they are outside the six native capabilities. It does not
+apply a repair.
+
+### Sanitized API boundary
+
+The recording-SDK test inspects the complete system-plus-user input supplied to
+the live failure provider. Direct inspection of the preserved fixture request
+reported:
+
+```text
+missing_training_state: False
+missing-training-state: False
+inject_failure: False
+failure_injection: False
+expected_diagnosis: False
+repair_preset: False
+```
+
+Additional guards reject absolute local paths, URLs, secret-like values, API
+key fields, command and patch text, raw tensor/weight fields, dataset/sample
+fields, and raw numeric arrays. Model-output validation rejects tolerance
+changes, disabled checks, recovery-verification claims, corruption-repair
+claims, unknown evidence, duplicates, and unsafe action text.
+
+### Pytest ACL observation
+
+The first focused run reached 28 passing tests but four `tmp_path` fixture
+setups failed because an existing ignored `.pytest-local` tree had ACLs from a
+different execution principal. The source resolved exactly to the configured
+repository path. A sandboxed move was denied; an approved host move preserved
+it at:
+
+```text
+C:\tmp\flashpilot-pytest-local-acl-backup-prompt4-20260717
+```
+
+Pytest recreated the unchanged `.pytest-local/temp` and `.pytest-local/cache`
+paths under the current account. No test, fixture, or pytest configuration was
+disabled or weakened.
+
+### Actual test output
+
+Focused provider and guardrail run after the ACL correction:
+
+```text
+.\.venv\Scripts\python.exe -m pytest -q tests\unit\test_agent_providers.py tests\unit\test_agent_guardrails.py
+................................                                         [100%]
+32 passed in 1.34s
+```
+
+Expanded Prompt 4 and affected-boundary run:
+
+```text
+.\.venv\Scripts\python.exe -m pytest -q tests\unit\test_agent_providers.py tests\unit\test_agent_guardrails.py tests\unit\test_failure_artifact.py tests\unit\test_adapters.py
+.........................................................                [100%]
+57 passed in 1.38s
+```
+
+Final quality gates:
+
+```text
+.\.venv\Scripts\ruff.exe check .
+All checks passed!
+
+.\.venv\Scripts\ruff.exe format --check .
+62 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 68%]
+............................s....                                        [100%]
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314]
+104 passed, 1 skipped in 53.45s
+```
+
+The platform-conditional Windows symlink test remains enabled and unchanged.
+
+### Prompt 4 acceptance audit
+
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| Exactly two GPT-5.6 roles | PASS | Contract inference and blind failure analysis only. |
+| Official SDK and Responses API | PASS | `responses.parse` is used by both live providers. |
+| Exact model and storage policy | PASS | `model="gpt-5.6"`, `store=False`, asserted by recording SDK tests. |
+| Structured outputs | PASS | Strict Pydantic contract and analysis schemas; local strict-schema conversion succeeds. |
+| Live and labeled fixture providers | PASS | Two live and two deterministic-local fixture providers share typed protocols. |
+| Native capability scope | PASS | Exactly the six Section 28.5 actions are advertised. |
+| Known unsupported action reporting | PASS | Public enum remains complete; non-native actions receive `unsupported`. |
+| Sanitized failure boundary | PASS | Complete mocked API input and persisted request pass all forbidden-string guards. |
+| No commands, patches, paths, URLs, secrets, raw data, or tolerance changes | PASS | Input/output guards and negative tests cover each category. |
+| GPT cannot declare or perform recovery | PASS | No tools or executor; verification and corruption-repair claims are rejected. |
+| Deterministic contract validation | PASS | Rollback, mandatory state, integrity minimum, and capability gaps are enforced. |
+| Deterministic repair-plan validation | PASS | Allowlist, native capability, evidence, duplicate/conflict, and safety decisions are recorded. |
+| One-attempt limit | PASS | Exclusive attempt-one admission rejects a second admission and records no execution. |
+| Secret-free metadata persistence | PASS | Request hash, provider, model, versions, timestamp, source, response ID, and `store` are persisted. |
+| Live validation | OUTSTANDING | `OPENAI_API_KEY` was unavailable; no live output was invented. |
+| Prompt 5 exclusion | PASS | No repair execution, repaired strategy, second crash, or red-to-green orchestration. |
+
+No Prompt 5 or later functionality was started.
+
+## Post-Prompt 4 pytest cross-context ACL correction
+
+- Date: 2026-07-17
+- Scope: pytest infrastructure only; Prompt 5 remains unstarted.
+- Independent host-user verification using a unique `%TEMP%` basetemp and a
+  disabled cache provider passed the full suite twice with 104 passed and the
+  one expected Windows symlink skip. The focused agent suite passed 40 tests.
+- Root cause: fixed `.pytest-local/temp` and `.pytest-local/cache` directories
+  were shared by normal host-user and sandbox security contexts. Whichever
+  principal created or recreated the directories could leave ACLs that blocked
+  the other principal before `tmp_path` fixture setup. Product test bodies were
+  not responsible for those failures.
+- Failed approach: keeping fixed repository-local temp/cache paths and moving
+  or recreating their shared parent only transferred the immediate ownership
+  problem. It did not provide cross-security-context isolation.
+- Permanent correction: remove `--basetemp=.pytest-local/temp`, remove
+  `cache_dir=.pytest-local/cache`, remove the pytest startup hook that created
+  `.pytest-local`, allow pytest to use its normal unique per-user/per-invocation
+  operating-system temporary directory, and disable cacheprovider with
+  `-p no:cacheprovider` because cache state is not required for correctness.
+- No product test, skip condition, xfail, tolerance, or Recovery Gate check was
+  changed.
+
+Final default-command output:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+62 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 68%]
+............................s....                                        [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314]
+104 passed, 1 skipped in 55.04s
+```
+
+Focused agent output using the requested PowerShell continuation syntax:
+
+```text
+.\.venv\Scripts\python.exe -m pytest `
+  .\tests\unit\test_agent_providers.py `
+  .\tests\unit\test_agent_guardrails.py `
+  -q
+........................................                                 [100%]
+40 passed in 1.31s
+```
+
+The final output contains no ACL failure and no unknown `cache_dir` option
+warning. Prompt 5 was not started.

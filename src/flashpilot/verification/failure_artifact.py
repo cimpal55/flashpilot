@@ -18,6 +18,10 @@ from flashpilot.domain.recovery import (
 FORBIDDEN_FAILURE_PAYLOAD_TERMS = (
     "missing_training_state",
     "missing-training-state",
+    "inject_failure",
+    "failure_injection",
+    "expected_diagnosis",
+    "repair_preset",
     "injection label",
     "failure-injection",
     "expected diagnosis",

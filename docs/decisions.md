@@ -33,17 +33,24 @@ Loadability is not proof of correct continuation. The uninterrupted control is
 the deterministic reference for final trainable state, fixed evaluation, and
 continued trajectory.
 
-## D-006: Project-local pytest runtime paths
+## D-006: Per-invocation pytest temporary paths and no cache provider
 
-Pytest uses `.pytest-local/temp` for temporary fixtures and
-`.pytest-local/cache` for its cache. Keeping both paths under the repository
-isolates tests from host-global temporary directories and cache directories that
-may carry incompatible ACLs when the same checkout is used from a normal Windows
-PowerShell session and a sandboxed development process. The entire generated
-directory is ignored by Git; tests continue to use `tmp_path` normally.
-The test configuration creates only the ignored `.pytest-local` parent during
-pytest startup because pytest does not create the parent of `--basetemp` on a
-clean checkout. The configured temp and cache paths themselves are unchanged.
+The earlier fixed `.pytest-local/temp` and `.pytest-local/cache` design failed
+when the same Windows checkout was used across host-user and sandbox security
+contexts. A directory created by one principal could be visible but not
+removable or writable by the other, causing `tmp_path` fixture setup to fail
+before product tests ran. Moving or recreating that shared directory only
+changed its current owner and did not solve the cross-context design flaw.
+
+Pytest now uses its normal unique per-user/per-invocation operating-system
+temporary directory. The default project configuration disables the cache
+provider with `-p no:cacheprovider`, because pytest cache state is not required
+for correctness, and contains neither `--basetemp` nor `cache_dir`. This avoids
+shared repository ACL state without administrator rights, ACL rewriting,
+hardcoded users, or hardcoded home-directory paths. Independent host-user
+verification with isolated temporary paths passed 104 tests with the one
+expected platform symlink skip; the corrected default project command is the
+permanent equivalent and is verified in the build log.
 
 ## D-007: Safe full is the only Prompt 1 checkpoint strategy
 
@@ -166,6 +173,45 @@ SHA-256 validation before tensor deserialization. No Recovery Gate result,
 failure-analysis request, policy diagnosis, or repair scenario is generated for
 that invalid checkpoint. A missing external base fails at the equivalent
 pre-deserialization validation boundary.
+
+## D-019: Exactly two bounded GPT-5.6 roles
+
+Prompt 4 exposes only checkpoint-contract inference and blind recovery-failure
+analysis. Both live providers use the official OpenAI Python SDK,
+`responses.parse`, `model="gpt-5.6"`, Pydantic structured outputs, and
+`store=False`; neither call supplies tools. Fixture providers implement the
+same typed protocols and are labeled `fixture` with provenance
+`deterministic_local_fixture`. That provenance is deliberately distinct from a
+captured live response because `OPENAI_API_KEY` was unavailable during local
+validation. Live validation remains a manual task rather than a fabricated
+claim.
+
+## D-020: The sanitized artifact is the complete diagnosis boundary
+
+The live failure provider accepts only `SanitizedFailureArtifact`, reuses the
+Prompt 3 forbidden-disclosure guard, and additionally rejects absolute local
+paths, URLs, secret-like data, command or patch text, prohibited raw-data
+fields, and raw numeric arrays. The API request contains only a fixed system
+prompt and canonical JSON from that typed artifact. No tools, arbitrary files,
+raw tensors, dataset samples, or API credentials are available to the model.
+
+## D-021: Model output proposes; deterministic code classifies
+
+The public schema retains all 21 known repair actions. The active native
+adapter advertises only the six binding P0 capabilities. Deterministic
+post-parse validation classifies supported evidence-linked actions as accepted,
+known non-native actions as unsupported, and duplicates, unsafe content, or
+unrecognized evidence as rejected. It also rejects tolerance changes, disabled
+checks, recovery-verification claims, and claims that corrupted bytes were
+repaired. Prompt 4 persists the proposal and classification but has no repair
+executor, repaired strategy, or second crash.
+
+## D-022: One-attempt state is admission-only in Prompt 4
+
+An exclusive contained admission record can reserve repair attempt number one
+and rejects a second reservation for the same run. The record explicitly says
+`execution_performed=false`. This proves the hard one-attempt bound without
+prematurely implementing Prompt 5 repair execution.
 
 ## Binding decisions for later milestones
 

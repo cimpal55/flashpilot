@@ -30,8 +30,7 @@ dev = [
 where = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "-ra --basetemp=.pytest-local/temp"
-cache_dir = ".pytest-local/cache"
+addopts = "-ra -p no:cacheprovider"
 pythonpath = ["src"]
 testpaths = ["tests"]
 

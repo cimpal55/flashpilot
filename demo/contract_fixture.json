@@ -1,0 +1,66 @@
+{
+  "schema_version": "checkpoint-contract-v1",
+  "required_state": [
+    {
+      "state": "adapter",
+      "required": true,
+      "reason": "The trainable adapter must resume from the committed state."
+    },
+    {
+      "state": "optimizer",
+      "required": true,
+      "reason": "Optimizer moments affect every subsequent parameter update."
+    },
+    {
+      "state": "scheduler",
+      "required": true,
+      "reason": "The learning-rate schedule must continue at the restored step."
+    },
+    {
+      "state": "global_step",
+      "required": true,
+      "reason": "The next deterministic batch is derived from the restored global step."
+    },
+    {
+      "state": "python_rng",
+      "required": true,
+      "reason": "Python random state is part of the declared stochastic state."
+    },
+    {
+      "state": "numpy_rng",
+      "required": true,
+      "reason": "NumPy random state is part of the declared stochastic state."
+    },
+    {
+      "state": "torch_rng",
+      "required": true,
+      "reason": "Torch random state controls training dropout."
+    },
+    {
+      "state": "base_model_identity",
+      "required": true,
+      "reason": "The recurring adapter checkpoint must identify the immutable frozen base."
+    }
+  ],
+  "required_integrity_controls": [
+    "manifest",
+    "checksums",
+    "completion_marker",
+    "atomic_commit",
+    "base_artifact_hash"
+  ],
+  "restore_order_requirements": [
+    "Validate the manifest, completion marker, and checksums before deserialization.",
+    "Validate the immutable base identity and hash before restoring model partitions.",
+    "Restore adapter, optimizer, scheduler, global step, and all declared RNG state before the next batch."
+  ],
+  "rollback_limit_steps": 0,
+  "correctness_priority": "strict",
+  "assumptions": [
+    "The controlled workload is CPU-only and uses step-derived batches.",
+    "The frozen base is immutable for the lifetime of the run."
+  ],
+  "warnings": [
+    "Checkpoint loadability alone is not evidence of correct continuation."
+  ]
+}

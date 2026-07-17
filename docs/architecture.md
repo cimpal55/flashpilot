@@ -12,11 +12,11 @@ The intended architecture is deliberately narrow and staged:
 8. A minimal `TrainerAdapter` boundary exposes only `NativePyTorchAdapter` in P0 through a plain lookup function.
 9. The parent orchestrator kills a worker only after a contained, validated committed-checkpoint event and restores in a new process.
 10. The deterministic Recovery Gate compares resumed evidence with the uninterrupted control and is the only recovery authority.
-11. Future GPT-5.6 providers will consume bounded capability summaries or sanitized failure evidence and emit typed outputs without executing changes.
+11. GPT-5.6 providers consume bounded capability summaries or sanitized failure evidence and emit typed outputs without executing changes.
 12. A future repair executor will copy a typed strategy configuration, apply only six supported field changes, and run one isolated retry.
 13. Future JSON and Markdown reports will derive from deterministic results and show storage impact only after recovery passes.
 
-## Milestone status through Prompt 3
+## Milestone status through Prompt 4
 
 Items 1 through 10 are implemented. A worker commits and emits a structured
 event after rename; the parent validates the relative checkpoint path, kills
@@ -30,9 +30,24 @@ correctness, and Safety and rollback. Comparison is exact with zero tolerance.
 Both safe strategies pass across the process boundary. The valid incomplete
 strategy loads but fails nine required-state, trajectory, and contract checks
 and writes a guarded sanitized failure package. Corrupt optimizer bytes and a
-missing base fail before deserialization. There is still no GPT integration,
-repair execution, HTML, release packaging, plugin discovery, or additional
-framework adapter.
+missing base fail before deserialization. Repair execution, HTML, release
+packaging, plugin discovery, and additional framework adapters remain absent.
+
+Prompt 4 implements item 11 as exactly two roles. Contract inference consumes a
+typed natural-language objective, rollback limit, native capabilities,
+save/restore summary, and integrity protocol. Blind failure analysis accepts
+only the existing sanitized artifact. Live providers use the official SDK's
+Responses structured parser with `gpt-5.6`, `store=False`, and no tools;
+fixture/replay providers are explicitly labeled deterministic local fixtures.
+
+All model outputs pass deterministic post-parse validation. The native adapter
+advertises only the six binding repair actions. The complete public action enum
+remains parseable, while known non-native actions are reported as unsupported
+and unsafe or conflicting proposals are rejected. Agent requests, parsed
+outputs, validation results, and secret-free metadata have contained artifact
+paths. No repair is applied, no strategy is changed, and no second crash is
+launched in Prompt 4. Because the local environment has no `OPENAI_API_KEY`,
+live GPT-5.6 validation remains outstanding.
 
 ## Three largest implementation risks
 

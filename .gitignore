@@ -10,5 +10,7 @@ dist/
 build/
 *.egg-info/
 .env
+.env.*
+!.env.example
 runs/*
 !runs/.gitkeep

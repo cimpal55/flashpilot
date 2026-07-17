@@ -1,0 +1,88 @@
+{
+  "schema_version": "failure-analysis-v1",
+  "root_cause_hypothesis": "The restored adapter and global step are consistent, but optimizer, scheduler, and random-generator continuation state are absent from the serialized state. Training therefore resumes with reset update history and different dropout draws, matching the observed final-state and trajectory divergence.",
+  "affected_gate_checks": [
+    "state.optimizer",
+    "state.scheduler",
+    "state.python_rng",
+    "state.numpy_rng",
+    "state.torch_rng",
+    "trajectory.final_trainable",
+    "trajectory.final_evaluation",
+    "trajectory.loss_history",
+    "contract.no_mandatory_omission"
+  ],
+  "confirming_evidence": [
+    "restore:optimizer-state",
+    "restore:scheduler-state",
+    "restore:python-rng",
+    "restore:numpy-rng",
+    "restore:torch-rng",
+    "trajectory:final-trainable",
+    "trajectory:final-evaluation",
+    "trajectory:loss-history",
+    "contract:mandatory-state"
+  ],
+  "repair_plan": {
+    "actions": [
+      {
+        "action": "persist_optimizer_state",
+        "reason": "Preserve optimizer moments needed for the next update.",
+        "evidence_ids": [
+          "restore:optimizer-state"
+        ]
+      },
+      {
+        "action": "persist_scheduler_state",
+        "reason": "Preserve scheduler progress needed at the restored step.",
+        "evidence_ids": [
+          "restore:scheduler-state"
+        ]
+      },
+      {
+        "action": "persist_python_rng_state",
+        "reason": "Preserve the declared Python random-generator continuation state.",
+        "evidence_ids": [
+          "restore:python-rng"
+        ]
+      },
+      {
+        "action": "persist_numpy_rng_state",
+        "reason": "Preserve the declared NumPy random-generator continuation state.",
+        "evidence_ids": [
+          "restore:numpy-rng"
+        ]
+      },
+      {
+        "action": "persist_torch_rng_state",
+        "reason": "Preserve Torch random state used by training dropout.",
+        "evidence_ids": [
+          "restore:torch-rng",
+          "trajectory:loss-history"
+        ]
+      },
+      {
+        "action": "restore_state_before_next_batch",
+        "reason": "Restore all declared continuation state before the next training batch is evaluated.",
+        "evidence_ids": [
+          "contract:mandatory-state",
+          "trajectory:final-trainable"
+        ]
+      }
+    ],
+    "expected_gate_improvements": [
+      "Required training-state comparisons should match the committed checkpoint.",
+      "Final trainable state, evaluation, and loss history should match the uninterrupted control."
+    ],
+    "risks": [
+      "A complete plan still requires deterministic execution and a new Recovery Gate result."
+    ],
+    "assumptions": [
+      "The integrity-valid payload and immutable base reference remain unchanged."
+    ]
+  },
+  "confidence": "high",
+  "limitations": [
+    "This analysis proposes typed actions but does not apply them or establish recovery correctness."
+  ]
+}

@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from torch import Tensor
 
 from flashpilot.adapters.base import TrainerAdapter
+from flashpilot.domain.agent import NATIVE_PYTORCH_REPAIR_ACTIONS
 from flashpilot.domain.capabilities import SaveRestoreSummary, WorkloadCapabilities
 from flashpilot.workload.model import TinyTransformerLanguageModel
 
@@ -47,7 +48,7 @@ class NativePyTorchAdapter(TrainerAdapter):
             uses_cuda_rng=False,
             batch_position_is_step_derived=True,
             supported_state=("model", *_COMPLETE_STATE),
-            supported_repair_actions=(),
+            supported_repair_actions=NATIVE_PYTORCH_REPAIR_ACTIONS,
             assumptions=(
                 "CPU-only controlled workload",
                 "Only residual-adapter parameters are trainable",

@@ -3,6 +3,7 @@ import torch
 
 from flashpilot.adapters.native_pytorch import NativePyTorchAdapter
 from flashpilot.adapters.registry import get_adapter
+from flashpilot.domain.agent import NATIVE_PYTORCH_REPAIR_ACTIONS
 from flashpilot.workload.profiles import CI_PROFILE
 from flashpilot.workload.trainer import build_model
 
@@ -23,7 +24,7 @@ def test_native_capabilities_describe_controlled_cpu_workload() -> None:
     assert capabilities.uses_dropout is True
     assert capabilities.uses_torch_rng is True
     assert capabilities.uses_cuda_rng is False
-    assert capabilities.supported_repair_actions == ()
+    assert capabilities.supported_repair_actions == NATIVE_PYTORCH_REPAIR_ACTIONS
 
 
 def test_save_restore_summaries_declare_exact_omissions() -> None:

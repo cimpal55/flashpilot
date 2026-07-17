@@ -119,3 +119,37 @@ Codex performed the following concrete work under the binding Prompt 3 scope:
 Codex did not implement GPT-5.6 providers, contract inference, failure analysis,
 repair schemas or execution, a second repaired crash, HTML, packaging, Docker,
 Hugging Face support, plugin discovery, or another framework adapter.
+
+## Milestone 4
+
+Codex performed the following concrete work under the binding Prompt 4 scope:
+
+- verified the installed official OpenAI SDK's current `responses.parse`
+  signature and `store` support against official developer documentation;
+- added strict checkpoint-contract, failure-analysis, repair-plan, action,
+  validation, provider-metadata, and one-attempt admission schemas;
+- retained the complete public repair-action enum while advertising only the
+  six Section 28.5 actions from `NativePyTorchAdapter`;
+- implemented live contract and failure providers using the Responses API,
+  `model="gpt-5.6"`, Pydantic structured parsing, `store=False`, and no tools;
+- implemented contract and failure fixture/replay providers with explicit
+  deterministic-local provenance because no API key was available;
+- added fixed prompts that deny command execution, patching, tolerance changes,
+  check disabling, recovery-verification claims, and repair application;
+- extended the Prompt 3 sanitized boundary to cover every newly specified
+  forbidden label spelling plus local paths, URLs, secret-like data, command or
+  patch text, raw-data fields, and numeric arrays;
+- implemented deterministic contract minimums, rollback enforcement,
+  unsupported-state reporting, evidence validation, duplicate/conflict checks,
+  and accepted/rejected/unsupported repair-action classification;
+- persisted redacted requests, parsed responses, validation results, prompt and
+  schema versions, provider labels, model alias, timestamps, response IDs, and
+  request hashes without persisting credentials;
+- added an exclusive attempt-one admission record that performs no repair and
+  rejects a second admission;
+- added recording-SDK mocks, structured fixture tests, invalid-output tests,
+  disclosure tests, guardrail tests, capability tests, and at-most-once tests.
+
+Codex did not implement repair execution, a repaired strategy, a second crash,
+Prompt 5 orchestration, policy planning, report narration, HTML, packaging,
+Docker, Hugging Face support, plugins, or another adapter.
