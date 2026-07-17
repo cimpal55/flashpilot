@@ -86,7 +86,7 @@ class SafeFullBaselineResult:
         }
 
 
-def _capture_rng_state() -> dict[str, Any]:
+def capture_rng_state() -> dict[str, Any]:
     python_state = random.getstate()
     numpy_state = np.random.get_state()
     return {
@@ -107,7 +107,7 @@ def _capture_rng_state() -> dict[str, Any]:
     }
 
 
-def _restore_rng_state(payload: object) -> None:
+def restore_rng_state(payload: object) -> None:
     if not isinstance(payload, dict) or payload.get("schema_version") != "rng-state-v1":
         raise SafeFullRestoreError("RNG payload schema is invalid")
     try:
@@ -139,7 +139,7 @@ def _restore_rng_state(payload: object) -> None:
         raise SafeFullRestoreError("RNG payload content is invalid") from error
 
 
-def _torch_save_writer(value: object) -> PayloadWriter:
+def torch_save_writer(value: object) -> PayloadWriter:
     def write(path: Path) -> None:
         torch.save(value, path)
 
@@ -170,12 +170,12 @@ def save_safe_full(
         profile=profile_snapshot,
         loss_history=tuple(runtime.loss_history),
     )
-    rng_state = _capture_rng_state()
+    rng_state = capture_rng_state()
     payload_writers = {
-        SAFE_FULL_PAYLOADS["model"]: _torch_save_writer(runtime.model.state_dict()),
-        SAFE_FULL_PAYLOADS["optimizer"]: _torch_save_writer(runtime.optimizer.state_dict()),
-        SAFE_FULL_PAYLOADS["scheduler"]: _torch_save_writer(runtime.scheduler.state_dict()),
-        SAFE_FULL_PAYLOADS["rng"]: _torch_save_writer(rng_state),
+        SAFE_FULL_PAYLOADS["model"]: torch_save_writer(runtime.model.state_dict()),
+        SAFE_FULL_PAYLOADS["optimizer"]: torch_save_writer(runtime.optimizer.state_dict()),
+        SAFE_FULL_PAYLOADS["scheduler"]: torch_save_writer(runtime.scheduler.state_dict()),
+        SAFE_FULL_PAYLOADS["rng"]: torch_save_writer(rng_state),
         SAFE_FULL_PAYLOADS["state"]: _json_state_writer(state),
     }
     role_by_path = {path: role for role, path in SAFE_FULL_PAYLOADS.items()}
@@ -208,7 +208,7 @@ def save_safe_full(
     )
 
 
-def _load_safe_tensor_file(path: Path) -> object:
+def load_safe_tensor_file(path: Path) -> object:
     try:
         return torch.load(path, map_location="cpu", weights_only=True)
     except Exception as error:
@@ -243,14 +243,14 @@ def restore_safe_full(*, run_root: Path, checkpoint_path: Path) -> SafeFullResto
 
     runtime = create_training_runtime(profile)
     try:
-        runtime.model.load_state_dict(_load_safe_tensor_file(payload_by_role["model"]), strict=True)
-        runtime.optimizer.load_state_dict(_load_safe_tensor_file(payload_by_role["optimizer"]))
-        runtime.scheduler.load_state_dict(_load_safe_tensor_file(payload_by_role["scheduler"]))
+        runtime.model.load_state_dict(load_safe_tensor_file(payload_by_role["model"]), strict=True)
+        runtime.optimizer.load_state_dict(load_safe_tensor_file(payload_by_role["optimizer"]))
+        runtime.scheduler.load_state_dict(load_safe_tensor_file(payload_by_role["scheduler"]))
     except (RuntimeError, TypeError, ValueError) as error:
         raise SafeFullRestoreError("training state payload is incompatible") from error
     runtime.global_step = state.global_step
     runtime.loss_history = list(state.loss_history)
-    _restore_rng_state(_load_safe_tensor_file(payload_by_role["rng"]))
+    restore_rng_state(load_safe_tensor_file(payload_by_role["rng"]))
     return SafeFullRestoreResult(
         runtime=runtime,
         checkpoint=checkpoint,

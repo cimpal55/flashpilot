@@ -112,6 +112,61 @@ deterministic Recovery Gate is not implemented yet. No padding, synthetic
 baseline inflation, physical NAND estimate, or write-amplification claim is
 permitted.
 
+## D-014: Parent-owned real process termination
+
+The checkpoint worker is a real Python subprocess that remains alive after it
+emits one structured `checkpoint_committed` event. The event is constructed
+only after the atomic commit callback has observed the final renamed directory.
+The parent requires the event PID to match the launched Python process, resolves
+the event's relative checkpoint path inside the run sandbox, and validates the
+checkpoint before calling `subprocess.Popen.kill`. It records and verifies the
+exit code, then launches recovery through a new process and rejects PID reuse.
+
+On Windows, venv and console-script redirector executables may introduce a
+launcher PID distinct from the actual Python PID. Prompt 3 therefore launches
+`sys._base_executable` directly and supplies the active venv site-packages and
+project source paths through a trusted child environment. The observed Windows
+termination primitive is `TerminateProcess` through `Popen.kill`; the demo exit
+code was 1. POSIX uses the active Python executable and expects `SIGKILL`.
+
+## D-015: Exact cross-process comparison, with zero tolerance
+
+The Recovery Gate uses exact equality only. Trainable state, evaluation logits,
+optimizer state, scheduler state, and each RNG state use exact SHA-256 digest
+equality. The loss history uses exact float-sequence equality. Both CI tests and
+the demo profile passed across killed and newly launched processes for
+`safe_full` and `safe_adapter_aware`, so no nonzero tolerance was empirically
+needed. The recorded policy is `atol=0.0`, `rtol=0.0`; any difference fails.
+GPT, fixtures, CLI options, and future repair code may not change this policy.
+
+## D-016: Rollback is an observed process quantity
+
+Achieved rollback is `last_completed_step - committed_checkpoint_step`. The
+normal deterministic crash event is emitted immediately after commit, yielding
+zero rollback. A real-process negative test allows the worker to complete two
+additional steps after the committed snapshot and before emitting the event;
+with a one-step hard limit, the gate observes two rollback steps and fails only
+`rollback.hard_limit`. Rollback is not inferred from checkpoint interval alone.
+
+## D-017: Redacted failure artifact boundary
+
+A failed gate writes `agent/request.redacted.json` containing bounded
+capabilities, a local minimum checkpoint contract, sanitized manifest fields,
+restore observations, individual gate checks, state/trajectory differences,
+relative crash metadata, and stable evidence IDs. It excludes raw tensors,
+absolute home paths, the strategy field, strategy-bearing checkpoint directory,
+failure label spellings, expected diagnosis, repair preset language, and
+comments about deliberate omission. A runtime guard and tests enforce this
+before the artifact is persisted. Prompt 3 does not send the artifact anywhere.
+
+## D-018: Binary corruption is fail-closed
+
+Changing one byte of `optimizer.pt` causes the recovery worker to exit during
+SHA-256 validation before tensor deserialization. No Recovery Gate result,
+failure-analysis request, policy diagnosis, or repair scenario is generated for
+that invalid checkpoint. A missing external base fails at the equivalent
+pre-deserialization validation boundary.
+
 ## Binding decisions for later milestones
 
 - The primary failure will be a valid, loadable checkpoint that intentionally

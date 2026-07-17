@@ -14,11 +14,11 @@ functionality.
 - [x] Deterministic CPU-only control workload has no downloads.
 - [x] Repeated CI control runs match.
 - [x] `safe_full` writes complete training state and direct restore matches the control.
-- [ ] Safe full and safe adapter-aware recovery pass the deterministic Recovery Gate.
+- [x] Safe full and safe adapter-aware recovery pass the deterministic Recovery Gate.
 - [x] Primary valid-but-incomplete checkpoint loads but diverges for the intended continuation reasons.
-- [ ] Parent performs a real kill and a new process restores.
+- [x] Parent performs a real kill and a new process restores.
 - [ ] GPT-5.6 contract and diagnosis roles work live or through labeled fixtures.
-- [ ] Sanitized failure request excludes every forbidden disclosure.
+- [x] Sanitized failure request excludes every forbidden disclosure.
 - [ ] Exactly one bounded repair iteration produces a new isolated strategy and run.
 - [ ] Storage savings are reported only after recovery passes.
 

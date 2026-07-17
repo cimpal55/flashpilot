@@ -312,3 +312,165 @@ best-effort.
 | Required quality gates | PASS | Ruff and pytest output above. |
 
 No Prompt 3 or later functionality was started.
+
+## Milestone 3 — real process crash and deterministic Recovery Gate
+
+- Date: 2026-07-17
+- Objective: implement only the real worker/parent crash boundary,
+  new-process restore, deterministic Recovery Gate, rollback evidence, and
+  sanitized failure package required by Prompt 3.
+- Binding scope: Section 28.5 remains authoritative. Prompt 0 determinism,
+  Prompt 1 integrity/containment/retention, Prompt 2 strategies and byte
+  measurements, one native adapter, project-local pytest paths, and the Windows
+  durability limitation are preserved.
+- Local runtime: Python 3.12.13, PyTorch 2.13.0+cpu, NumPy 2.5.1, Windows 11.
+  Python 3.11 remains the project compatibility target.
+
+### Windows process-launch correction
+
+The first two real smoke attempts failed closed before an accepted crash because
+the Windows console-script/venv redirector PID differed from the Python PID in
+the worker event:
+
+```text
+flashpilot.orchestration.experiment.OrchestrationError:
+checkpoint event PID does not match the child process
+```
+
+The parent cleaned up both processes and did not accept either event. Worker
+commands now launch `sys._base_executable` directly on Windows and explicitly
+provide the active venv site-packages and project source paths. The next run
+recorded the same PID from `Popen` and the worker event, killed that actual
+process, and passed the gate.
+
+### Preserved demo-profile process runs
+
+All runs used checkpoint step 12 of 24 and a hard rollback limit of zero:
+
+| Strategy | Original PID | Checkpoint path | Termination | Exit | Recovery PID | Recovery exit | Recovery seconds | Gate | Rollback |
+| --- | ---: | --- | --- | ---: | ---: | ---: | ---: | --- | ---: |
+| `safe_full` | 6028 | `checkpoints/checkpoint-step-000012` | `TerminateProcess via subprocess.Popen.kill` | 1 | 6928 | 0 | 3.929737 | VERIFIED | 0 |
+| `safe_adapter_aware` | 2124 | `checkpoints/safe-adapter-aware/checkpoint-step-000012` | `TerminateProcess via subprocess.Popen.kill` | 1 | 30804 | 0 | 3.874549 | VERIFIED | 0 |
+| `missing_training_state` | 19200 | `checkpoints/missing-training-state/checkpoint-step-000012` | `TerminateProcess via subprocess.Popen.kill` | 1 | 32532 | 0 | 4.004130 | FAILED | 0 |
+
+Both safe strategies passed every applicable gate check and exactly matched the
+uninterrupted demo control after new-process continuation. The incomplete
+checkpoint remained manifest-valid, checksum-valid, loadable, and able to
+continue from batch step 12 to completed step 13 and final step 24. It failed
+these nine checks:
+
+```text
+state.optimizer
+state.scheduler
+state.python_rng
+state.numpy_rng
+state.torch_rng
+trajectory.final_trainable
+trajectory.final_evaluation
+trajectory.loss_history
+contract.no_mandatory_omission
+```
+
+Integrity, checkpoint evaluation, process termination, distinct recovery PID,
+expected next step, containment, and zero-step rollback all passed for that red
+run.
+
+### Comparison and sanitization policy
+
+Cross-process CI and demo evidence supported exact equality. The gate uses:
+
+```text
+trainable parameters: exact SHA-256
+fixed evaluation logits: exact SHA-256
+optimizer state: exact SHA-256
+scheduler state: exact SHA-256
+Python / NumPy / Torch RNG: exact SHA-256 per state
+loss history: exact float-sequence equality
+atol: 0.0
+rtol: 0.0
+```
+
+No nonzero tolerance was required or introduced. A real rollback negative run
+completed two steps beyond its checkpoint, set a one-step hard limit, recovered
+correctly, and failed only `rollback.hard_limit` with achieved rollback 2.
+
+The failed demo wrote `agent/request.redacted.json`. Direct inspection and the
+runtime/test guard reported all of the following as false:
+
+```text
+underscore failure label present: false
+hyphenated failure label present: false
+expected diagnosis language present: false
+repair preset language present: false
+injection label language present: false
+absolute home path present: false
+```
+
+The package contains observed manifest, restore, gate, state-difference,
+trajectory, integrity, crash, and stable evidence-ID data only. Prompt 3 does
+not send it to GPT or any external service.
+
+### Negative process evidence
+
+- One-byte corruption of `optimizer.pt` made the new recovery worker exit 2 on
+  checksum mismatch before tensor deserialization. No failure-analysis package
+  or repair scenario was created.
+- Removing the immutable base made adapter recovery exit 2 during base
+  validation before deserialization.
+- An unrelated incomplete temporary checkpoint directory remained present and
+  was ignored while the committed safe-full checkpoint recovered successfully.
+- A worker that exited 2 before emitting its required event was rejected with
+  the actual exit code; the parent did not accept a crash event.
+- The existing Windows symlink test remains enabled and conditionally skipped
+  only because the non-administrator host cannot create its fixture.
+
+### Actual test output before the documentation-only final rerun
+
+```text
+.\.venv\Scripts\python.exe -m pytest -q tests\unit\test_failure_artifact.py tests\integration\test_crash_recovery.py
+................                                                         [100%]
+16 passed in 48.23s
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................s....            [100%]
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314]
+60 passed, 1 skipped in 54.23s
+```
+
+### Prompt 3 acceptance audit
+
+Final post-documentation quality gates:
+
+```text
+.\.venv\Scripts\ruff.exe check .
+All checks passed!
+
+.\.venv\Scripts\ruff.exe format --check .
+52 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................s....            [100%]
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314]
+60 passed, 1 skipped in 56.95s
+```
+
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| Worker subprocess entry point | PASS | Trusted argument-array `python -m flashpilot.orchestration.worker` checkpoint/recover modes. |
+| Parent orchestrator | PASS | Starts, observes, validates, terminates, relaunches, gates, and persists results. |
+| Machine-readable committed event | PASS | One strict JSON event created only after the post-rename callback. |
+| Parent validation before kill | PASS | PID, contained relative path, manifest, checksum, step, and strategy checks precede `Popen.kill`. |
+| Expected termination verification | PASS | Actual Windows exit 1 verified after `TerminateProcess`. |
+| New-process restore | PASS | Recovery PID is recorded, distinct, and exits 0. |
+| Continue to control final step | PASS | Both safe demo runs reach step 24 and exactly equal control. |
+| All mandatory Recovery Gate checks | PASS | Twenty mandatory plus four explicit process checks retained individually and grouped in console output. |
+| Structured evidence and redacted package | PASS | Stable evidence IDs and guarded `agent/request.redacted.json`. |
+| Achieved rollback calculation | PASS | Normal demo 0; real negative observation 2 exceeds hard limit 1. |
+| Initial red demo plumbing | PASS | Valid incomplete checkpoint loads, continues, and deterministically fails nine checks. |
+| Corrupted optimizer fail-closed | PASS | Checksum rejection before load; no policy/repair artifact. |
+| Platform support notes | PASS | Windows launcher and directory-fsync limitations explicitly recorded. |
+| Required integration negatives | PASS | Corruption, incomplete temp, missing base, rollback violation, and unexpected exit covered. |
+| Exact/tolerance policy | PASS | Exact cross-process equality; `atol=rtol=0`; no nonzero tolerances. |
+| Prompt 4 exclusion | PASS | No GPT provider, contract inference, diagnosis, repair, HTML, or packaging. |
+
+No Prompt 4 or later functionality was started.

@@ -13,7 +13,12 @@ from pydantic import ValidationError
 
 from flashpilot.adapters.base import TrainerAdapter
 from flashpilot.adapters.registry import get_adapter
-from flashpilot.checkpoints.atomic import AtomicCommitResult, PayloadWriter, commit_checkpoint
+from flashpilot.checkpoints.atomic import (
+    AtomicCommitResult,
+    CommittedCallback,
+    PayloadWriter,
+    commit_checkpoint,
+)
 from flashpilot.checkpoints.base_artifact import (
     BaseArtifactResult,
     BaseArtifactValidationError,
@@ -24,10 +29,10 @@ from flashpilot.checkpoints.base_artifact import (
 from flashpilot.checkpoints.loader import ValidatedCheckpoint, validate_checkpoint
 from flashpilot.checkpoints.strategies import (
     SafeFullRestoreError,
-    _capture_rng_state,
-    _load_safe_tensor_file,
-    _restore_rng_state,
-    _torch_save_writer,
+    capture_rng_state,
+    load_safe_tensor_file,
+    restore_rng_state,
+    torch_save_writer,
 )
 from flashpilot.domain.manifests import (
     MISSING_TRAINING_STATE_OMISSIONS,
@@ -80,6 +85,7 @@ def _save_adapter_checkpoint(
     strategy: str,
     checkpoint_root_relative: str,
     trainer_adapter: TrainerAdapter,
+    on_committed: CommittedCallback | None,
 ) -> AdapterCheckpointCommit:
     base_artifact = ensure_base_artifact(
         runtime,
@@ -101,12 +107,12 @@ def _save_adapter_checkpoint(
         serialized_state = SAFE_ADAPTER_AWARE_SERIALIZED_STATE
         omitted_state = ()
         payload_writers = {
-            payload_paths["adapter"]: _torch_save_writer(
+            payload_paths["adapter"]: torch_save_writer(
                 trainer_adapter.trainable_adapter_state(runtime.model)
             ),
-            payload_paths["optimizer"]: _torch_save_writer(runtime.optimizer.state_dict()),
-            payload_paths["scheduler"]: _torch_save_writer(runtime.scheduler.state_dict()),
-            payload_paths["rng"]: _torch_save_writer(_capture_rng_state()),
+            payload_paths["optimizer"]: torch_save_writer(runtime.optimizer.state_dict()),
+            payload_paths["scheduler"]: torch_save_writer(runtime.scheduler.state_dict()),
+            payload_paths["rng"]: torch_save_writer(capture_rng_state()),
             payload_paths["state"]: _json_state_writer(state),
         }
     elif strategy == "missing_training_state":
@@ -114,7 +120,7 @@ def _save_adapter_checkpoint(
         serialized_state = MISSING_TRAINING_STATE_SERIALIZED_STATE
         omitted_state = MISSING_TRAINING_STATE_OMISSIONS
         payload_writers = {
-            payload_paths["adapter"]: _torch_save_writer(
+            payload_paths["adapter"]: torch_save_writer(
                 trainer_adapter.trainable_adapter_state(runtime.model)
             ),
             payload_paths["state"]: _json_state_writer(state),
@@ -150,6 +156,7 @@ def _save_adapter_checkpoint(
         checkpoint_id=checkpoint_id,
         payload_writers=payload_writers,
         manifest_factory=build_manifest,
+        on_committed=on_committed,
     )
     return AdapterCheckpointCommit(checkpoint=checkpoint, base_artifact=base_artifact)
 
@@ -160,6 +167,7 @@ def save_safe_adapter_aware(
     run_root: Path,
     checkpoint_root_relative: str = ADAPTER_CHECKPOINT_ROOT,
     trainer_adapter: TrainerAdapter | None = None,
+    on_committed: CommittedCallback | None = None,
 ) -> AdapterCheckpointCommit:
     """Persist adapter training state while referencing one immutable frozen base."""
 
@@ -169,6 +177,7 @@ def save_safe_adapter_aware(
         strategy="safe_adapter_aware",
         checkpoint_root_relative=checkpoint_root_relative,
         trainer_adapter=trainer_adapter or get_adapter("native-pytorch"),
+        on_committed=on_committed,
     )
 
 
@@ -178,6 +187,7 @@ def save_missing_training_state(
     run_root: Path,
     checkpoint_root_relative: str = MISSING_STATE_CHECKPOINT_ROOT,
     trainer_adapter: TrainerAdapter | None = None,
+    on_committed: CommittedCallback | None = None,
 ) -> AdapterCheckpointCommit:
     """Persist a valid, loadable checkpoint with known training-state omissions."""
 
@@ -187,6 +197,7 @@ def save_missing_training_state(
         strategy="missing_training_state",
         checkpoint_root_relative=checkpoint_root_relative,
         trainer_adapter=trainer_adapter or get_adapter("native-pytorch"),
+        on_committed=on_committed,
     )
 
 
@@ -246,7 +257,7 @@ def _restore_adapter_checkpoint(
             payload_name="frozen base",
         )
         adapter_state = _require_tensor_mapping(
-            _load_safe_tensor_file(payload_by_role["adapter"]),
+            load_safe_tensor_file(payload_by_role["adapter"]),
             payload_name="adapter payload",
         )
         runtime = create_training_runtime(profile)
@@ -256,12 +267,12 @@ def _restore_adapter_checkpoint(
             adapter_state=adapter_state,
         )
         if expected_strategy == "safe_adapter_aware":
-            runtime.optimizer.load_state_dict(_load_safe_tensor_file(payload_by_role["optimizer"]))
-            runtime.scheduler.load_state_dict(_load_safe_tensor_file(payload_by_role["scheduler"]))
+            runtime.optimizer.load_state_dict(load_safe_tensor_file(payload_by_role["optimizer"]))
+            runtime.scheduler.load_state_dict(load_safe_tensor_file(payload_by_role["scheduler"]))
         runtime.global_step = state.global_step
         runtime.loss_history = list(state.loss_history)
         if expected_strategy == "safe_adapter_aware":
-            _restore_rng_state(_load_safe_tensor_file(payload_by_role["rng"]))
+            restore_rng_state(load_safe_tensor_file(payload_by_role["rng"]))
     except (
         BaseArtifactValidationError,
         KeyError,

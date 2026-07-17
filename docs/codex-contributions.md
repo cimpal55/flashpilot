@@ -82,3 +82,40 @@ Codex performed the following concrete work under the binding Prompt 2 scope:
 Codex did not implement GPT integration or disclosure labels, subprocess
 workers or termination, a Recovery Gate, bounded repair, HTML, packaging,
 Docker, Hugging Face support, plugin discovery, or any additional adapter.
+
+## Milestone 3
+
+Codex performed the following concrete work under the binding Prompt 3 scope:
+
+- added strict structured models for checkpoint events, runtime observations,
+  process metadata, comparison policy, individual gate checks, experiment
+  results, and sanitized failure artifacts;
+- implemented a real checkpoint worker subprocess that trains, commits through
+  the existing atomic strategies, captures hash-only observations after rename,
+  emits one machine-readable event, and waits for parent-owned termination;
+- implemented parent-side event parsing, PID verification, run-sandbox path
+  resolution, checkpoint validation before termination, forceful process kill,
+  expected exit-code verification, and orphan cleanup on protocol errors;
+- diagnosed Windows venv-launcher PID indirection and switched workers to the
+  actual base Python executable with explicitly supplied venv/project paths;
+- implemented a separate recovery worker process that validates and restores
+  the checkpoint, records immediate state and RNG digests, executes the actual
+  next batch, continues to the final step, and writes a contained result;
+- implemented all 20 mandatory Recovery Gate checks plus explicit original PID,
+  termination, distinct recovery PID, and recovery exit checks;
+- implemented exact SHA-256 and loss-sequence comparisons with zero numerical
+  tolerance, plus observed rollback and hard-limit enforcement;
+- grouped console checks into the five binding categories while retaining all
+  individual checks and stable evidence IDs in `result.json`;
+- implemented a runtime-guarded `agent/request.redacted.json` package without
+  raw tensors, home paths, strategy fields/directories, failure-label spellings,
+  diagnosis expectations, or repair preset language;
+- added real-process coverage for both safe strategies, the loadable incomplete
+  strategy, optimizer corruption, missing base, incomplete temp directory,
+  two-step rollback violation, and unexpected worker exit;
+- ran and preserved demo-profile process artifacts for all three strategies and
+  recorded the actual PIDs, exit codes, rollback, and gate outcomes.
+
+Codex did not implement GPT-5.6 providers, contract inference, failure analysis,
+repair schemas or execution, a second repaired crash, HTML, packaging, Docker,
+Hugging Face support, plugin discovery, or another framework adapter.
