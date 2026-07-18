@@ -8,6 +8,10 @@ continuation correctness, uses GPT-5.6 for evidence-bounded diagnosis, applies a
 typed bounded repair, re-verifies deterministically, and reports logical storage
 impact only after recovery passes.
 
+Prompt 8 rechecked the linked primary paper or official conference page on
+2026-07-18. The descriptions below remain deliberately limited to each source's
+stated problem and to FlashPilot's narrower implemented boundary.
+
 ## Prior-art table required by the V4.1 override
 
 | Work | What it solves | How FlashPilot differs |

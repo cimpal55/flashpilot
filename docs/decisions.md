@@ -355,3 +355,22 @@ may use the configured Python package index; the installed `doctor` and `demo`
 commands themselves require no network, API key, downloaded model, or dataset.
 Only Python 3.12.13 and the recorded Windows environment are claimed as clean-
 wheel verified.
+
+## D-030: Prompt 7 is skipped and result.json is the final evidence authority
+
+Prompt 7 is optional stretch work and was intentionally skipped after Prompt 6
+passed independent clean-install review. Feature freeze is more valuable than a
+new adapter, chaos scenario, fallback path, or policy planner at this release
+stage. Prompt 8 adds no recovery capability and makes no new live API call.
+
+`result.json` is the canonical machine-readable artifact implemented by the
+project. The Prompt 8 reference to `report.json` is treated as a naming mismatch,
+not a requirement for duplicated evidence. `report.md`, `report.html`, and Rich
+console output are deterministic views of the same typed result. The final audit
+therefore does not create a redundant `report.json`.
+
+The accepted Prompt 6 measurements remain the submission measurements:
+126,218 safe-full recurring logical bytes, 32,743 repaired recurring logical
+bytes, 93,475 bytes or 74.06% recurring reduction, and a separate 93,987-byte
+one-time frozen base. The Markdown report now carries the same explicit physical-
+measurement disclaimer as JSON limitations, Rich output, HTML, and README.

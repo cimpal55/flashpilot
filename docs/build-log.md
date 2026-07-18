@@ -1267,3 +1267,197 @@ The skip is the unchanged Windows platform-conditional directory-symlink test.
 Pytest used a unique UUID basetemp with no ACL or cache warning. No test,
 tolerance, guardrail, repair limit, redaction boundary, or Recovery Gate check
 was weakened.
+
+## Prompt 8 final audit and submission package
+
+- Date: 2026-07-18
+- Scope: Prompt 8 only. Optional Prompt 7 was intentionally skipped.
+- Environment: Windows 11, repository Python 3.12.13, clean-wheel Python 3.12.13.
+- Live API calls: none.
+
+### Audit findings and correction
+
+The repository began clean at committed Prompt 6 revision `ad0bf86`. The audit
+confirmed the accepted GPT-5.6 contract and failure captures were unchanged,
+the live providers still use `responses.parse`, `model="gpt-5.6"`, Pydantic
+structured output, `store=False`, and no tools, and the judge path remained a
+clearly labeled captured-response fixture replay.
+
+The audit found one release-documentation gap: `report.md` did not include the
+mandatory logical-versus-physical measurement disclaimer already present in the
+Rich and HTML presentations. The deterministic Markdown renderer now labels the
+safe-full value as recurring logical bytes and always includes:
+
+```text
+Logical checkpoint bytes were measured in the controlled demo. Physical NAND writes, write amplification, and SSD lifetime were not measured.
+```
+
+A focused assertion now proves Markdown contains all four result-derived byte
+values and the exact disclaimer. No checkpoint, process, agent, repair, gate,
+tolerance, containment, redaction, skip, or xfail behavior changed.
+
+Focused correction verification:
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_repair_loop.py -q
+......                                                                   [100%]
+6 passed in 23.84s
+```
+
+Prompt 8 also finalized the README, a 372-word English voiceover, Devpost-ready
+English copy, the submission checklist, the release checklist, the canonical
+`result.json` clarification, engineering decisions, and concrete Codex
+contributions. No redundant `report.json` was created.
+
+### Final wheel
+
+Because the Markdown renderer is packaged code, the wheel was rebuilt with:
+
+```text
+.\.venv\Scripts\python.exe -m pip wheel . --no-deps --no-build-isolation --wheel-dir dist
+```
+
+Actual build conclusion:
+
+```text
+Created wheel for flashpilot: filename=flashpilot-0.1.0-py3-none-any.whl size=85926 sha256=95450c4e0d67f533f5543ad8a1363135aa188761f77f3644beeaa905ad497502
+Successfully built flashpilot
+```
+
+Final artifact:
+
+```text
+path: C:\Programming\business\flashpilot\dist\flashpilot-0.1.0-py3-none-any.whl
+size: 85926 bytes
+SHA-256: 95450C4E0D67F533F5543AD8A1363135AA188761F77F3644BEEAA905AD497502
+```
+
+The previously accepted Prompt 6 wheel was preserved outside the repository at
+`C:\tmp\flashpilot-0.1.0-prompt6-accepted-D8462A963F005096.whl`; it is not a
+submission artifact.
+
+### Fresh clean installation
+
+A new standard virtual environment was created without
+`--system-site-packages`:
+
+```text
+.\.venv\Scripts\python.exe -m venv C:\tmp\flashpilot-prompt8-clean-final-20260718
+C:\tmp\flashpilot-prompt8-clean-final-20260718\Scripts\python.exe -m pip install .\dist\flashpilot-0.1.0-py3-none-any.whl
+```
+
+Installation completed successfully using cached dependency distributions and
+installed `flashpilot-0.1.0` with the declared dependency set. This is not an
+offline dependency-installation claim. The application commands below made no
+API or network call.
+
+### Final clean installed judge path
+
+Working directory:
+
+```text
+C:\tmp\flashpilot-prompt8-work-final-20260718
+```
+
+Doctor command and result:
+
+```text
+flashpilot doctor
+Python version             PASS        3.12.13
+OS / platform              INFO        Windows-11-10.0.26200-SP0
+CPU execution              PASS        Torch CPU tensor execution available
+Required dependencies      PASS        numpy, openai, pydantic, rich, torch, typer
+Captured-response fixtures PASS        installed wheel data available
+Writable output location   PASS        outside-repository runs directory
+OPENAI_API_KEY             INFO        Not present (not required by fixture demo)
+Directory fsync            LIMITATION  unavailable through Python on Windows
+Doctor verdict             PASS
+```
+
+Exact judge command:
+
+```text
+flashpilot demo --provider fixture
+```
+
+Actual clean installed outcome:
+
+```text
+Generated run path: C:\tmp\flashpilot-prompt8-work-final-20260718\runs\repair-f2a124b0a506422cad054c6d1c10c685
+GPT source: GPT-5.6 captured-response fixture/replay
+Initial checkpoint: step 12; worker PID 28068; recovery PID 21260
+Initial Recovery Gate: FAIL (9 exact failures)
+change_supported_checkpoint_strategy: UNSUPPORTED
+Six native repair actions: GUARDRAIL ACCEPTED
+Repaired run: worker PID 24044; recovery PID 25644
+Final Recovery Gate: VERIFIED (24/24, atol=0.0, rtol=0.0)
+safe_full recurring logical bytes: 126218
+repaired recurring logical bytes: 32743
+one-time frozen-base cost: 93987
+recurring logical-byte reduction: 93475 bytes (74.06%)
+Internal workflow runtime: 16.92 seconds
+Total installed-command runtime: 20.7 seconds
+```
+
+The byte results exactly match the independently accepted Prompt 6 submission
+measurements. The new timing is retained as an audit-run observation and does
+not replace the accepted 16.75-second workflow and 20.41-second command timing
+used in the Devpost copy.
+
+Installed read-only commands:
+
+```text
+flashpilot audit --run-dir .\runs\repair-f2a124b0a506422cad054c6d1c10c685
+Fixture replay source: captured_live_response_replay
+Repair attempts: 1
+Original checkpoint unmodified: True
+Final Recovery Gate: VERIFIED
+
+flashpilot verify --run-dir .\runs\repair-f2a124b0a506422cad054c6d1c10c685
+VERIFIED by the persisted deterministic Recovery Gate (atol=0.0, rtol=0.0).
+
+flashpilot replay --run-dir .\runs\repair-f2a124b0a506422cad054c6d1c10c685
+Captured GPT-5.6 structured response replay matched; no API call was made.
+```
+
+An artifact consistency check confirmed initial termination and distinct restore
+PID, exactly one repair, historical checkpoint immutability, second termination
+and distinct restore PID, 24 passing final checks, zero tolerance, storage
+reporting after the pass, exact metric agreement across JSON/Markdown/HTML/
+README, the disclaimer in both reports, no external HTTP reference in HTML, and
+zero API-key or secret-pattern matches.
+
+The prior-art table was also rechecked against its linked primary papers or
+official conference pages. CheckFreq, Check-N-Run, ExCP, Amber, IncrCP, OPT,
+MegaScale, FlashRecovery, REO, MIDAS, FDP/WARP, and ZipLLM remain positioned as
+adjacent systems rather than implemented FlashPilot features. The OPT paper
+directly supports the documented 992-A100, at-least-35-manual-restart, and
+estimated-70-plus-automatic-restart framing.
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+76 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 56%]
+.............................................s..........                 [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+127 passed, 1 skipped in 74.10s (0:01:14)
+```
+
+The one skip is the unchanged Windows platform-conditional symlink-privilege
+test. Pytest used a unique UUID basetemp and emitted no ACL or cache warning.
+
+### Final scope status
+
+Prompt 8 acceptance criteria pass. Prompt 7 remains skipped. No stretch feature,
+additional adapter, new recovery functionality, desktop UI, Docker, Hugging
+Face, CUDA, policy planner, chaos scenario, or live API call was added. External
+license selection, `/feedback`, video recording/upload, optional GitHub Release,
+and Devpost submission remain manual human tasks.

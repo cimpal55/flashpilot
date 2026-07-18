@@ -17,14 +17,19 @@ python -m pip install .\dist\flashpilot-0.1.0-py3-none-any.whl
 flashpilot doctor
 ```
 
+The wheel contains FlashPilot and its captured-response fixtures, but it is not
+a fully self-contained dependency bundle. A fresh `pip install` may use the
+configured package index or local cache to resolve declared dependencies.
+
 Exact judge command:
 
 ```powershell
 flashpilot demo --provider fixture
 ```
 
-No API key, network access, model download, or dataset download is required.
-The command automatically creates and prints a unique `runs/repair-<uuid>`
+After installation, no API key, network access, model download, or dataset
+download is required by the application demo. The command automatically creates
+and prints a unique `runs/repair-<uuid>`
 directory, performs the complete real red-to-green workflow, and writes:
 
 - `result.json` — authoritative typed evidence;
@@ -50,6 +55,29 @@ directory, performs the complete real red-to-green workflow, and writes:
    immutable frozen-base cost is reported separately, and the first
    adapter-aware write is not presented as savings.
 
+## Audience and architecture
+
+FlashPilot is for ML engineers, researchers, and checkpoint-integration authors
+who need an executable recovery qualification test. The P0 architecture is
+intentionally narrow:
+
+```text
+seeded CPU control
+-> atomic checkpoint commit
+-> parent-owned worker termination
+-> distinct-process restore
+-> deterministic Recovery Gate
+-> captured GPT-5.6 diagnosis replay
+-> typed six-field repair
+-> second termination and restore
+-> final Recovery Gate
+-> post-pass logical-byte comparison
+```
+
+`result.json` is the canonical machine-readable evidence. `report.md`, the
+self-contained `report.html`, and the Rich console are deterministic views of
+that record; there is no GPT report narrator or duplicated experiment logic.
+
 ## GPT-5.6 role
 
 The judge path displays exactly:
@@ -67,6 +95,22 @@ recovery.
 The optional `live-contract` and `live-failure` commands remain available for
 explicit guarded validation with an API key. They are not used by the judge
 command.
+
+## Responsibility boundary
+
+- GPT-5.6 inferred the checkpoint contract and diagnosed the observed failed
+  recovery from sanitized structured evidence. It proposed typed actions only.
+- Codex implemented the workload, checkpoint protocols, process orchestration,
+  schemas, guardrails, bounded executor, reports, packaging, tests, and release
+  documentation.
+- The human fixed the scope at one native PyTorch adapter, chose the valid but
+  incomplete training-state scenario, limited repair to six actions and one
+  attempt, required blind diagnosis, and required proof before savings.
+- Normal deterministic code validates manifests, checksums, containment,
+  process evidence, exact state and trajectory equality, action capabilities,
+  repair immutability, and the attempt limit.
+- Only the deterministic Recovery Gate may declare `VERIFIED`. Neither GPT-5.6,
+  Codex, fixture provenance, checkpoint loadability, nor report prose can do so.
 
 ## Supported and verified environment
 
@@ -103,6 +147,21 @@ response without making an API call.
 
 ## Measurement limitation
 
+The independently accepted Windows/Python 3.12.13 demo-profile run measured:
+
+| Verified quantity | Result |
+| --- | ---: |
+| Initial Recovery Gate | FAIL, 9 exact failed checks |
+| Final Recovery Gate | VERIFIED, 24/24 checks |
+| Comparison policy | `atol=0.0`, `rtol=0.0` |
+| `safe_full` recurring logical bytes | 126,218 |
+| Repaired recurring logical bytes | 32,743 |
+| Recurring logical-byte reduction | 93,475 bytes (74.06%) |
+| One-time immutable frozen base | 93,987 bytes, reported separately |
+
+These values come from the accepted Prompt 6 run. Timing is environment- and
+invocation-dependent and is retained in the build log rather than generalized.
+
 Logical checkpoint bytes were measured in the controlled demo. Physical NAND
 writes, write amplification, and SSD lifetime were not measured. Results apply
 only to the controlled model, profile, serialization, and current environment;
@@ -115,6 +174,16 @@ actions. It intentionally has no plugin discovery, framework auto-detection,
 additional adapter, repository scanner, AST analyzer, policy planner, numeric
 CrashScore, arbitrary patch executor, Docker path, Hugging Face integration, or
 GPT report narrator.
+
+## Security model
+
+FlashPilot accepts no arbitrary commands or source patches. Managed writes are
+contained under the selected run root; traversal and supported symlink escapes
+fail closed. Checkpoints require completion, manifest, checksum, base-identity,
+and containment validation before loading. GPT receives bounded redacted JSON,
+never raw tensors, dataset samples, secrets, arbitrary files, absolute local
+paths, the injection label, expected diagnosis, or a repair preset. API keys are
+read only from the environment and are never printed or persisted.
 
 ## Prior art and positioning
 
@@ -134,6 +203,27 @@ replay, six-field bounded executor, immutable-history proof, second recovery
 verification, Rich judge console, offline doctor, static reports, tests, and
 wheel validation. GPT-5.6 supplied bounded recommendations; it did not write or
 execute repair code and did not declare recovery successful.
+
+## Limitations and roadmap
+
+The verified scope is one controlled CPU-only `NativePyTorchAdapter` workload on
+Windows 11 with Python 3.12.13. Python 3.11 compatibility is targeted but not
+locally verified. Windows directory fsync is unavailable through Python and is
+best-effort. The project does not qualify arbitrary repositories, distributed
+training, CUDA, Hugging Face, DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay
+is tied to the captured schema and evidence contract; novel failures require a
+new guarded live analysis. Physical storage effects are not measured.
+
+Future work may add separately qualified adapters, distributed and partial-write
+scenarios, previous-valid fallback, broader platform validation, and CI. Those
+items remain roadmap only and are not part of the submission proof.
+
+## Repository and license
+
+Repository: <https://github.com/cimpal55/flashpilot>
+
+No license file is currently committed. Selecting and adding the intended
+license remains a human release decision and is listed in the release checklist.
 
 ## Development quality gates
 

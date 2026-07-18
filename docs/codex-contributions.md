@@ -223,3 +223,34 @@ Codex performed the following concrete work under the binding Prompt 6 scope:
 Codex did not make a live GPT-5.6 call or add Prompt 7/8 work, a desktop UI,
 Hugging Face, CUDA, Docker, another adapter, plugin discovery, repository
 scanning, a policy planner, numeric CrashScore, or new recovery research.
+
+## Milestone 8
+
+Codex performed the following final-audit and submission-package work after the
+human independently accepted Prompt 6 and intentionally skipped Prompt 7:
+
+- audited the binding scope, repository status, wheel contents and hash, live
+  provider settings, fixture provenance, redaction boundary, process evidence,
+  gate authority, repair surface, attempt limit, checkpoint immutability,
+  corruption rejection, persisted metrics, and prohibited physical claims;
+- compared the accepted `result.json`, deterministic Markdown, self-contained
+  HTML, Rich renderer, and README measurement vocabulary and values;
+- found and corrected one release-documentation gap: `report.md` did not carry
+  the mandatory logical-versus-physical measurement disclaimer;
+- added a focused result-derived Markdown consistency test without changing any
+  gate, tolerance, guardrail, repair action, or product test condition;
+- finalized the judge-oriented README responsibility boundary, exact accepted
+  metrics, installation qualification, security model, limitations, roadmap,
+  repository link, and pending human license decision;
+- created the under-three-minute English voiceover, complete Devpost-ready
+  English copy, and a release checklist that leaves license, video, `/feedback`,
+  release publication, and submission to the human;
+- documented that `result.json` is canonical and that no redundant
+  `report.json` should be created from the master-plan naming mismatch;
+- rebuilt the prebuilt wheel after the report correction and reran the full
+  clean installed judge path from outside the repository;
+- recorded actual quality-gate and clean-judge outputs in the build log.
+
+Codex did not make a live API call, implement Prompt 7, add recovery behavior,
+publish a release, upload a video, submit Devpost, choose a license, or invent a
+`/feedback` Session ID.

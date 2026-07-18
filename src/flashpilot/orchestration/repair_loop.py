@@ -159,7 +159,7 @@ def render_repair_report(result: RepairLoopResult) -> str:
                 "",
                 "## Post-verification storage measurement",
                 "",
-                f"- safe_full logical bytes: {storage.safe_full_bytes}",
+                f"- safe_full recurring logical bytes: {storage.safe_full_bytes}",
                 f"- repaired recurring logical bytes: {storage.repaired_recurring_bytes}",
                 f"- one-time frozen base bytes: {storage.repaired_one_time_base_bytes}",
                 f"- structural reduction: {storage.structural_reduction_bytes} bytes "
@@ -173,6 +173,15 @@ def render_repair_report(result: RepairLoopResult) -> str:
                 "No storage reduction is reported because repaired recovery did not pass.",
             )
         )
+    lines.extend(
+        (
+            "",
+            "## Measurement limitation",
+            "",
+            "Logical checkpoint bytes were measured in the controlled demo. Physical NAND "
+            "writes, write amplification, and SSD lifetime were not measured.",
+        )
+    )
     return "\n".join(lines) + "\n"
 
 

@@ -152,3 +152,15 @@ def test_prompt6_console_and_html_are_result_only_presentations(completed_repair
     assert MEASUREMENT_DISCLAIMER in " ".join(html.split())
     assert "http://" not in html
     assert "https://" not in html
+
+    markdown = (run_root / "report.md").read_text(encoding="utf-8")
+    storage = result.storage_comparison
+    assert storage is not None
+    for expected in (
+        f"safe_full recurring logical bytes: {storage.safe_full_bytes}",
+        f"repaired recurring logical bytes: {storage.repaired_recurring_bytes}",
+        f"one-time frozen base bytes: {storage.repaired_one_time_base_bytes}",
+        f"structural reduction: {storage.structural_reduction_bytes} bytes ",
+        MEASUREMENT_DISCLAIMER,
+    ):
+        assert expected in markdown

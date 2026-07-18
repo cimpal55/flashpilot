@@ -7,7 +7,7 @@ functionality.
 
 - [x] Binding Section 28.5 decisions acknowledged.
 - [x] Prompt 0 kept separate from later milestones.
-- [ ] Every later Section 29 prompt executed and accepted one at a time.
+- [x] Prompts 0 through 6 and Prompt 8 executed one at a time; optional Prompt 7 was intentionally skipped.
 
 ## Core proof
 
@@ -30,7 +30,7 @@ functionality.
 - [x] JSON, Markdown, and self-contained HTML reports derive from the same typed result.
 - [x] No secrets, fabricated metrics, physical NAND claims, or unlabeled fixtures are committed.
 - [ ] Demo video is public, has explanatory audio, and is under three minutes.
-- [ ] Repository URL, installation instructions, and release artifact are ready.
+- [x] Repository URL, installation instructions, and committed wheel artifact are ready.
 - [ ] `/feedback` is run in the primary Codex thread and the real Session ID is saved.
 - [ ] Devpost submission is completed before the official deadline.
 
@@ -72,4 +72,16 @@ functionality.
 - [x] A new standard virtual environment installed the prebuilt wheel successfully.
 - [x] Installed `doctor` and `demo` passed from outside the repository.
 - [x] Verified runtime is identified as Python 3.12.13; Python 3.11 is not claimed verified.
-- [x] Prompt 7 and Prompt 8 remain unstarted.
+- [x] Prompt 7 was intentionally skipped; no stretch functionality was added.
+
+## Prompt 8 final audit
+
+- [x] `result.json` remains the canonical machine-readable artifact; no redundant `report.json` was added.
+- [x] README positions FlashPilot as a qualification and verification harness, not a serializer replacement.
+- [x] README separates GPT-5.6, Codex, human, deterministic-code, and Recovery Gate responsibilities.
+- [x] README uses the independently accepted Prompt 6 byte measurements exactly.
+- [x] Devpost-ready English text covers every requested submission field.
+- [x] English voiceover covers the complete proof and is under three minutes.
+- [x] Release checklist preserves external publication and license decisions for the human.
+- [x] No new live API call was made.
+- [x] Prompt 8 stopped without beginning any later work.
