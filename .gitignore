@@ -6,7 +6,8 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
-dist/
+dist/*
+!dist/flashpilot-0.1.0-py3-none-any.whl
 build/
 *.egg-info/
 .env

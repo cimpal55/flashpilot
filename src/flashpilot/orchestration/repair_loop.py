@@ -20,6 +20,7 @@ from flashpilot.domain.repair import (
 )
 from flashpilot.orchestration.artifacts import write_json_artifact, write_text_artifact
 from flashpilot.orchestration.experiment import run_crash_recovery_experiment
+from flashpilot.presentation.html_report import render_repair_html
 from flashpilot.repair.executor import execute_bounded_repair
 from flashpilot.security.paths import PathSandbox
 from flashpilot.workload.profiles import get_profile
@@ -295,9 +296,17 @@ def run_bounded_repair_loop(
         ),
     )
     write_json_artifact(run_root=sandbox.root, relative_path=result.result_path, value=result)
+    persisted_result = RepairLoopResult.model_validate_json(
+        sandbox.resolve_relative(result.result_path, must_exist=True).read_text(encoding="utf-8")
+    )
     write_text_artifact(
         run_root=sandbox.root,
         relative_path=result.report_path,
-        text=render_repair_report(result),
+        text=render_repair_report(persisted_result),
+    )
+    write_text_artifact(
+        run_root=sandbox.root,
+        relative_path=result.html_report_path,
+        text=render_repair_html(persisted_result),
     )
     return result

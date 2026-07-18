@@ -25,9 +25,9 @@ functionality.
 ## Quality and submission
 
 - [x] Full P0 lint and tests pass.
-- [ ] Clean-environment judge command passes without rebuilding from source.
-- [ ] README covers setup, platforms, scope, GPT-5.6, Codex, prior art, security, and limitations.
-- [x] JSON and Markdown reports agree; no HTML is implemented in Prompt 5.
+- [x] Clean-environment judge command passes without rebuilding from source.
+- [x] README covers setup, platforms, scope, GPT-5.6, Codex, prior art, security, and limitations.
+- [x] JSON, Markdown, and self-contained HTML reports derive from the same typed result.
 - [x] No secrets, fabricated metrics, physical NAND claims, or unlabeled fixtures are committed.
 - [ ] Demo video is public, has explanatory audio, and is under three minutes.
 - [ ] Repository URL, installation instructions, and release artifact are ready.
@@ -58,3 +58,18 @@ functionality.
 - [x] The second worker is really terminated and recovery uses a distinct PID.
 - [x] The final trajectory exactly matches control with zero tolerance.
 - [x] Logical recurring-byte reduction is reported only after the final gate passes.
+
+## Prompt 6 judge experience
+
+- [x] `flashpilot demo --provider fixture` is the primary installed command.
+- [x] Default execution creates and prints a unique full-UUID run directory.
+- [x] Rich output shows every required stage and distinguishes model advice from guardrails.
+- [x] GPT source is explicitly labeled captured-response fixture/replay.
+- [x] Savings appear only after VERIFIED and separate the one-time base cost.
+- [x] The exact logical-byte measurement disclaimer remains visible.
+- [x] `flashpilot doctor` reports every required local prerequisite and limitation.
+- [x] Replay fixtures are included in the installed wheel.
+- [x] A new standard virtual environment installed the prebuilt wheel successfully.
+- [x] Installed `doctor` and `demo` passed from outside the repository.
+- [x] Verified runtime is identified as Python 3.12.13; Python 3.11 is not claimed verified.
+- [x] Prompt 7 and Prompt 8 remain unstarted.

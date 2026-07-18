@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sysconfig
 from pathlib import Path
 
 from flashpilot.agent.guardrails import assert_safe_contract_request, assert_safe_failure_request
@@ -16,13 +17,21 @@ from flashpilot.domain.agent import (
 )
 from flashpilot.domain.recovery import SanitizedFailureArtifact
 
-_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_CONTRACT_FIXTURE = _REPOSITORY_ROOT / "demo" / "contract_fixture.json"
-DEFAULT_FAILURE_FIXTURE = _REPOSITORY_ROOT / "demo" / "failure_analysis_fixture.json"
-DEFAULT_CONTRACT_CAPTURE_METADATA = _REPOSITORY_ROOT / "demo" / "contract_fixture.metadata.json"
-DEFAULT_FAILURE_CAPTURE_METADATA = (
-    _REPOSITORY_ROOT / "demo" / "failure_analysis_fixture.metadata.json"
-)
+_SOURCE_FIXTURE_ROOT = Path(__file__).resolve().parents[3] / "demo"
+_INSTALLED_FIXTURE_ROOT = Path(sysconfig.get_path("data")) / "share" / "flashpilot" / "fixtures"
+
+
+def _fixture_root() -> Path:
+    if (_SOURCE_FIXTURE_ROOT / "failure_analysis_fixture.json").is_file():
+        return _SOURCE_FIXTURE_ROOT
+    return _INSTALLED_FIXTURE_ROOT
+
+
+FIXTURE_ROOT = _fixture_root()
+DEFAULT_CONTRACT_FIXTURE = FIXTURE_ROOT / "contract_fixture.json"
+DEFAULT_FAILURE_FIXTURE = FIXTURE_ROOT / "failure_analysis_fixture.json"
+DEFAULT_CONTRACT_CAPTURE_METADATA = FIXTURE_ROOT / "contract_fixture.metadata.json"
+DEFAULT_FAILURE_CAPTURE_METADATA = FIXTURE_ROOT / "failure_analysis_fixture.metadata.json"
 
 
 def _load_capture_metadata(path: Path, *, role: str) -> AgentCallMetadata:

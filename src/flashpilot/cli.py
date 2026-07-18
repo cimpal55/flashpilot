@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import os
+import time
 import uuid
 from pathlib import Path
 from typing import Annotated, cast
 
 import typer
+from rich.console import Console
 
 from flashpilot.adapters.native_pytorch import NativePyTorchAdapter
 from flashpilot.agent.fixture_provider import FixtureFailureProvider
@@ -19,11 +21,17 @@ from flashpilot.agent.service import (
     infer_checkpoint_contract,
 )
 from flashpilot.checkpoints.strategies import baseline_json, run_safe_full_baseline
+from flashpilot.diagnostics import run_doctor
 from flashpilot.domain.agent import AgentCallMetadata
 from flashpilot.domain.recovery import CheckpointStrategy, SanitizedFailureArtifact
 from flashpilot.domain.repair import RepairLoopResult
 from flashpilot.orchestration.experiment import run_crash_recovery_experiment
 from flashpilot.orchestration.repair_loop import run_bounded_repair_loop
+from flashpilot.presentation.console import (
+    render_demo_result,
+    render_demo_start,
+    render_doctor_result,
+)
 from flashpilot.verification.console import render_recovery_gate
 from flashpilot.workload.control import run_control
 
@@ -33,11 +41,10 @@ _CAPTURED_FAILURE_REQUEST = Path("runs/manual-prompt3-incomplete/agent/request.r
 _LIVE_CONTRACT_OBJECTIVE = (
     "Lose no completed steps. Recovery correctness is more important than checkpoint size."
 )
-_INTENTIONAL_FAILURE_NOTICE = (
-    "The failure is intentional and deterministic, but GPT-5.6 does not receive the "
-    "injection label. It receives only the sanitized checkpoint manifest, restore behavior, "
-    "failed Recovery Gate checks, and trajectory evidence."
-)
+
+
+def _default_demo_run_dir() -> Path:
+    return Path("runs") / f"repair-{uuid.uuid4().hex}"
 
 
 def _load_repair_loop_result(run_dir: Path) -> RepairLoopResult:
@@ -256,25 +263,43 @@ def demo(
             "Prompt 5 permits only the accepted captured-response fixture replay",
             param_hint="--provider",
         )
-    selected_run_dir = run_dir or Path("runs") / f"repair-{uuid.uuid4().hex[:12]}"
-    result = run_bounded_repair_loop(
-        profile_name=profile,
-        run_root=selected_run_dir,
-        checkpoint_step=checkpoint_step,
+    selected_run_dir = run_dir or _default_demo_run_dir()
+    console = Console()
+    render_demo_start(console=console, run_dir=selected_run_dir)
+    started_at = time.perf_counter()
+    with console.status(
+        "Running deterministic control, two real process terminations, and exact recovery gates...",
+        spinner="dots",
+    ):
+        result = run_bounded_repair_loop(
+            profile_name=profile,
+            run_root=selected_run_dir,
+            checkpoint_step=checkpoint_step,
+        )
+    runtime_seconds = time.perf_counter() - started_at
+    render_demo_result(
+        console=console,
+        result=result,
+        run_dir=selected_run_dir,
+        runtime_seconds=runtime_seconds,
     )
-    typer.echo(_INTENTIONAL_FAILURE_NOTICE)
-    typer.echo(f"Initial worker PID: {result.initial_failure.crash.worker_pid}")
-    typer.echo(f"Initial recovery PID: {result.initial_failure.recovery.worker_pid}")
-    typer.echo("Initial failed checks: " + ", ".join(result.initial_failure.gate.failed_check_ids))
-    typer.echo("Applied actions: " + ", ".join(result.repair_execution.applied_actions))
-    typer.echo("Unsupported actions: " + ", ".join(result.plan_validation.unsupported_actions))
-    typer.echo(f"Repaired strategy ID: {result.repair_execution.repaired_config.strategy_id}")
-    typer.echo(f"Second worker PID: {result.repaired_run.crash.worker_pid}")
-    typer.echo(f"Second recovery PID: {result.repaired_run.recovery.worker_pid}")
-    typer.echo(f"Final Recovery Gate: {result.final_verdict}")
-    typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
-    typer.echo(f"Report: {(selected_run_dir / result.report_path).resolve()}")
     if not result.repaired_run.gate.passed:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def doctor(
+    output_dir: Annotated[
+        Path | None,
+        typer.Option(help="Output location to verify; defaults to ./runs."),
+    ] = None,
+) -> None:
+    """Check the installed offline CPU judge path without exposing secrets."""
+
+    selected_output = output_dir or Path("runs")
+    result = run_doctor(output_dir=selected_output)
+    render_doctor_result(console=Console(), result=result)
+    if not result.passed:
         raise typer.Exit(code=1)
 
 

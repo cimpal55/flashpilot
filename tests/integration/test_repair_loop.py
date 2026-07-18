@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from rich.console import Console
 from typer.testing import CliRunner
 
 from flashpilot.agent.guardrails import RepairAttemptLimitError
@@ -8,6 +9,11 @@ from flashpilot.cli import app
 from flashpilot.domain.agent import NATIVE_PYTORCH_REPAIR_ACTIONS
 from flashpilot.domain.repair import RepairLoopResult
 from flashpilot.orchestration.repair_loop import run_bounded_repair_loop
+from flashpilot.presentation.console import (
+    GPT_SOURCE,
+    MEASUREMENT_DISCLAIMER,
+    render_demo_result,
+)
 from flashpilot.repair.executor import execute_bounded_repair
 
 
@@ -94,6 +100,7 @@ def test_prompt5_artifacts_and_read_only_cli_commands(completed_repair_loop) -> 
         == result
     )
     assert (run_root / "report.md").is_file()
+    assert (run_root / "report.html").is_file()
     assert (run_root / "agent/request.redacted.json").is_file()
     assert (run_root / "agent/failure/captured-live-metadata.json").is_file()
     assert (run_root / "agent/repair/repaired-strategy.json").is_file()
@@ -101,3 +108,47 @@ def test_prompt5_artifacts_and_read_only_cli_commands(completed_repair_loop) -> 
     for command in ("audit", "verify", "replay"):
         invocation = runner.invoke(app, [command, "--run-dir", str(run_root)])
         assert invocation.exit_code == 0, invocation.output
+
+
+def test_prompt6_console_and_html_are_result_only_presentations(completed_repair_loop) -> None:
+    run_root, result = completed_repair_loop
+    console = Console(record=True, width=180, color_system=None)
+
+    render_demo_result(
+        console=console,
+        result=result,
+        run_dir=run_root,
+        runtime_seconds=12.34,
+    )
+    rendered = console.export_text()
+    for stage in (
+        "Uninterrupted control",
+        "Initial checkpoint",
+        "First real process termination",
+        "Initial Recovery Gate",
+        "GPT-5.6 captured-response fixture/replay diagnosis",
+        "Deterministic bounded repair",
+        "Second real process termination",
+        "Final Recovery Gate",
+        "Verified storage comparison",
+    ):
+        assert stage in rendered
+    assert GPT_SOURCE in rendered
+    assert "PASS" in rendered
+    assert "FAIL" in rendered
+    assert "VERIFIED" in rendered
+    assert "UNSUPPORTED" in rendered
+    assert "GPT RECOMMENDATION" in rendered
+    assert "GUARDRAIL ACCEPTED" in rendered
+    assert MEASUREMENT_DISCLAIMER in rendered
+    assert "safe_full recurring logical bytes" in rendered
+    assert "Repaired recurring logical bytes" in rendered
+    assert "One-time frozen-base cost (separate)" in rendered
+
+    html = (run_root / "report.html").read_text(encoding="utf-8")
+    assert "<!doctype html>" in html
+    assert "Final Recovery Gate" in html
+    assert "Verified storage comparison" in html
+    assert MEASUREMENT_DISCLAIMER in " ".join(html.split())
+    assert "http://" not in html
+    assert "https://" not in html

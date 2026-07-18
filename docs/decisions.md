@@ -312,3 +312,46 @@ evidence, not a claim about physical NAND writes, write amplification, or SSD
 lifetime. If the repaired gate fails, no storage reduction is emitted, no
 second GPT request occurs, and the documented complete-state fallback is not
 automatically run.
+
+## D-027: Presentation consumes results and cannot alter recovery
+
+The Rich console and self-contained `report.html` are deterministic
+presentations of `RepairLoopResult`; they contain no experiment, repair, gate,
+or provider logic. The HTML renderer is invoked from the persisted
+`result.json`, uses inline CSS only, and contains no server or external asset.
+The console displays all nine judge stages and separately styles PASS,
+VERIFIED, FAIL, UNSUPPORTED, GPT recommendation, and deterministic guardrail
+acceptance. It uses console-safe text after a clean-wheel Windows CP1251 run
+showed that a decorative Unicode arrow could fail after artifact generation.
+
+The storage headline is conditional on the final deterministic gate and a
+present `StorageComparison`. It always separates recurring safe-full bytes,
+recurring repaired bytes, and the one-time immutable-base cost, explicitly says
+the first adapter-aware write is not presented as savings, and retains the
+logical-versus-physical measurement disclaimer.
+
+## D-028: Doctor is an offline qualification command
+
+`flashpilot doctor` performs only local checks: current Python version,
+platform, Torch CPU tensor execution, installed dependency versions, captured
+fixture files, an fsynced write probe in the chosen output directory, API-key
+presence as a boolean, and directory-fsync platform support. It never prints an
+API-key value or makes a network call. API-key absence is informational because
+fixture replay does not need it. Windows directory fsync remains a visible
+limitation rather than a failed prerequisite.
+
+## D-029: The wheel carries replay fixtures and is the judge artifact
+
+The fixture JSON and capture metadata remain checked in under `demo/` and are
+installed by the wheel under `share/flashpilot/fixtures`. Source execution uses
+the repository copies; an installed distribution resolves the environment's
+data directory. This preserves the exact fixture bytes without a package import
+side effect or repository dependency.
+
+The prebuilt pure-Python wheel is the judge artifact. It is built without build
+isolation or dependency downloads, then installed with its declared
+dependencies into a new standard virtual environment. Dependency installation
+may use the configured Python package index; the installed `doctor` and `demo`
+commands themselves require no network, API key, downloaded model, or dataset.
+Only Python 3.12.13 and the recorded Windows environment are claimed as clean-
+wheel verified.

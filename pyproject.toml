@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "flashpilot"
 version = "0.1.0"
-description = "AI checkpoint reliability and storage autopilot"
+description = "Checkpoint recovery qualification and verification harness"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26,<3",
@@ -28,6 +28,14 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.data-files]
+"share/flashpilot/fixtures" = [
+    "demo/contract_fixture.json",
+    "demo/contract_fixture.metadata.json",
+    "demo/failure_analysis_fixture.json",
+    "demo/failure_analysis_fixture.metadata.json",
+]
 
 [tool.pytest.ini_options]
 addopts = "-ra -p no:cacheprovider -p flashpilot.pytest_plugin"

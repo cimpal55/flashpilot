@@ -1045,3 +1045,225 @@ The skip is the unchanged platform-conditional Windows directory-symlink test.
 Pytest used its unique UUID temp root and had no ACL or cache warning. Windows
 payload and metadata file fsync and atomic directory rename remain enforced;
 directory fsync remains explicitly best-effort.
+
+## Prompt 6 judge experience and wheel qualification
+
+- Date: 2026-07-18
+- Scope: Prompt 6 only. Prompt 7 and Prompt 8 were not started.
+- Verified environment: Windows 11, Python 3.12.13, PyTorch 2.13.0 CPU.
+- Primary command: `flashpilot demo --provider fixture`.
+- No live API call was made.
+
+### Product path
+
+The installed command now prints a unique full-UUID run path before execution
+and renders these result-derived Rich stages:
+
+```text
+Uninterrupted control                              PASS
+Initial checkpoint                                 PASS
+First real process termination                    PASS
+Initial Recovery Gate                             FAIL
+GPT-5.6 captured-response fixture/replay diagnosis GPT RECOMMENDATION
+Deterministic bounded repair                       GUARDRAIL ACCEPTED
+Second real process termination                   PASS
+Final Recovery Gate                               VERIFIED
+Verified storage comparison                       VERIFIED
+```
+
+The decision table marks `change_supported_checkpoint_strategy` UNSUPPORTED and
+the exact six native actions GUARDRAIL ACCEPTED. The storage headline is emitted
+only after the final gate passes. `report.html` is self-contained, has no
+external asset, and is rendered from the persisted `result.json`.
+
+### Wheel build
+
+Command:
+
+```text
+.\.venv\Scripts\python.exe -m pip wheel . --no-deps --no-build-isolation --wheel-dir dist
+```
+
+Actual final output:
+
+```text
+Processing c:\programming\business\flashpilot
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: flashpilot
+  Building wheel for flashpilot (pyproject.toml): started
+  Building wheel for flashpilot (pyproject.toml): finished with status 'done'
+  Created wheel for flashpilot: filename=flashpilot-0.1.0-py3-none-any.whl size=85846 sha256=d8462a963f005096756fcaca8832319abb8cdbbbf9b784d18bb9c3175c6e3bfd
+Successfully built flashpilot
+```
+
+Wheel evidence:
+
+```text
+path: C:\Programming\business\flashpilot\dist\flashpilot-0.1.0-py3-none-any.whl
+size: 85846 bytes
+SHA-256: D8462A963F005096756FCACA8832319ABB8CDBBBF9B784D18BB9C3175C6E3BFD
+```
+
+Wheel inspection confirmed that all product modules and these four installed
+data files are present:
+
+```text
+share/flashpilot/fixtures/contract_fixture.json
+share/flashpilot/fixtures/contract_fixture.metadata.json
+share/flashpilot/fixtures/failure_analysis_fixture.json
+share/flashpilot/fixtures/failure_analysis_fixture.metadata.json
+```
+
+### Fresh clean installation
+
+The final environment was newly created as a standard virtual environment; it
+did not use `--system-site-packages`:
+
+```text
+.\.venv\Scripts\python.exe -m venv C:\tmp\flashpilot-prompt6-clean-final-20260718
+C:\tmp\flashpilot-prompt6-clean-final-20260718\Scripts\python.exe -m pip install .\dist\flashpilot-0.1.0-py3-none-any.whl
+```
+
+Actual installation conclusion:
+
+```text
+Processing c:\programming\business\flashpilot\dist\flashpilot-0.1.0-py3-none-any.whl
+Installing collected packages: mpmath, typing-extensions, sympy, sniffio, shellingham, setuptools, pygments, numpy, networkx, mdurl, MarkupSafe, jiter, idna, h11, fsspec, filelock, distro, colorama, certifi, annotated-types, annotated-doc, typing-inspection, tqdm, pydantic-core, markdown-it-py, jinja2, httpcore, anyio, torch, rich, pydantic, httpx, typer, openai, flashpilot
+Successfully installed MarkupSafe-3.0.3 annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.14.2 certifi-2026.6.17 colorama-0.4.6 distro-1.9.0 filelock-3.31.0 flashpilot-0.1.0 fsspec-2026.6.0 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.18 jinja2-3.1.6 jiter-0.16.0 markdown-it-py-4.2.0 mdurl-0.1.2 mpmath-1.3.0 networkx-3.6.1 numpy-2.5.1 openai-2.46.0 pydantic-2.13.4 pydantic-core-2.46.4 pygments-2.20.0 rich-14.3.4 setuptools-83.0.0 shellingham-1.5.4 sniffio-1.3.1 sympy-1.14.0 torch-2.13.0 tqdm-4.69.0 typer-0.27.0 typing-extensions-4.16.0 typing-inspection-0.4.2
+```
+
+Dependency installation used the configured pip package source/cache. The
+installed application commands below made no API call, package-index request,
+model download, or dataset download.
+
+Clean environment metadata:
+
+```text
+Python 3.12.13
+Name: flashpilot
+Version: 0.1.0
+Summary: Checkpoint recovery qualification and verification harness
+Location: C:\tmp\flashpilot-prompt6-clean-final-20260718\Lib\site-packages
+Requires: numpy, openai, pydantic, rich, torch, typer
+```
+
+### Installed doctor outside the repository
+
+Working directory:
+
+```text
+C:\tmp\flashpilot-prompt6-work-final-20260718
+```
+
+Judge command and actual outcome:
+
+```text
+flashpilot doctor
+
+Python version             PASS        3.12.13
+OS / platform              INFO        Windows-11-10.0.26200-SP0
+CPU execution              PASS        Torch CPU tensor execution available
+Required dependencies      PASS        numpy, openai, pydantic, rich, torch, typer
+Captured-response fixtures PASS        installed wheel data available
+Writable output location   PASS        outside-repository runs directory
+OPENAI_API_KEY             INFO        Not present (not required by fixture demo)
+Directory fsync            LIMITATION  unavailable through Python on Windows
+Doctor verdict             PASS
+```
+
+The doctor printed only API-key presence and never a value.
+
+### Installed primary demo outside the repository
+
+Exact judge command:
+
+```text
+flashpilot demo --provider fixture
+```
+
+Actual final outcome:
+
+```text
+Generated run path: C:\tmp\flashpilot-prompt6-work-final-20260718\runs\repair-42b022b330a148a8ae77e01edbcd4a2d
+GPT source: GPT-5.6 captured-response fixture/replay
+Initial checkpoint: step 12; worker PID 26504; recovery PID 17312
+Initial Recovery Gate: FAIL (9 exact failures)
+change_supported_checkpoint_strategy: UNSUPPORTED
+Six native repair actions: GUARDRAIL ACCEPTED
+Repaired run: worker PID 21380; recovery PID 22676
+Final Recovery Gate: VERIFIED (24/24, atol=0.0, rtol=0.0)
+safe_full recurring logical bytes: 126218
+repaired recurring logical bytes: 32743
+one-time frozen-base cost: 93987
+recurring logical-byte reduction: 93475 bytes (74.06%)
+Internal workflow runtime: 16.75 seconds
+Total installed-command runtime: 20.41 seconds
+```
+
+Visible disclaimer:
+
+```text
+Logical checkpoint bytes were measured in the controlled demo. Physical NAND writes, write amplification, and SSD lifetime were not measured.
+```
+
+Generated top-level artifacts:
+
+```text
+result.json
+report.md
+report.html
+agent/
+initial/
+repaired/
+measurements/
+```
+
+The subtrees retain redacted agent evidence, repair admission/execution,
+immutable base artifacts, both committed checkpoints, worker logs and recovery
+results, safe-full measurement payloads, and storage comparison evidence.
+
+Installed read-only commands also passed against that run:
+
+```text
+flashpilot audit --run-dir .\runs\repair-42b022b330a148a8ae77e01edbcd4a2d
+Final Recovery Gate: VERIFIED
+flashpilot verify --run-dir .\runs\repair-42b022b330a148a8ae77e01edbcd4a2d
+VERIFIED by the persisted deterministic Recovery Gate (atol=0.0, rtol=0.0).
+flashpilot replay --run-dir .\runs\repair-42b022b330a148a8ae77e01edbcd4a2d
+Captured GPT-5.6 structured response replay matched; no API call was made.
+```
+
+A recursive artifact scan found no `OPENAI_API_KEY` or `sk-...` material.
+`report.html` was 8316 bytes and contained no HTTP/HTTPS external reference.
+
+### Installed-wheel defect found and corrected
+
+The first clean-wheel run completed the recovery workflow and generated its
+artifacts, but Rich failed while rendering a decorative Unicode arrow through a
+CP1251 Windows console. The arrow was removed, the tables were narrowed for an
+80-column console, focused tests passed, the wheel was rebuilt, and the entire
+fresh-install/outside-repository path above then passed. No recovery or gate
+logic was involved in that presentation-only failure.
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+76 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 56%]
+.............................................s..........                 [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Клиент не обладает требуемыми правами
+127 passed, 1 skipped in 86.77s (0:01:26)
+```
+
+The skip is the unchanged Windows platform-conditional directory-symlink test.
+Pytest used a unique UUID basetemp with no ACL or cache warning. No test,
+tolerance, guardrail, repair limit, redaction boundary, or Recovery Gate check
+was weakened.

@@ -187,3 +187,39 @@ Codex performed the following concrete work under the binding Prompt 5 scope:
 Codex did not make a live API call or implement Prompt 6 work, HTML, packaging,
 Docker, Hugging Face support, plugin discovery, a policy planner, numeric
 CrashScore, a GPT report narrator, another adapter, or weakened gate behavior.
+
+## Milestone 6
+
+Codex performed the following concrete work under the binding Prompt 6 scope:
+
+- converted the primary fixture demo into a staged Rich console experience
+  rendered from the verified Prompt 5 result, with distinct GPT recommendation
+  and deterministic guardrail decisions;
+- kept the savings headline behind the final Recovery Gate and displayed
+  recurring full/repaired logical bytes and one-time base cost separately;
+- added an offline `flashpilot doctor` covering Python, platform, CPU,
+  dependencies, fixture data, output writability, hidden API-key presence, and
+  the Windows directory-fsync limitation;
+- added a self-contained static `report.html` rendered only from persisted
+  `result.json`, with no server, external asset, or GPT narrator;
+- made captured fixture data wheel-safe through installed data files while
+  retaining source-tree fixture/replay behavior and provenance;
+- added unique full-UUID default run directories and printed the resolved path
+  before the experiment starts;
+- preserved `audit`, `verify`, `replay`, `live-contract`, and `live-failure`;
+- rewrote the README beginning around the value proposition, 60-second judge
+  path, proof, GPT-5.6 role, verified environment, limits, positioning, prior
+  art, and Codex contribution;
+- built and retained a pure-Python wheel, installed it with dependencies into a
+  fresh standard virtual environment, and ran `doctor` and the full primary
+  demo from outside the repository;
+- diagnosed and removed one CP1251-incompatible decorative console character
+  found only in the first installed-wheel judge run, then rebuilt and repeated
+  the entire clean-install verification successfully;
+- added focused tests for doctor secrecy and prerequisites, unique default run
+  paths, every visible judge stage and status, storage wording, HTML
+  self-containment, and artifact generation.
+
+Codex did not make a live GPT-5.6 call or add Prompt 7/8 work, a desktop UI,
+Hugging Face, CUDA, Docker, another adapter, plugin discovery, repository
+scanning, a policy planner, numeric CrashScore, or new recovery research.

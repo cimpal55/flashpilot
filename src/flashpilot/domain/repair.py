@@ -163,6 +163,7 @@ class RepairLoopResult(StrictRepairModel):
     storage_comparison: StorageComparison | None
     result_path: ManagedRelativePath = "result.json"
     report_path: ManagedRelativePath = "report.md"
+    html_report_path: ManagedRelativePath = "report.html"
     limitations: tuple[str, ...]
 
     @model_validator(mode="after")
