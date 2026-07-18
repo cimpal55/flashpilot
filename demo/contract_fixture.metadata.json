@@ -1,0 +1,16 @@
+{
+  "fixture_provenance": "not_applicable",
+  "live_or_fixture": "live",
+  "model": "gpt-5.6",
+  "output_schema_version": "checkpoint-contract-v1",
+  "prompt_version": "v1",
+  "provider": "openai",
+  "request_sha256": "cfc3505e2fbbef1a6604dd752c5b1b4ac86ee28acb1bff7dd0e70658b3549a5b",
+  "response_id": "resp_0fea08ffa74a6cb9016a5a82a695e88195a35bbfd335ae2a03",
+  "role": "checkpoint-contract",
+  "schema_version": "agent-call-metadata-v1",
+  "source": "captured_live_response",
+  "store": false,
+  "timestamp": "2026-07-17T19:29:49.594143Z",
+  "validation_status": "accepted"
+}

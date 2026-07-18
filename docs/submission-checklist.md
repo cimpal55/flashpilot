@@ -17,18 +17,18 @@ functionality.
 - [x] Safe full and safe adapter-aware recovery pass the deterministic Recovery Gate.
 - [x] Primary valid-but-incomplete checkpoint loads but diverges for the intended continuation reasons.
 - [x] Parent performs a real kill and a new process restores.
-- [x] GPT-5.6 contract and diagnosis roles work through labeled deterministic fixtures; live validation remains outstanding.
+- [x] GPT-5.6 contract and diagnosis roles have accepted live captures and clearly labeled fixture replays.
 - [x] Sanitized failure request excludes every forbidden disclosure.
-- [ ] Exactly one bounded repair iteration produces a new isolated strategy and run.
-- [ ] Storage savings are reported only after recovery passes.
+- [x] Exactly one bounded repair iteration produces a new isolated strategy and run.
+- [x] Storage savings are reported only after recovery passes.
 
 ## Quality and submission
 
-- [ ] Full P0 lint and tests pass.
+- [x] Full P0 lint and tests pass.
 - [ ] Clean-environment judge command passes without rebuilding from source.
 - [ ] README covers setup, platforms, scope, GPT-5.6, Codex, prior art, security, and limitations.
-- [ ] JSON and Markdown reports agree; optional HTML is generated only after P0 is green.
-- [ ] No secrets, fabricated metrics, physical NAND claims, or unlabeled fixtures are committed.
+- [x] JSON and Markdown reports agree; no HTML is implemented in Prompt 5.
+- [x] No secrets, fabricated metrics, physical NAND claims, or unlabeled fixtures are committed.
 - [ ] Demo video is public, has explanatory audio, and is under three minutes.
 - [ ] Repository URL, installation instructions, and release artifact are ready.
 - [ ] `/feedback` is run in the primary Codex thread and the real Session ID is saved.
@@ -45,5 +45,16 @@ functionality.
 - [x] Unsafe, conflicting, duplicate, or unevidenced actions are rejected.
 - [x] Agent metadata excludes the API key.
 - [x] Repair-attempt admission is limited to one and performs no execution.
-- [ ] One live contract call and one live diagnosis call are validated with a real API key.
-- [ ] Prompt 5 repair execution and second verification are implemented.
+- [x] One live contract call and one live diagnosis call are validated with a real API key.
+- [x] Prompt 5 repair execution and second verification are implemented.
+
+## Prompt 5 bounded loop
+
+- [x] Captured GPT-5.6 responses are replayed without an API call.
+- [x] Six supported actions map to six explicit strategy fields.
+- [x] The known strategy-change action remains unsupported and unexecuted.
+- [x] The failed checkpoint is fingerprint-identical before and after repair.
+- [x] Exactly one attempt is admitted; attempt two is refused.
+- [x] The second worker is really terminated and recovery uses a distinct PID.
+- [x] The final trajectory exactly matches control with zero tolerance.
+- [x] Logical recurring-byte reduction is reported only after the final gate passes.

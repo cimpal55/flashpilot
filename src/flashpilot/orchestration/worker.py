@@ -25,6 +25,7 @@ from flashpilot.domain.recovery import (
     RngStateDigests,
     RuntimeSnapshot,
 )
+from flashpilot.domain.repair import CheckpointStrategyConfig
 from flashpilot.orchestration.artifacts import write_json_artifact
 from flashpilot.security.paths import PathSandbox
 from flashpilot.verification.observations import observe_rng_state, observe_runtime
@@ -34,6 +35,22 @@ from flashpilot.workload.trainer import TrainingRuntime, create_training_runtime
 
 def _strategy_values() -> tuple[str, ...]:
     return ("safe_full", "safe_adapter_aware", "missing_training_state")
+
+
+def _load_strategy_config(
+    args: argparse.Namespace,
+    *,
+    sandbox: PathSandbox,
+    strategy: CheckpointStrategy,
+) -> CheckpointStrategyConfig | None:
+    if args.strategy_config is None:
+        return None
+    if strategy != "safe_adapter_aware":
+        raise ValueError("a repaired strategy config requires safe_adapter_aware storage")
+    path = sandbox.resolve_relative(args.strategy_config, must_exist=True)
+    config = CheckpointStrategyConfig.model_validate_json(path.read_text(encoding="utf-8"))
+    config.require_complete_training_state()
+    return config
 
 
 def _checkpoint_worker(args: argparse.Namespace) -> int:
@@ -60,10 +77,21 @@ def _checkpoint_worker(args: argparse.Namespace) -> int:
         committed_at = datetime.now(UTC)
 
     strategy: CheckpointStrategy = args.strategy
+    strategy_config = _load_strategy_config(args, sandbox=sandbox, strategy=strategy)
     if strategy == "safe_full":
         save_safe_full(runtime, run_root=run_root, on_committed=after_atomic_rename)
     elif strategy == "safe_adapter_aware":
-        save_safe_adapter_aware(runtime, run_root=run_root, on_committed=after_atomic_rename)
+        checkpoint_root = (
+            f"checkpoints/repaired/{strategy_config.strategy_id}"
+            if strategy_config is not None
+            else "checkpoints/safe-adapter-aware"
+        )
+        save_safe_adapter_aware(
+            runtime,
+            run_root=run_root,
+            checkpoint_root_relative=checkpoint_root,
+            on_committed=after_atomic_rename,
+        )
     else:
         save_missing_training_state(runtime, run_root=run_root, on_committed=after_atomic_rename)
 
@@ -116,6 +144,7 @@ def _recovery_worker(args: argparse.Namespace) -> int:
     checkpoint_path = sandbox.resolve_relative(args.checkpoint_path, must_exist=True)
     profile = get_profile(args.profile)
     strategy: CheckpointStrategy = args.strategy
+    _load_strategy_config(args, sandbox=sandbox, strategy=strategy)
     runtime = _restore_runtime(strategy, run_root=run_root, checkpoint_path=checkpoint_path)
     if runtime.global_step >= profile.steps:
         raise ValueError("recovery checkpoint must precede the final profile step")
@@ -166,6 +195,7 @@ def _build_parser() -> argparse.ArgumentParser:
     checkpoint.add_argument("--strategy", choices=_strategy_values(), required=True)
     checkpoint.add_argument("--checkpoint-step", type=int, required=True)
     checkpoint.add_argument("--post-commit-steps", type=int, default=0)
+    checkpoint.add_argument("--strategy-config")
 
     recover = subparsers.add_parser("recover")
     recover.add_argument("--run-root", required=True)
@@ -173,6 +203,7 @@ def _build_parser() -> argparse.ArgumentParser:
     recover.add_argument("--strategy", choices=_strategy_values(), required=True)
     recover.add_argument("--checkpoint-path", required=True)
     recover.add_argument("--output-path", required=True)
+    recover.add_argument("--strategy-config")
     return parser
 
 

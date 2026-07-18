@@ -10,6 +10,8 @@ from typing import Annotated, cast
 import typer
 
 from flashpilot.adapters.native_pytorch import NativePyTorchAdapter
+from flashpilot.agent.fixture_provider import FixtureFailureProvider
+from flashpilot.agent.guardrails import validate_failure_analysis
 from flashpilot.agent.openai_provider import OpenAIContractProvider, OpenAIFailureProvider
 from flashpilot.agent.service import (
     analyze_recovery_failure,
@@ -19,7 +21,9 @@ from flashpilot.agent.service import (
 from flashpilot.checkpoints.strategies import baseline_json, run_safe_full_baseline
 from flashpilot.domain.agent import AgentCallMetadata
 from flashpilot.domain.recovery import CheckpointStrategy, SanitizedFailureArtifact
+from flashpilot.domain.repair import RepairLoopResult
 from flashpilot.orchestration.experiment import run_crash_recovery_experiment
+from flashpilot.orchestration.repair_loop import run_bounded_repair_loop
 from flashpilot.verification.console import render_recovery_gate
 from flashpilot.workload.control import run_control
 
@@ -29,6 +33,18 @@ _CAPTURED_FAILURE_REQUEST = Path("runs/manual-prompt3-incomplete/agent/request.r
 _LIVE_CONTRACT_OBJECTIVE = (
     "Lose no completed steps. Recovery correctness is more important than checkpoint size."
 )
+_INTENTIONAL_FAILURE_NOTICE = (
+    "The failure is intentional and deterministic, but GPT-5.6 does not receive the "
+    "injection label. It receives only the sanitized checkpoint manifest, restore behavior, "
+    "failed Recovery Gate checks, and trajectory evidence."
+)
+
+
+def _load_repair_loop_result(run_dir: Path) -> RepairLoopResult:
+    path = run_dir / "result.json"
+    if not path.is_file():
+        raise typer.BadParameter("Prompt 5 result.json is unavailable", param_hint="--run-dir")
+    return RepairLoopResult.model_validate_json(path.read_text(encoding="utf-8"))
 
 
 def _require_live_preconditions(*, run_dir: Path, role: str) -> None:
@@ -212,6 +228,107 @@ def crash_demo(
             f"Sanitized failure artifact: "
             f"{(selected_run_dir / result.failure_artifact_path).resolve()}"
         )
+
+
+@app.command()
+def demo(
+    provider: Annotated[
+        str,
+        typer.Option(help="Prompt 5 diagnosis provider; only fixture replay is supported."),
+    ] = "fixture",
+    profile: Annotated[
+        str,
+        typer.Option(help="Controlled workload profile: ci or demo."),
+    ] = "demo",
+    run_dir: Annotated[
+        Path | None,
+        typer.Option(help="New isolated Prompt 5 run directory."),
+    ] = None,
+    checkpoint_step: Annotated[
+        int | None,
+        typer.Option(help="Completed step used by both real crash experiments."),
+    ] = None,
+) -> None:
+    """Run one captured-response repair replay and deterministic verification."""
+
+    if provider != "fixture":
+        raise typer.BadParameter(
+            "Prompt 5 permits only the accepted captured-response fixture replay",
+            param_hint="--provider",
+        )
+    selected_run_dir = run_dir or Path("runs") / f"repair-{uuid.uuid4().hex[:12]}"
+    result = run_bounded_repair_loop(
+        profile_name=profile,
+        run_root=selected_run_dir,
+        checkpoint_step=checkpoint_step,
+    )
+    typer.echo(_INTENTIONAL_FAILURE_NOTICE)
+    typer.echo(f"Initial worker PID: {result.initial_failure.crash.worker_pid}")
+    typer.echo(f"Initial recovery PID: {result.initial_failure.recovery.worker_pid}")
+    typer.echo("Initial failed checks: " + ", ".join(result.initial_failure.gate.failed_check_ids))
+    typer.echo("Applied actions: " + ", ".join(result.repair_execution.applied_actions))
+    typer.echo("Unsupported actions: " + ", ".join(result.plan_validation.unsupported_actions))
+    typer.echo(f"Repaired strategy ID: {result.repair_execution.repaired_config.strategy_id}")
+    typer.echo(f"Second worker PID: {result.repaired_run.crash.worker_pid}")
+    typer.echo(f"Second recovery PID: {result.repaired_run.recovery.worker_pid}")
+    typer.echo(f"Final Recovery Gate: {result.final_verdict}")
+    typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
+    typer.echo(f"Report: {(selected_run_dir / result.report_path).resolve()}")
+    if not result.repaired_run.gate.passed:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def audit(
+    run_dir: Annotated[Path, typer.Option(help="Completed Prompt 5 run directory.")],
+) -> None:
+    """Read and summarize the immutable Prompt 5 evidence record."""
+
+    result = _load_repair_loop_result(run_dir)
+    typer.echo(f"Fixture replay source: {result.replay_call_metadata.source}")
+    typer.echo(f"Captured response ID: {result.captured_live_failure_metadata.response_id}")
+    typer.echo(f"Repair attempts: {result.repair_attempt_count}")
+    typer.echo(f"Original checkpoint unmodified: {result.original_checkpoint_unmodified}")
+    typer.echo(f"Final Recovery Gate: {result.final_verdict}")
+
+
+@app.command()
+def verify(
+    run_dir: Annotated[Path, typer.Option(help="Completed Prompt 5 run directory.")],
+) -> None:
+    """Revalidate the persisted deterministic verdict without rerunning a process."""
+
+    result = _load_repair_loop_result(run_dir)
+    policy = result.repaired_run.gate.comparison_policy
+    if (
+        not result.repaired_run.gate.passed
+        or result.final_verdict != "VERIFIED"
+        or policy.atol != 0.0
+        or policy.rtol != 0.0
+        or not result.original_checkpoint_unmodified
+        or result.repair_attempt_count != 1
+    ):
+        typer.echo("Persisted Prompt 5 evidence is not verified.", err=True)
+        raise typer.Exit(code=1)
+    typer.echo("VERIFIED by the persisted deterministic Recovery Gate (atol=0.0, rtol=0.0).")
+
+
+@app.command()
+def replay(
+    run_dir: Annotated[Path, typer.Option(help="Completed Prompt 5 run directory.")],
+) -> None:
+    """Replay and revalidate the captured structured response without an API call."""
+
+    result = _load_repair_loop_result(run_dir)
+    request = SanitizedFailureArtifact.model_validate_json(
+        (run_dir / "agent" / "request.redacted.json").read_text(encoding="utf-8")
+    )
+    replayed = FixtureFailureProvider().analyze_failure(request).output
+    validation = validate_failure_analysis(request, replayed)
+    if replayed != result.proposed_analysis or validation != result.plan_validation:
+        typer.echo("Fixture replay differs from the persisted accepted plan.", err=True)
+        raise typer.Exit(code=1)
+    typer.echo("Captured GPT-5.6 structured response replay matched; no API call was made.")
 
 
 if __name__ == "__main__":

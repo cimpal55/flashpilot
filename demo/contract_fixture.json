@@ -1,47 +1,12 @@
 {
-  "schema_version": "checkpoint-contract-v1",
-  "required_state": [
-    {
-      "state": "adapter",
-      "required": true,
-      "reason": "The trainable adapter must resume from the committed state."
-    },
-    {
-      "state": "optimizer",
-      "required": true,
-      "reason": "Optimizer moments affect every subsequent parameter update."
-    },
-    {
-      "state": "scheduler",
-      "required": true,
-      "reason": "The learning-rate schedule must continue at the restored step."
-    },
-    {
-      "state": "global_step",
-      "required": true,
-      "reason": "The next deterministic batch is derived from the restored global step."
-    },
-    {
-      "state": "python_rng",
-      "required": true,
-      "reason": "Python random state is part of the declared stochastic state."
-    },
-    {
-      "state": "numpy_rng",
-      "required": true,
-      "reason": "NumPy random state is part of the declared stochastic state."
-    },
-    {
-      "state": "torch_rng",
-      "required": true,
-      "reason": "Torch random state controls training dropout."
-    },
-    {
-      "state": "base_model_identity",
-      "required": true,
-      "reason": "The recurring adapter checkpoint must identify the immutable frozen base."
-    }
+  "assumptions": [
+    "The workload remains CPU-only.",
+    "Only residual-adapter parameters are trainable.",
+    "Batch position is deterministically derived from global step.",
+    "The frozen base artifact is immutable and stored once per run.",
+    "CUDA RNG, gradient scaler, and sampler state are not applicable."
   ],
+  "correctness_priority": "strict",
   "required_integrity_controls": [
     "manifest",
     "checksums",
@@ -49,18 +14,63 @@
     "atomic_commit",
     "base_artifact_hash"
   ],
+  "required_state": [
+    {
+      "reason": "All trainable residual-adapter parameters are needed to preserve completed updates.",
+      "required": true,
+      "state": "adapter"
+    },
+    {
+      "reason": "AdamW state is needed for exact continuation without losing optimizer history.",
+      "required": true,
+      "state": "optimizer"
+    },
+    {
+      "reason": "LinearLR state is needed to preserve the learning-rate schedule.",
+      "required": true,
+      "state": "scheduler"
+    },
+    {
+      "reason": "The exact completed-step position and derived batch position must be restored.",
+      "required": true,
+      "state": "global_step"
+    },
+    {
+      "reason": "The workload uses Python randomness.",
+      "required": true,
+      "state": "python_rng"
+    },
+    {
+      "reason": "The workload uses NumPy randomness.",
+      "required": true,
+      "state": "numpy_rng"
+    },
+    {
+      "reason": "Torch randomness, including dropout progression, must continue from the checkpoint.",
+      "required": true,
+      "state": "torch_rng"
+    },
+    {
+      "reason": "The adapter must be restored against the exact immutable frozen base artifact.",
+      "required": true,
+      "state": "base_model_identity"
+    }
+  ],
   "restore_order_requirements": [
-    "Validate the manifest, completion marker, and checksums before deserialization.",
-    "Validate the immutable base identity and hash before restoring model partitions.",
-    "Restore adapter, optimizer, scheduler, global step, and all declared RNG state before the next batch."
+    "Validate the manifest, checksums, completion marker, and atomic commit status.",
+    "Validate the immutable base identity and base artifact hash.",
+    "Restore the frozen base, then the trainable adapter.",
+    "Restore optimizer and scheduler state.",
+    "Restore global step.",
+    "Restore Python, NumPy, and Torch RNG state before the next batch.",
+    "Keep all applicable Recovery Gate checks enabled; only deterministic code may declare recovery."
   ],
   "rollback_limit_steps": 0,
-  "correctness_priority": "strict",
-  "assumptions": [
-    "The controlled workload is CPU-only and uses step-derived batches.",
-    "The frozen base is immutable for the lifetime of the run."
-  ],
+  "schema_version": "checkpoint-contract-v1",
   "warnings": [
-    "Checkpoint loadability alone is not evidence of correct continuation."
+    "No rollback is permitted; a checkpoint failing any required integrity or identity check must not be accepted.",
+    "Recovery is not declared or verified by this contract.",
+    "Omitting the full frozen model is safe only when the exact base artifact identity and hash are validated.",
+    "RNG state must be restored before fetching or processing the next batch."
   ]
 }

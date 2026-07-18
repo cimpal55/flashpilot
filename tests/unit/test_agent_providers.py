@@ -116,8 +116,8 @@ def test_contract_fixture_is_typed_labeled_and_guarded(tmp_path: Path) -> None:
     )
     assert metadata["provider"] == "fixture"
     assert metadata["live_or_fixture"] == "fixture"
-    assert metadata["source"] == "deterministic_local_fixture"
-    assert metadata["fixture_provenance"] == "deterministic_local_fixture"
+    assert metadata["source"] == "captured_live_response_replay"
+    assert metadata["fixture_provenance"] == "live_gpt_5_6_capture"
     assert metadata["model"] == "gpt-5.6"
     assert metadata["store"] is False
     assert metadata["validation_status"] == "accepted"
@@ -142,15 +142,33 @@ def test_failure_fixture_is_typed_labeled_and_accepts_six_actions(tmp_path: Path
         "restore_state_before_next_batch",
     )
     assert validation.rejected_actions == ()
-    assert validation.unsupported_actions == ()
+    assert validation.unsupported_actions == ("change_supported_checkpoint_strategy",)
     assert validation.execution_performed is False
     metadata = json.loads(
         (tmp_path / "run/agent/failure/metadata.json").read_text(encoding="utf-8")
     )
     assert metadata["live_or_fixture"] == "fixture"
-    assert metadata["source"] == "deterministic_local_fixture"
-    assert metadata["fixture_provenance"] == "deterministic_local_fixture"
+    assert metadata["source"] == "captured_live_response_replay"
+    assert metadata["fixture_provenance"] == "live_gpt_5_6_capture"
     assert metadata["validation_status"] == "accepted"
+
+
+def test_default_fixtures_preserve_accepted_live_capture_metadata() -> None:
+    contract = FixtureContractProvider().captured_live_metadata
+    failure = FixtureFailureProvider().captured_live_metadata
+
+    assert contract is not None
+    assert contract.provider == "openai"
+    assert contract.model == "gpt-5.6"
+    assert contract.source == "captured_live_response"
+    assert contract.response_id == "resp_0fea08ffa74a6cb9016a5a82a695e88195a35bbfd335ae2a03"
+    assert contract.store is False
+    assert failure is not None
+    assert failure.provider == "openai"
+    assert failure.model == "gpt-5.6"
+    assert failure.source == "captured_live_response"
+    assert failure.response_id == "resp_0d7e808cd722f97f016a5a90f0300481908d22e7befa15e3fe"
+    assert failure.store is False
 
 
 @pytest.mark.parametrize("forbidden", FORBIDDEN_FAILURE_PAYLOAD_TERMS)

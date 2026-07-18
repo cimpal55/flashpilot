@@ -26,6 +26,7 @@ from flashpilot.domain.recovery import (
     RecoveryProcessMetadata,
     RecoveryWorkerResult,
 )
+from flashpilot.domain.repair import CheckpointStrategyConfig
 from flashpilot.orchestration.artifacts import write_json_artifact
 from flashpilot.security.paths import PathSandbox
 from flashpilot.verification.failure_artifact import build_sanitized_failure_artifact
@@ -183,12 +184,21 @@ def run_checkpoint_crash_phase(
     run_root: Path,
     checkpoint_step: int,
     post_commit_steps: int = 0,
+    strategy_config_path: str | None = None,
     timeout_seconds: float = 60.0,
 ) -> CheckpointCrashPhase:
     """Start a worker, validate its committed path, then kill that exact process."""
 
     run_root = run_root.resolve()
     sandbox = PathSandbox.create(run_root)
+    if strategy_config_path is not None:
+        if strategy != "safe_adapter_aware":
+            raise ValueError("a repaired strategy config requires safe_adapter_aware storage")
+        config_path = sandbox.resolve_relative(strategy_config_path, must_exist=True)
+        config = CheckpointStrategyConfig.model_validate_json(
+            config_path.read_text(encoding="utf-8")
+        )
+        config.require_complete_training_state()
     stderr_path = _stderr_path(run_root, "logs/checkpoint-worker.stderr.log")
     command = _worker_command(
         "checkpoint",
@@ -203,6 +213,8 @@ def run_checkpoint_crash_phase(
         "--post-commit-steps",
         str(post_commit_steps),
     )
+    if strategy_config_path is not None:
+        command.extend(("--strategy-config", strategy_config_path))
     with stderr_path.open("x", encoding="utf-8", newline="\n") as stderr_stream:
         process = subprocess.Popen(
             command,
@@ -283,6 +295,7 @@ def run_recovery_phase(
     strategy: CheckpointStrategy,
     run_root: Path,
     checkpoint_path: str,
+    strategy_config_path: str | None = None,
     timeout_seconds: float = 60.0,
 ) -> RecoveryPhase:
     """Launch a new worker process and require a successful contained result."""
@@ -290,6 +303,14 @@ def run_recovery_phase(
     run_root = run_root.resolve()
     sandbox = PathSandbox.create(run_root)
     sandbox.resolve_relative(checkpoint_path, must_exist=True)
+    if strategy_config_path is not None:
+        if strategy != "safe_adapter_aware":
+            raise ValueError("a repaired strategy config requires safe_adapter_aware storage")
+        config_path = sandbox.resolve_relative(strategy_config_path, must_exist=True)
+        config = CheckpointStrategyConfig.model_validate_json(
+            config_path.read_text(encoding="utf-8")
+        )
+        config.require_complete_training_state()
     output_path = sandbox.resolve_relative(_RECOVERY_OUTPUT)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path = _stderr_path(run_root, "logs/recovery-worker.stderr.log")
@@ -306,6 +327,8 @@ def run_recovery_phase(
         "--output-path",
         _RECOVERY_OUTPUT,
     )
+    if strategy_config_path is not None:
+        command.extend(("--strategy-config", strategy_config_path))
     started_at = datetime.now(UTC)
     with stderr_path.open("x", encoding="utf-8", newline="\n") as stderr_stream:
         process = subprocess.Popen(
@@ -370,6 +393,7 @@ def run_crash_recovery_experiment(
     checkpoint_step: int | None = None,
     hard_rollback_limit_steps: int = 0,
     post_commit_steps: int = 0,
+    strategy_config_path: str | None = None,
     timeout_seconds: float = 60.0,
 ) -> CrashExperimentResult:
     """Run control, real crash, new-process recovery, gate, and structured artifacts."""
@@ -390,6 +414,7 @@ def run_crash_recovery_experiment(
         run_root=run_root,
         checkpoint_step=selected_step,
         post_commit_steps=post_commit_steps,
+        strategy_config_path=strategy_config_path,
         timeout_seconds=timeout_seconds,
     )
     recovery_phase = run_recovery_phase(
@@ -397,6 +422,7 @@ def run_crash_recovery_experiment(
         strategy=strategy,
         run_root=run_root,
         checkpoint_path=crash_phase.event.checkpoint_path,
+        strategy_config_path=strategy_config_path,
         timeout_seconds=timeout_seconds,
     )
     if crash_phase.crash.worker_pid == recovery_phase.result.worker_pid:

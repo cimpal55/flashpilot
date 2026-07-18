@@ -186,14 +186,13 @@ Prompt 4 exposes only checkpoint-contract inference and blind recovery-failure
 analysis. Both live providers use the official OpenAI Python SDK,
 `responses.parse`, `model="gpt-5.6"`, Pydantic structured outputs, and
 `store=False`; neither call supplies tools. Fixture providers implement the
-same typed protocols and are labeled `fixture` with provenance
-`deterministic_local_fixture`. That provenance is deliberately distinct from a
-captured live response. Independent live validation accepted one contract call
-with all deterministic contract guards passing. The first live failure-analysis
-call was parsed but rejected because the model combined Gate check IDs and
-evidence IDs in `affected_gate_checks`; one documented retry is required after
-the strict identifier correction. A rejected result is not hand-edited or
-treated as an accepted diagnosis.
+same typed protocols and are labeled `fixture`. Independent live validation
+accepted the contract call. The first live failure-analysis call was parsed but
+rejected because the model combined Gate check IDs and evidence IDs in
+`affected_gate_checks`; it was not hand-edited or treated as accepted. After
+the strict identifier correction, one independently run retry was accepted.
+Prompt 5 replays those accepted structured responses with
+`captured_live_response_replay` provenance.
 
 ## D-020: The sanitized artifact is the complete diagnosis boundary
 
@@ -259,3 +258,57 @@ never persisted.
 - Linux is the intended strongest atomic-commit target. Windows is the current
   development environment; file synchronization and rename are tested, but
   directory `fsync` remains unavailable and durability is therefore best-effort.
+
+## D-024: Accepted live responses become explicit replay fixtures
+
+The default contract and failure-analysis fixture JSON reproduces the
+independently accepted, secret-free GPT-5.6 structured responses rather than
+separately authored local answers. Each fixture has a metadata sidecar retaining
+the original `provider=openai`, `model=gpt-5.6`, response ID, prompt/schema
+versions, request SHA-256, timestamp, `store=false`, and accepted status.
+Runtime calls remain `provider=fixture`, `live_or_fixture=fixture`, and
+`source=captured_live_response_replay`; they never instantiate an OpenAI client
+or make an API call. Live capture metadata and replay-call metadata are recorded
+separately so provenance is not blurred. Their request hashes are not expected
+to match: fresh experiments contain new process IDs, and the native capability
+summary now advertises the six supported actions. The captured answer is
+therefore a typed semantic replay, not a claim that the current request bytes
+were sent live. It must pass all current deterministic request, identifier,
+evidence, capability, and action guardrails before execution.
+
+## D-025: Six booleans are the complete repair execution surface
+
+`CheckpointStrategyConfig` contains a strategy ID and exactly six booleans:
+`include_optimizer`, `include_scheduler`, `include_python_rng`,
+`include_numpy_rng`, `include_torch_rng`, and `restore_before_next_batch`.
+The executor accepts only the fixed action-to-field mapping from Section 28.5,
+requires exactly those six accepted actions, reserves attempt one by exclusive
+file creation, copies the initial configuration, flips only the mapped fields,
+and assigns `native-repaired-complete-v1`. Extra fields and arbitrary text are
+forbidden by the schema. Model reasons, paths, code, commands, and patches are
+never executed.
+
+The captured proposal `change_supported_checkpoint_strategy` remains known but
+unsupported. Assigning a new configuration ID is the binding orchestration step,
+not execution of that proposal: the new run continues to use the already
+supported `safe_adapter_aware` checkpoint contract. The repaired worker requires
+the complete typed config before it can commit or restore. A second executor
+call for the same run is refused.
+
+## D-026: Repaired verification precedes logical-byte comparison
+
+The original incomplete experiment and repaired experiment have isolated roots.
+A SHA-256 fingerprint covers every relative filename and byte in the original
+checkpoint before and after repair; any mutation fails closed. The second
+experiment uses the unchanged parent-owned real kill/new-process restore path
+and the unchanged Recovery Gate with `atol=0.0` and `rtol=0.0`. Only that gate
+can write `VERIFIED`.
+
+After a passing repaired gate, the unchanged `safe_full` direct-restore
+measurement records logical checkpoint-directory bytes at the same profile and
+step. It is compared with repaired recurring logical bytes; the immutable base
+is reported separately as a one-time artifact. This is structural logical-byte
+evidence, not a claim about physical NAND writes, write amplification, or SSD
+lifetime. If the repaired gate fails, no storage reduction is emitted, no
+second GPT request occurs, and the documented complete-state fallback is not
+automatically run.

@@ -137,14 +137,19 @@ def test_failure_request_rejects_raw_data_secrets_and_local_files(
 def test_supported_unsupported_and_rejected_actions_are_reported_separately() -> None:
     request = failure_request()
     fixture = FixtureFailureProvider().analyze_failure(request).output
+    optimizer_action = next(
+        action
+        for action in fixture.repair_plan.actions
+        if action.action == "persist_optimizer_state"
+    )
     actions = (
-        fixture.repair_plan.actions[0],
+        optimizer_action,
         RepairAction(
             action="persist_sampler_state",
             reason="Preserve a known state if the adapter can expose it.",
             evidence_ids=("contract:mandatory-state",),
         ),
-        fixture.repair_plan.actions[0],
+        optimizer_action,
         RepairAction(
             action="persist_scheduler_state",
             reason="Run powershell to change recovery configuration.",
@@ -260,7 +265,12 @@ def test_failure_analysis_keeps_gate_and_evidence_ids_in_separate_fields() -> No
 
     assert analysis.affected_gate_checks[0] == "state.optimizer"
     assert analysis.confirming_evidence[0] == "restore:optimizer-state"
-    assert analysis.repair_plan.actions[0].evidence_ids == ("restore:optimizer-state",)
+    optimizer_action = next(
+        action
+        for action in analysis.repair_plan.actions
+        if action.action == "persist_optimizer_state"
+    )
+    assert "restore:optimizer-state" in optimizer_action.evidence_ids
 
 
 def test_failure_analysis_schema_rejects_combined_identifier_without_repair() -> None:

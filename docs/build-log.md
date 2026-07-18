@@ -893,3 +893,155 @@ Focused pytest-plugin output:
 
 No live API call, repair, second crash, or Prompt 5 functionality was executed
 or added.
+
+## Prompt 5 bounded repair and second verification
+
+- Date: 2026-07-17
+- Scope: Prompt 5 only; Prompt 6 was not started.
+- Target: Python 3.11+ compatibility; local validation used Python 3.12.13 on
+  Windows.
+- Provider mode: fixture replay of the independently accepted, secret-free
+  GPT-5.6 structured response. No live API call was made.
+
+### Implementation evidence
+
+The checked-in contract and failure fixtures now match the independently
+accepted live structured outputs. Their sidecars preserve the accepted live
+metadata, including response IDs. Runtime replay metadata remains separately
+labeled `provider=fixture`, `live_or_fixture=fixture`, and
+`source=captured_live_response_replay`.
+
+The bounded executor copied a strict `CheckpointStrategyConfig`, admitted
+attempt one, assigned `native-repaired-complete-v1`, and set exactly:
+
+```text
+include_optimizer=true
+include_scheduler=true
+include_python_rng=true
+include_numpy_rng=true
+include_torch_rng=true
+restore_before_next_batch=true
+```
+
+It applied only:
+
+```text
+persist_optimizer_state
+persist_scheduler_state
+persist_python_rng_state
+persist_numpy_rng_state
+persist_torch_rng_state
+restore_state_before_next_batch
+```
+
+`change_supported_checkpoint_strategy` remained recorded as unsupported and
+was not executed. Rejected actions were empty. A second repair admission was
+refused in both unit and end-to-end integration coverage.
+
+The captured live request hash and fresh replay request hash differ because a
+real rerun has different process IDs and the current native capability summary
+advertises the six supported actions. Both hashes are recorded separately. No
+claim is made that the current request bytes were sent to GPT-5.6; the accepted
+response is a semantic structured replay that passed all current deterministic
+guardrails before the executor admitted it.
+
+### Focused tests
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_agent_providers.py tests\unit\test_agent_guardrails.py tests\unit\test_repair_executor.py -q
+.................................................                        [100%]
+49 passed in 1.65s
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_repair_loop.py -q
+.....                                                                    [100%]
+5 passed in 20.30s
+```
+
+### Clean demo-profile fixture replay
+
+Command:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli demo --provider fixture --profile demo --run-dir .\runs\manual-prompt5-fixture-20260717
+```
+
+Actual output:
+
+```text
+The failure is intentional and deterministic, but GPT-5.6 does not receive the injection label. It receives only the sanitized checkpoint manifest, restore behavior, failed Recovery Gate checks, and trajectory evidence.
+Initial worker PID: 12360
+Initial recovery PID: 13356
+Initial failed checks: state.optimizer, state.scheduler, state.python_rng, state.numpy_rng, state.torch_rng, trajectory.final_trainable, trajectory.final_evaluation, trajectory.loss_history, contract.no_mandatory_omission
+Applied actions: persist_optimizer_state, persist_scheduler_state, persist_python_rng_state, persist_numpy_rng_state, persist_torch_rng_state, restore_state_before_next_batch
+Unsupported actions: change_supported_checkpoint_strategy
+Repaired strategy ID: native-repaired-complete-v1
+Second worker PID: 42748
+Second recovery PID: 8556
+Final Recovery Gate: VERIFIED
+Result: C:\Programming\business\flashpilot\runs\manual-prompt5-fixture-20260717\result.json
+Report: C:\Programming\business\flashpilot\runs\manual-prompt5-fixture-20260717\report.md
+```
+
+The initial gate failed exactly the nine checks shown above. The final gate
+passed with no failed checks, and the comparison policy remained `atol=0.0`,
+`rtol=0.0`. The initial checkpoint fingerprint before and after repair was:
+
+```text
+c78f9fcd39a57960268cd354521dddf3751f974b974791adefd5a143dfe696ce
+```
+
+Therefore the historical failed checkpoint was not modified. Repair attempt
+count was exactly one. The captured failure response ID was
+`resp_0d7e808cd722f97f016a5a90f0300481908d22e7befa15e3fe`.
+
+Only after the final gate passed, the unchanged measurement paths reported:
+
+```text
+safe_full logical checkpoint bytes: 126218
+repaired recurring logical checkpoint bytes: 32743
+one-time immutable base bytes: 93987
+structural recurring-byte reduction: 93475 bytes (74.0583751921279%)
+```
+
+This is a same-profile, same-step logical checkpoint-directory comparison. The
+repaired recurring number excludes the immutable base stored once. It is not a
+physical NAND-write, write-amplification, or SSD-lifetime measurement.
+
+Read-only artifact commands also passed:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli audit --run-dir .\runs\manual-prompt5-fixture-20260717
+Fixture replay source: captured_live_response_replay
+Captured response ID: resp_0d7e808cd722f97f016a5a90f0300481908d22e7befa15e3fe
+Repair attempts: 1
+Original checkpoint unmodified: True
+Final Recovery Gate: VERIFIED
+
+.\.venv\Scripts\python.exe -m flashpilot.cli verify --run-dir .\runs\manual-prompt5-fixture-20260717
+VERIFIED by the persisted deterministic Recovery Gate (atol=0.0, rtol=0.0).
+
+.\.venv\Scripts\python.exe -m flashpilot.cli replay --run-dir .\runs\manual-prompt5-fixture-20260717
+Captured GPT-5.6 structured response replay matched; no API call was made.
+```
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+71 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 58%]
+.........................................s..........                     [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Клиент не обладает требуемыми правами: 'C:\Users\cimpal55\AppData\Local\Temp\flashpilot-pytest-4e08ea4efdea49a08a636ecab2305a76\test_sandbox_rejects_symlink_e0\outside' -> 'C:\Users\cimpal55\AppData\Local\Temp\flashpilot-pytest-4e08ea4efdea49a08a636ecab2305a76\test_sandbox_rejects_symlink_e0\run\escape'
+123 passed, 1 skipped in 74.98s (0:01:14)
+```
+
+The skip is the unchanged platform-conditional Windows directory-symlink test.
+Pytest used its unique UUID temp root and had no ACL or cache warning. Windows
+payload and metadata file fsync and atomic directory rename remain enforced;
+directory fsync remains explicitly best-effort.

@@ -153,3 +153,37 @@ Codex performed the following concrete work under the binding Prompt 4 scope:
 Codex did not implement repair execution, a repaired strategy, a second crash,
 Prompt 5 orchestration, policy planning, report narration, HTML, packaging,
 Docker, Hugging Face support, plugins, or another adapter.
+
+## Milestone 5
+
+Codex performed the following concrete work under the binding Prompt 5 scope:
+
+- replaced the two default local-answer fixtures with the independently
+  accepted secret-free GPT-5.6 structured responses and preserved their live
+  metadata in explicit sidecars;
+- added a strict six-boolean `CheckpointStrategyConfig` and a fixed typed
+  action-to-field mapping with no command, patch, path, or model-text execution
+  surface;
+- implemented one exclusive repair attempt that copies the incomplete config,
+  applies exactly the six NativePyTorchAdapter actions, assigns a new strategy
+  ID, and records accepted, unsupported, rejected, and applied actions;
+- kept `change_supported_checkpoint_strategy` recorded as unsupported while
+  reusing the existing supported adapter-aware checkpoint contract;
+- connected the initial real crash, failed gate, captured-response replay,
+  deterministic validation, bounded repair, second real crash, new-process
+  restore, and final exact Recovery Gate in isolated run directories;
+- added whole-directory before/after checkpoint fingerprints proving that the
+  historical failed checkpoint is not modified;
+- added post-verification logical-byte comparison that separates recurring
+  repaired bytes from the one-time immutable base and makes no physical-write
+  claim;
+- added authoritative `result.json`, deterministic `report.md`, the fixture
+  `demo` path, and read-only `audit`, `verify`, and `replay` commands;
+- added unit and integration tests for the six field changes, unsupported
+  strategy action, one-attempt limit, second-attempt refusal, original
+  checkpoint immutability, real second-process recovery, exact trajectory, and
+  artifact/CLI replay behavior.
+
+Codex did not make a live API call or implement Prompt 6 work, HTML, packaging,
+Docker, Hugging Face support, plugin discovery, a policy planner, numeric
+CrashScore, a GPT report narrator, another adapter, or weakened gate behavior.
