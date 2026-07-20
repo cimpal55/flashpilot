@@ -908,3 +908,46 @@ failure-event SHA-256. Malformed, missing, contradictory, path-escaping, or
 tampered evidence fails closed. This decision does not add elastic membership,
 in-process process-group reinitialization, automatic retry, multi-node
 orchestration, CUDA/NCCL, policy-as-code, signing, OIDC, or registry behavior.
+
+## D-060: qualification policy is a closed explicit matrix, not a rule language
+
+The fourth V1.0 production-infrastructure item introduces
+`QualificationPolicyV1` separately from the existing per-run `CIPolicyV1`.
+The per-run model remains a useful allowlist and RPO/RTO check, but membership
+of one result's fault in a list cannot prove that an entire required scenario
+matrix executed. The suite policy closes that gap with one exact run binding
+for every unique typed requirement.
+
+The policy accepts no expressions, executable rules, imports, functions,
+commands, arbitrary check IDs, repository scans, policy discovery, or external
+policy engines. Seven discriminated requirement types encode only existing
+FlashPilot evidence surfaces. Runtime types fix their possible profile,
+framework, adapter, and fault. FSDP and DeepSpeed additionally fix the one
+supported CPU/Gloo topology, implementation, and optional target rank.
+DeepSpeed fixes ZeRO stage 2. Impossible profile/framework/topology
+combinations are schema errors rather than runtime interpretation.
+
+Every runtime requirement fixes `required_status=VERIFIED`,
+`require_exact_recovery=true`, and `require_attestation=true`. UNKNOWN,
+missing evidence, duplicate bindings, and unlisted bindings can only fail or
+be rejected. RPO and RTO are the only bounded numeric policy inputs; they are
+compared to already-derived local evidence and cannot alter a Recovery Gate.
+Static audit fixes `required_status=PASS` and
+`require_attestation=false`, preserving the rule that static inspection never
+proves recovery.
+
+The CLI accepts repeated explicit `requirement-id=run-directory` bindings and
+does not enumerate a parent directory. Each strict source result is SHA-256
+bound into `policy-evaluation.json`; verified runtime evidence must also pass
+the existing local attestation verifier, whose attestation hash is recorded.
+The policy source file itself is hashed. Evaluation writes only to a separate
+closed output root and refuses to write inside a bound run, so policy
+enforcement cannot repair or mutate attested evidence.
+
+The checked-in production suite names nine requirements and derives one PASS
+from 145 checks. GitHub Actions runs it after all nine evidence producers and
+uploads the policy source, schemas, evaluation, JUnit, Markdown, and SARIF with
+the always-on diagnostics. The existing success-only attestation upload is not
+changed. This is repository qualification policy, not general authorization or
+the later organization-level policy milestone. Signing, OIDC, remote policy
+distribution, inheritance, waivers, and a registry remain out of scope.

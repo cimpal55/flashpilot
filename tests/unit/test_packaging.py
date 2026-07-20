@@ -61,6 +61,11 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
     data_files = _pyproject()["tool"]["setuptools"]["data-files"]
 
     assert "schemas/ci-policy-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    assert "schemas/qualification-policy-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    assert (
+        "schemas/qualification-policy-evaluation-v1.schema.json"
+        in data_files["share/flashpilot/schemas"]
+    )
     assert (
         "schemas/conversion-qualification-v1.schema.json" in data_files["share/flashpilot/schemas"]
     )
@@ -101,7 +106,10 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
     assert (
         "schemas/randomized-fault-timing-v1.schema.json" in data_files["share/flashpilot/schemas"]
     )
-    assert data_files["share/flashpilot/examples/ci"] == ["examples/ci/policy.yml"]
+    assert data_files["share/flashpilot/examples/ci"] == [
+        "examples/ci/policy.yml",
+        "examples/ci/qualification-policy.yml",
+    ]
     assert data_files["share/flashpilot/examples/hf_trainer"] == ["examples/hf_trainer/train.py"]
     assert data_files["share/flashpilot/docs"] == ["docs/release-checklist-v0.2.md"]
 

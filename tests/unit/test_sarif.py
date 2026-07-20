@@ -28,6 +28,7 @@ def _failed_evidence() -> CIRunEvidence:
         status=CIStatus.FAILED,
         qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
         framework="huggingface-trainer",
+        adapter="huggingface-trainer",
         checks=(
             CICheck(
                 check_id="checkpoint.optimizer",
@@ -45,6 +46,8 @@ def _failed_evidence() -> CIRunEvidence:
         fault="process_termination",
         rpo_steps=0,
         rto_seconds=4.0,
+        atol=0.0,
+        rtol=0.0,
     )
 
 

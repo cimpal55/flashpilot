@@ -6,6 +6,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 import pytest
+import yaml
 from rich.console import Console
 from typer.testing import CliRunner
 
@@ -24,6 +25,10 @@ from flashpilot.attestation.reporters import render_attestation_summary
 from flashpilot.attestation.schema import attestation_schema_documents
 from flashpilot.attestation.verifier import AttestationVerificationError
 from flashpilot.checkpoints.integrity import directory_content_fingerprint, sha256_file
+from flashpilot.ci.qualification_policy_models import (
+    NativePolicyRequirement,
+    QualificationPolicyV1,
+)
 from flashpilot.cli import app
 from flashpilot.contracts import (
     PersistenceContract,
@@ -286,6 +291,121 @@ def test_emit_junit_enforces_policy_without_mutating_attested_bundle(
     assert "Policy: PASS" in invocation.output
     assert collect_evidence_entries(run_root) == before
     assert verify_recovery_attestation(run_root / RECOVERY_ATTESTATION_PATH).valid is True
+
+
+def _write_native_qualification_policy(path: Path) -> None:
+    policy = QualificationPolicyV1(
+        policy_id="native-exact-recovery",
+        requirements=(
+            NativePolicyRequirement(
+                requirement_id="native-process-termination",
+                kind="native-qualification",
+                framework="native-pytorch",
+                adapter="native-pytorch",
+                qualification_profile="exact-training-resume",
+                fault="process_termination",
+                max_rpo_steps=0,
+                max_rto_seconds=60,
+            ),
+        ),
+    )
+    path.write_text(
+        yaml.safe_dump(policy.model_dump(mode="json"), sort_keys=False),
+        encoding="utf-8",
+    )
+
+
+def test_qualification_policy_verifies_attested_run_without_mutating_it(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    run_root, _ = completed_repair_loop
+    policy_path = tmp_path / "policy.yml"
+    output_root = tmp_path / "policy-output"
+    _write_native_qualification_policy(policy_path)
+    before = directory_content_fingerprint(run_root)
+
+    invocation = CliRunner().invoke(
+        app,
+        [
+            "enforce-policy",
+            "--policy",
+            str(policy_path),
+            "--output-dir",
+            str(output_root),
+            "--run",
+            f"native-process-termination={run_root}",
+        ],
+    )
+
+    assert invocation.exit_code == 0, invocation.output
+    assert "POLICY PASS" in invocation.output
+    assert "Requirements: 1/1" in invocation.output
+    assert directory_content_fingerprint(run_root) == before
+    assert verify_recovery_attestation(run_root / RECOVERY_ATTESTATION_PATH).valid is True
+    evaluation = json.loads((output_root / "policy-evaluation.json").read_text("utf-8"))
+    bound = evaluation["requirements"][0]["evidence"]
+    assert bound["attestation_status"] == "verified"
+    assert len(bound["attestation_sha256"]) == 64
+
+
+def test_qualification_policy_missing_attestation_fails_exact_requirement(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "missing-policy-attestation")
+    (bundle / RECOVERY_ATTESTATION_PATH).unlink()
+    policy_path = tmp_path / "policy.yml"
+    output_root = tmp_path / "policy-output"
+    _write_native_qualification_policy(policy_path)
+
+    invocation = CliRunner().invoke(
+        app,
+        [
+            "enforce-policy",
+            "--policy",
+            str(policy_path),
+            "--output-dir",
+            str(output_root),
+            "--run",
+            f"native-process-termination={bundle}",
+        ],
+    )
+
+    assert invocation.exit_code == 3
+    assert "FAILED REQUIREMENT policy.native-process-termination.attestation" in invocation.output
+    assert (output_root / "policy-evaluation.json").is_file()
+
+
+def test_qualification_policy_rejects_tampered_attestation_before_evaluation(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "tampered-policy-attestation")
+    attestation = bundle / RECOVERY_ATTESTATION_PATH
+    payload = bytearray(attestation.read_bytes())
+    payload[-2] ^= 1
+    attestation.write_bytes(payload)
+    policy_path = tmp_path / "policy.yml"
+    output_root = tmp_path / "policy-output"
+    _write_native_qualification_policy(policy_path)
+
+    invocation = CliRunner().invoke(
+        app,
+        [
+            "enforce-policy",
+            "--policy",
+            str(policy_path),
+            "--output-dir",
+            str(output_root),
+            "--run",
+            f"native-process-termination={bundle}",
+        ],
+    )
+
+    assert invocation.exit_code == 4
+    assert "bound recovery attestation is invalid or tampered" in invocation.output
+    assert not output_root.exists()
 
 
 def test_emit_junit_does_not_repair_missing_artifact_in_attested_bundle(

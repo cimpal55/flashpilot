@@ -49,6 +49,12 @@ from flashpilot.ci.exits import (
     EXIT_UNSUPPORTED,
 )
 from flashpilot.ci.policy import CIPolicyError, load_ci_policy
+from flashpilot.ci.qualification_policy import (
+    QualificationPolicyError,
+    QualificationPolicyEvidenceError,
+    enforce_qualification_policy,
+    parse_policy_run_bindings,
+)
 from flashpilot.ci.service import CIEvidenceError, emit_ci_outputs, write_qualification_ci_outputs
 from flashpilot.contracts.models import QualificationProfile
 from flashpilot.diagnostics import run_doctor
@@ -1242,6 +1248,63 @@ def emit_junit(
     if result.policy_evaluation is not None:
         typer.echo("Policy: " + ("PASS" if result.policy_evaluation.passed else "FAIL"))
         for check in result.policy_evaluation.checks:
+            if check.status.value == "FAIL":
+                typer.echo(f"FAILED REQUIREMENT {check.check_id}: {check.summary}", err=True)
+    if result.exit_code:
+        raise typer.Exit(code=result.exit_code)
+
+
+@app.command("enforce-policy")
+def enforce_policy(
+    policy: Annotated[
+        Path,
+        typer.Option(help="Closed FlashPilot qualification-suite policy YAML."),
+    ],
+    output_dir: Annotated[
+        Path,
+        typer.Option(help="New or matching policy-evaluation artifact directory."),
+    ],
+    run: Annotated[
+        list[str],
+        typer.Option(
+            "--run",
+            help="Explicit repeated requirement-id=run-directory evidence binding.",
+        ),
+    ],
+) -> None:
+    """Enforce one closed policy over an explicitly bound qualification suite."""
+
+    try:
+        bindings = parse_policy_run_bindings(run)
+        result = enforce_qualification_policy(
+            policy_path=policy,
+            run_bindings=bindings,
+            output_dir=output_dir,
+        )
+    except QualificationPolicyError as error:
+        typer.echo(f"Unsupported qualification policy: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    except (
+        QualificationPolicyEvidenceError,
+        OSError,
+        UnicodeError,
+        ValueError,
+    ) as error:
+        typer.echo(f"INVALID OR TAMPERED POLICY EVIDENCE: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    evaluation = result.evaluation
+    typer.echo("POLICY " + ("PASS" if evaluation.passed else "FAIL"))
+    typer.echo(f"Policy ID: {evaluation.policy_id}")
+    typer.echo(
+        f"Requirements: {len(evaluation.requirements) - len(evaluation.failed_requirement_ids)}"
+        f"/{len(evaluation.requirements)}"
+    )
+    typer.echo(f"Evaluation: {result.evaluation_path.resolve()}")
+    typer.echo(f"JUnit XML: {result.junit_path.resolve()}")
+    typer.echo(f"Job summary: {result.job_summary_path.resolve()}")
+    typer.echo(f"SARIF: {result.sarif_path.resolve()}")
+    for requirement in evaluation.requirements:
+        for check in requirement.checks:
             if check.status.value == "FAIL":
                 typer.echo(f"FAILED REQUIREMENT {check.check_id}: {check.summary}", err=True)
     if result.exit_code:
