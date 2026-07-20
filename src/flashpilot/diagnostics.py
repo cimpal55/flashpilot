@@ -21,7 +21,15 @@ from flashpilot.agent.fixture_provider import (
 )
 
 DoctorStatus = Literal["PASS", "FAIL", "INFO", "LIMITATION"]
-_REQUIRED_DISTRIBUTIONS = ("numpy", "openai", "pydantic", "rich", "torch", "typer")
+_REQUIRED_DISTRIBUTIONS = (
+    "numpy",
+    "openai",
+    "pydantic",
+    "pyyaml",
+    "rich",
+    "torch",
+    "typer",
+)
 
 
 @dataclass(frozen=True, slots=True)

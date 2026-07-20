@@ -1,0 +1,54 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_rpo_steps": {
+      "minimum": 0,
+      "title": "Max Rpo Steps",
+      "type": "integer"
+    },
+    "max_rto_seconds": {
+      "exclusiveMinimum": 0.0,
+      "title": "Max Rto Seconds",
+      "type": "number"
+    },
+    "qualification_profile": {
+      "const": "exact-training-resume",
+      "default": "exact-training-resume",
+      "title": "Qualification Profile",
+      "type": "string"
+    },
+    "require_attestation": {
+      "title": "Require Attestation",
+      "type": "boolean"
+    },
+    "required_faults": {
+      "items": {
+        "const": "process_termination",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Required Faults",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "flashpilot-ci-policy-v1",
+      "default": "flashpilot-ci-policy-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "unknown_state": {
+      "const": "fail",
+      "default": "fail",
+      "title": "Unknown State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "required_faults",
+    "max_rpo_steps",
+    "max_rto_seconds",
+    "require_attestation"
+  ],
+  "title": "CIPolicyV1",
+  "type": "object"
+}

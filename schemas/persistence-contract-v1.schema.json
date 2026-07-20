@@ -1,0 +1,156 @@
+{
+  "$defs": {
+    "PersistenceItem": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "exactness": {
+          "$ref": "#/$defs/RecoveryExactness"
+        },
+        "identity_controls": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Identity Controls",
+          "type": "array"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "recovery_source": {
+          "$ref": "#/$defs/RecoverySource"
+        },
+        "requirement": {
+          "$ref": "#/$defs/RequirementClass"
+        },
+        "state_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "State Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state_id",
+        "requirement",
+        "recovery_source",
+        "exactness",
+        "reason"
+      ],
+      "title": "PersistenceItem",
+      "type": "object"
+    },
+    "QualificationProfile": {
+      "enum": [
+        "exact-training-resume",
+        "model-only-inference"
+      ],
+      "title": "QualificationProfile",
+      "type": "string"
+    },
+    "RecoveryExactness": {
+      "enum": [
+        "exact",
+        "tolerance_bounded",
+        "non_equivalent"
+      ],
+      "title": "RecoveryExactness",
+      "type": "string"
+    },
+    "RecoverySource": {
+      "enum": [
+        "checkpoint",
+        "immutable_reference",
+        "external_durable_source",
+        "deterministic_recompute",
+        "none"
+      ],
+      "title": "RecoverySource",
+      "type": "string"
+    },
+    "RequirementClass": {
+      "enum": [
+        "required",
+        "optional",
+        "ephemeral",
+        "unknown"
+      ],
+      "title": "RequirementClass",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.flashpilot.dev/persistence-contract-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adapter": {
+      "maxLength": 100,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_.-]*$",
+      "title": "Adapter",
+      "type": "string"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "framework": {
+      "maxLength": 100,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_.-]*$",
+      "title": "Framework",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/PersistenceItem"
+      },
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+    },
+    "max_rpo_steps": {
+      "minimum": 0,
+      "title": "Max Rpo Steps",
+      "type": "integer"
+    },
+    "qualification_profile": {
+      "$ref": "#/$defs/QualificationProfile"
+    },
+    "schema_version": {
+      "const": "flashpilot-persistence-contract-v1",
+      "default": "flashpilot-persistence-contract-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "qualification_profile",
+    "framework",
+    "adapter",
+    "max_rpo_steps",
+    "items"
+  ],
+  "title": "PersistenceContract",
+  "type": "object"
+}

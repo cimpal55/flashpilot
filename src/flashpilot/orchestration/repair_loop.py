@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 
 from flashpilot.agent.fixture_provider import FixtureFailureProvider
 from flashpilot.agent.service import analyze_recovery_failure
-from flashpilot.checkpoints.integrity import logical_directory_bytes
+from flashpilot.checkpoints.integrity import (
+    directory_content_fingerprint,
+    logical_directory_bytes,
+)
 from flashpilot.checkpoints.strategies import run_safe_full_baseline
 from flashpilot.domain.agent import AgentCallMetadata
 from flashpilot.domain.manifests import CheckpointManifest
@@ -36,28 +38,11 @@ _INTENTIONAL_FAILURE_NOTICE = (
 def fingerprint_directory(path: Path) -> DirectoryFingerprint:
     """Hash relative file names and bytes so any historical mutation is detected."""
 
-    digest = hashlib.sha256()
-    file_count = 0
-    logical_bytes = 0
-    for candidate in sorted(path.rglob("*"), key=lambda item: item.relative_to(path).as_posix()):
-        if candidate.is_symlink():
-            raise ValueError("checkpoint fingerprint refuses symbolic links")
-        if not candidate.is_file():
-            continue
-        relative = candidate.relative_to(path).as_posix().encode("utf-8")
-        digest.update(len(relative).to_bytes(8, "big"))
-        digest.update(relative)
-        with candidate.open("rb") as stream:
-            while chunk := stream.read(1024 * 1024):
-                digest.update(chunk)
-        file_count += 1
-        logical_bytes += candidate.stat().st_size
-    if file_count == 0:
-        raise ValueError("checkpoint fingerprint requires at least one file")
+    fingerprint = directory_content_fingerprint(path)
     return DirectoryFingerprint(
-        sha256=digest.hexdigest(),
-        file_count=file_count,
-        logical_bytes=logical_bytes,
+        sha256=fingerprint.sha256,
+        file_count=fingerprint.file_count,
+        logical_bytes=fingerprint.logical_bytes,
     )
 
 
@@ -318,4 +303,11 @@ def run_bounded_repair_loop(
         relative_path=result.html_report_path,
         text=render_repair_html(persisted_result),
     )
+    from flashpilot.ci.service import write_qualification_ci_outputs
+
+    write_qualification_ci_outputs(run_root=sandbox.root, result=persisted_result)
+    if persisted_result.repaired_run.gate.passed:
+        from flashpilot.attestation.builder import emit_recovery_attestation
+
+        emit_recovery_attestation(run_root=sandbox.root, result=persisted_result)
     return result

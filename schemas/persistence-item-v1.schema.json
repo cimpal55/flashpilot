@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "RecoveryExactness": {
+      "enum": [
+        "exact",
+        "tolerance_bounded",
+        "non_equivalent"
+      ],
+      "title": "RecoveryExactness",
+      "type": "string"
+    },
+    "RecoverySource": {
+      "enum": [
+        "checkpoint",
+        "immutable_reference",
+        "external_durable_source",
+        "deterministic_recompute",
+        "none"
+      ],
+      "title": "RecoverySource",
+      "type": "string"
+    },
+    "RequirementClass": {
+      "enum": [
+        "required",
+        "optional",
+        "ephemeral",
+        "unknown"
+      ],
+      "title": "RequirementClass",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.flashpilot.dev/persistence-item-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "evidence_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Ids",
+      "type": "array"
+    },
+    "exactness": {
+      "$ref": "#/$defs/RecoveryExactness"
+    },
+    "identity_controls": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Identity Controls",
+      "type": "array"
+    },
+    "reason": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "recovery_source": {
+      "$ref": "#/$defs/RecoverySource"
+    },
+    "requirement": {
+      "$ref": "#/$defs/RequirementClass"
+    },
+    "state_id": {
+      "maxLength": 100,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_.-]*$",
+      "title": "State Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "state_id",
+    "requirement",
+    "recovery_source",
+    "exactness",
+    "reason"
+  ],
+  "title": "PersistenceItem",
+  "type": "object"
+}

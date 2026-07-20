@@ -8,33 +8,61 @@ native-PyTorch workflow through real termination, new-process restore, exact
 trajectory comparison, evidence-bounded GPT-5.6 diagnosis, one typed repair,
 and deterministic re-verification.
 
-## 60-second quick start
+## Three supported v0.2 paths
 
-Install the prebuilt wheel in a clean Python environment:
+### 1. 60-second fixture demo
+
+Install the release-candidate wheel in a clean Python environment and run the
+short CPU profile:
 
 ```powershell
-python -m pip install .\dist\flashpilot-0.1.0-py3-none-any.whl
+python -m pip install .\dist\flashpilot-0.2.0-py3-none-any.whl
 flashpilot doctor
+flashpilot demo --provider fixture --profile ci
 ```
 
-The wheel contains FlashPilot and its captured-response fixtures, but it is not
-a fully self-contained dependency bundle. A fresh `pip install` may use the
-configured package index or local cache to resolve declared dependencies.
+The published-package form is `python -m pip install flashpilot`. Dependency
+resolution may use the configured package index or local cache. After
+installation, the fixture demo requires no API key, application network access,
+model download, or dataset download. It writes authoritative `result.json`,
+deterministic Markdown/HTML, JUnit, job summary, and a verified unsigned
+attestation.
 
-Exact judge command:
+Use `flashpilot demo --provider fixture` for the full-size demo profile.
+
+### 2. Static checkpoint audit
+
+Static audit never runs a training script and never claims verified recovery:
 
 ```powershell
-flashpilot demo --provider fixture
+flashpilot audit-checkpoint .\checkpoint-1000 `
+  --framework auto `
+  --profile exact-training-resume `
+  --output-dir .\runs\checkpoint-1000-audit
 ```
 
-After installation, no API key, network access, model download, or dataset
-download is required by the application demo. The command automatically creates
-and prints a unique `runs/repair-<uuid>`
-directory, performs the complete real red-to-green workflow, and writes:
+It emits `PASS`, `WARN`, `FAIL`, or `UNKNOWN` plus `audit.json`, `report.md`,
+`junit.xml`, and `job-summary.md`. UNKNOWN never exits zero and becomes an
+explicit failure under the checked-in CI policy.
 
-- `result.json` — authoritative typed evidence;
-- `report.md` — deterministic Markdown summary;
-- `report.html` — self-contained static rendering of `result.json`.
+### 3. Hugging Face qualification example
+
+Install the optional dependencies and run the installed local example. No model
+or dataset is downloaded:
+
+```powershell
+python -m pip install "flashpilot[hf]"
+flashpilot qualify hf-trainer `
+  --profile exact-training-resume `
+  --fault process-kill `
+  --scenario complete `
+  --run-dir .\runs\hf-complete
+```
+
+From a source checkout, `--script .\examples\hf_trainer\train.py` selects the
+same documented contract explicitly. Omitting `--script` selects the installed
+package's offline worker entry. A base installation without the HF extra exits
+`5` with actionable `pip install 'flashpilot[hf]'` guidance.
 
 ## What the demo proves
 
@@ -169,11 +197,49 @@ they are not a general compression or hardware-lifetime claim.
 
 ## Scope limits
 
-P0 supports only `NativePyTorchAdapter` and the six primary Section 28.5 repair
-actions. It intentionally has no plugin discovery, framework auto-detection,
-additional adapter, repository scanner, AST analyzer, policy planner, numeric
-CrashScore, arbitrary patch executor, Docker path, Hugging Face integration, or
-GPT report narrator.
+The frozen P0 repair path still supports only `NativePyTorchAdapter` and the six
+primary Section 28.5 repair actions. VNext separately adds one narrow,
+non-repairing `HuggingFaceTrainerAdapter` qualification for the included local
+Trainer contract. It is not plugin discovery, framework auto-detection, generic
+arbitrary-script compatibility, or an additional GPT repair surface.
+
+Install and run the optional local HF qualification with:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[hf]"
+.\.venv\Scripts\flashpilot.exe qualify hf-trainer --script .\examples\hf_trainer\train.py --profile exact-training-resume --fault process-kill --scenario complete --run-dir .\runs\hf-complete
+```
+
+The example constructs its tiny model and synthetic dataset locally, forces CPU
+execution and offline Hugging Face environment controls, keeps dropout enabled,
+kills a real checkpoint worker, and resumes in a new process. The `model-only`
+scenario is loadable but intentionally fails exact training-resume qualification.
+
+## CI and policy workflow
+
+Every static audit and qualification writes `junit.xml` plus
+`job-summary.md`. The JUnit testcase names are the exact deterministic check
+IDs, so a CI failure identifies the missing or divergent requirement without
+parsing console logs. Re-evaluate a completed run through the same local core:
+
+```powershell
+.\.venv\Scripts\flashpilot.exe emit-junit `
+  --run-dir .\runs\hf-complete `
+  --policy .\examples\ci\policy.yml
+```
+
+The YAML policy is a closed Pydantic schema: exact profile, `unknown_state=fail`,
+an allowlisted process-termination fault, maximum RPO/RTO, and optional required
+attestation. It has no expression, command, import, or arbitrary scripting
+field. Exit codes are stable: `0=verified/pass`, `2=warning or unknown review`,
+`3=qualification or enforced-policy failure`, `4=invalid/tampered evidence`,
+and `5=unsupported configuration`.
+
+[examples/github-actions/flashpilot-qualification.yml](examples/github-actions/flashpilot-qualification.yml)
+is an opt-in workflow example outside `.github/workflows`, so the repository
+does not impose a hosted CI service. It publishes diagnostics on failure and
+uploads `recovery.attestation.json` only after the qualification and typed policy
+both succeed.
 
 ## Security model
 
@@ -206,17 +272,19 @@ execute repair code and did not declare recovery successful.
 
 ## Limitations and roadmap
 
-The verified scope is one controlled CPU-only `NativePyTorchAdapter` workload on
-Windows 11 with Python 3.12.13. Python 3.11 compatibility is targeted but not
-locally verified. Windows directory fsync is unavailable through Python and is
-best-effort. The project does not qualify arbitrary repositories, distributed
-training, CUDA, Hugging Face, DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay
-is tied to the captured schema and evidence contract; novel failures require a
-new guarded live analysis. Physical storage effects are not measured.
+The verified scope is the controlled CPU-only native workload plus the included
+local Hugging Face Trainer example on Windows 11 with Python 3.12.13. Python 3.11
+compatibility is targeted but not locally verified. Windows directory fsync is
+unavailable through Python and is best-effort. The project does not qualify
+arbitrary repositories or Trainer scripts, distributed training, CUDA,
+DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay is tied to the captured
+schema and evidence contract; novel failures require a new guarded live
+analysis. Physical storage effects are not measured.
 
 Future work may add separately qualified adapters, distributed and partial-write
-scenarios, previous-valid fallback, broader platform validation, and CI. Those
-items remain roadmap only and are not part of the submission proof.
+scenarios, previous-valid fallback, and broader platform validation. The
+checked-in CI file is an opt-in example, not a mandatory hosted service. Those
+roadmap items are not part of the v0.2 proof.
 
 ## Repository and license
 

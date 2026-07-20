@@ -1,0 +1,8 @@
+schema_version: flashpilot-ci-policy-v1
+qualification_profile: exact-training-resume
+unknown_state: fail
+required_faults:
+  - process_termination
+max_rpo_steps: 0
+max_rto_seconds: 60
+require_attestation: true
