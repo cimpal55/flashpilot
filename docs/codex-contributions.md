@@ -450,3 +450,50 @@ qualification branch:
 Codex did not publish a package, create a tag or commit, enable a hosted
 workflow, add signing, begin a V0.3 roadmap item, broaden Trainer compatibility,
 add an adapter, or change the frozen native repair surface.
+
+## V0.3 roadmap item 1 - PyTorch Lightning adapter
+
+Codex implemented only the first V0.3 roadmap item:
+
+- added an explicit optional `PyTorchLightningAdapter` with fixed capabilities,
+  bounded safe checkpoint inspection, and no repair or discovery surface;
+- added an installed CPU-only Lightning worker and source example using
+  deterministic synthetic inputs and real dropout;
+- added parent-controlled process termination after a committed, safely
+  loadable checkpoint and recovery in a distinct process;
+- added a strict 14-check exact-resume gate covering checkpoint state,
+  termination, process identity, progress, loss history, model/evaluation,
+  optimizer, and scheduler digests;
+- demonstrated that a complete checkpoint resumes exactly and that a real
+  `weights_only=True` checkpoint loads but diverges without artificial output
+  manipulation;
+- extended the existing JUnit, job-summary, persistence-contract, attestation,
+  and offline verification surfaces to verified Lightning evidence;
+- added focused adapter, dependency, CLI, full qualification, negative-path,
+  CI, and attestation tests.
+
+Codex did not begin conversion equivalence, partial-write fuzzing,
+previous-valid fallback, randomized fault timing, SARIF, distributed training,
+CUDA, plugin discovery, or another framework adapter.
+
+## V0.3 roadmap item 2 - checkpoint conversion equivalence
+
+Codex implemented only the second V0.3 roadmap item:
+
+- added four explicit typed conversion contracts: full-to-PEFT,
+  PEFT-to-merged, sharded-to-consolidated, and version-upgrade-resume;
+- added checksummed, closed-inventory, bounded, atomically committed source and
+  candidate artifacts whose provenance binds the exact source directory hash;
+- added deterministic dense-to-rank-2 extraction, PEFT merge, shard
+  consolidation, and complete training-state schema upgrade paths;
+- added exact or explicitly tolerance-bounded parameter/output comparisons,
+  plus distinct-process exact continuation checks for upgraded training state;
+- added `flashpilot qualify conversions` and a narrow
+  `flashpilot compare-checkpoints` command backed by the same typed comparator;
+- added JSON Schemas, Markdown/JUnit output, tamper/provenance/semantic-failure
+  tests, and before/after immutability evidence.
+
+Codex did not claim recovery verification or storage savings and did not emit a
+recovery attestation. Partial-write fuzzing, previous-valid fallback,
+randomized fault timing, SARIF, distributed/CUDA training, discovery, and
+additional adapters were not started.

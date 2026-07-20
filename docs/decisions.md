@@ -647,3 +647,46 @@ hashes, and a release checklist are prepared locally. No tag, signing key,
 registry upload, package-index publication, or hosted workflow activation is
 performed by this milestone. The v0.1 tag remains frozen at its original
 commit, and all human release actions remain explicit checklist items.
+
+## D-051: Lightning is an explicit qualification adapter, not a repair adapter
+
+V0.3 adds `PyTorchLightningAdapter` only for the included local CPU workload.
+It has fixed capabilities, an optional `lightning>=2.6,<3` dependency, no
+registry, no discovery, no external adapter loading, and an explicit
+`repair_capability=false`. The frozen P0 repair surface remains solely
+`NativePyTorchAdapter` with its six actions.
+
+The complete contract uses Lightning's public checkpoint API and requires
+model, loop, optimizer, scheduler, global-step, loss-history, and Python,
+NumPy, and Torch RNG evidence. The JSON-safe RNG bridge is restored at the
+first resumed batch boundary because creating a new data-loader iterator may
+consume global Torch RNG after `on_load_checkpoint`. This preserves the exact
+dropout stream without relaxing `atol=0.0` or `rtol=0.0`.
+
+The negative scenario is Lightning's real `weights_only=True` output. It is
+accepted as a valid and safely loadable model checkpoint, but never as an exact
+training-resume checkpoint. Missing optimizer, scheduler, RNG, and trajectory
+history remain separate deterministic gate failures; output is not normalized
+or repaired. Only a complete run passing every gate check receives an
+attestation or a persisted-byte measurement.
+
+## D-052: Conversion equivalence is four fixed contracts
+
+V0.3 implements exactly full-to-PEFT, PEFT-to-merged,
+sharded-to-consolidated, and version-upgrade-resume. This is not a converter
+registry, format discovery mechanism, or claim of compatibility with arbitrary
+framework checkpoints. The controlled full-model fixture carries an explicit
+reference-base identity; deterministic SVD must show its delta fits rank 2 or
+the conversion fails closed.
+
+PEFT extraction and merge are evaluated under an explicit float64
+`atol=1e-12`, `rtol=1e-12` policy. Consolidation and training continuation are
+exact. Version upgrade copies every required continuation component and proves
+resume equivalence in a distinct process. Integrity-valid but semantically
+wrong candidates remain failures; malformed state is never normalized.
+
+Source and candidate directories use closed inventories, bounded safe loading,
+SHA-256 provenance, completion markers, atomic same-filesystem commits, and
+before/after fingerprints. Windows directory fsync remains explicitly
+best-effort. A conversion PASS is not crash recovery: no Recovery Gate ran, so
+no recovery attestation or storage-savings figure is allowed.

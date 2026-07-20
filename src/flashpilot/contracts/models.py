@@ -32,6 +32,7 @@ class RecoveryExactness(StrEnum):
 class QualificationProfile(StrEnum):
     EXACT_TRAINING_RESUME = "exact-training-resume"
     MODEL_ONLY_INFERENCE = "model-only-inference"
+    CHECKPOINT_CONVERSION_EQUIVALENCE = "checkpoint-conversion-equivalence"
 
 
 class StrictContractModel(BaseModel):

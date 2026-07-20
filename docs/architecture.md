@@ -326,3 +326,67 @@ packaged default worker, exact 13-check recovery, attestation verification,
 typed CI policy, and CPU static audit. Application workers remain offline; a
 temporary wheelhouse is only a dependency-install transport for the clean
 environment setup.
+
+## V0.3 PyTorch Lightning qualification adapter
+
+The Lightning path is an explicit qualification-only adapter. It is not
+registered with `NativePyTorchAdapter`, exposes no repair actions, performs no
+plugin discovery, and does not claim arbitrary `LightningModule`
+compatibility. `flashpilot qualify lightning` copies one selected Python entry
+point into an isolated run root and launches three CPU subprocesses with
+argument arrays and `shell=False`:
+
+```text
+uninterrupted control
+-> Lightning Trainer.save_checkpoint
+-> parent validates contained, bounded, weights-only-loadable checkpoint
+-> parent kills checkpoint worker
+-> distinct recovery worker
+-> exact 14-check gate
+-> JUnit/job summary
+-> verified-only attestation and persisted-byte count
+```
+
+The included module uses actual dropout. Its full checkpoint contains
+Lightning model, loop, optimizer, and scheduler state plus an explicit
+JSON-safe Python/NumPy/Torch RNG and loss-history bridge. RNG restoration is
+deferred until the first resumed batch boundary so new-process data-loader
+initialization cannot consume the restored dropout stream. The
+`weights-only=True` scenario uses Lightning's real serialization mode: model
+loading succeeds, loop metadata may remain, but optimizer, scheduler, RNG, and
+history are absent. Continued training then diverges naturally and the gate
+fails closed. No verified attestation or storage metric is emitted.
+
+## V0.3 checkpoint conversion equivalence
+
+Conversion qualification is a fixed four-case subsystem, not a format plugin
+or arbitrary checkpoint converter. Each case commits an immutable source and
+candidate directory with a strict typed manifest, closed payload inventory,
+SHA-256 checksums, and a completion marker bound to the manifest hash. Payloads
+are limited to 64 MiB and Torch data is loaded only after integrity validation
+with `weights_only=True`.
+
+```text
+fixed deterministic source
+-> checksummed atomic source commit
+-> fixed conversion
+-> candidate manifest binds source directory SHA-256
+-> checksummed atomic candidate commit
+-> semantic equivalence comparison
+-> source and candidate re-fingerprinting
+-> JSON + Markdown + JUnit evidence
+```
+
+The model cases cover controlled full-to-PEFT rank-2 extraction,
+PEFT-to-merged inference, and sharded-to-consolidated state. Float64 PEFT
+factorization and merge use the declared `1e-12` absolute and relative
+tolerance; consolidation requires exact parameter and output equality. The
+version-upgrade case translates all model, optimizer, scheduler, RNG,
+trajectory, and step state into the v2 layout, then resumes in a distinct
+subprocess and compares exact continuation evidence to a fresh uninterrupted
+control.
+
+The public `compare-checkpoints` command consumes only these typed artifact
+pairs and reuses the same comparator. It does not scan repositories, detect
+frameworks, mutate either input, repair checkpoints, issue a Recovery Gate
+verdict, calculate byte savings, or emit an attestation.

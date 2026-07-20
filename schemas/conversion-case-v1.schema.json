@@ -1,0 +1,230 @@
+{
+  "$defs": {
+    "ConversionCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Actual",
+          "type": "string"
+        },
+        "check_id": {
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Check Id",
+          "type": "string"
+        },
+        "expected": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Expected",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "status",
+        "summary",
+        "expected",
+        "actual"
+      ],
+      "title": "ConversionCheck",
+      "type": "object"
+    },
+    "ConversionComparisonPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "atol": {
+          "minimum": 0.0,
+          "title": "Atol",
+          "type": "number"
+        },
+        "mode": {
+          "enum": [
+            "exact",
+            "tolerance-bounded",
+            "exact-training-resume"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "rtol": {
+          "minimum": 0.0,
+          "title": "Rtol",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mode",
+        "atol",
+        "rtol"
+      ],
+      "title": "ConversionComparisonPolicy",
+      "type": "object"
+    },
+    "ConversionKind": {
+      "enum": [
+        "full-to-peft",
+        "peft-to-merged",
+        "sharded-to-consolidated",
+        "version-upgrade-resume"
+      ],
+      "title": "ConversionKind",
+      "type": "string"
+    },
+    "ConversionRepresentation": {
+      "enum": [
+        "full-model",
+        "peft",
+        "merged-model",
+        "sharded",
+        "consolidated",
+        "legacy-v1",
+        "upgraded-v2"
+      ],
+      "title": "ConversionRepresentation",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidate_artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Artifact Sha256",
+      "type": "string"
+    },
+    "candidate_artifact_sha256_after": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Artifact Sha256 After",
+      "type": "string"
+    },
+    "candidate_representation": {
+      "$ref": "#/$defs/ConversionRepresentation"
+    },
+    "candidate_unmodified": {
+      "title": "Candidate Unmodified",
+      "type": "boolean"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/ConversionCheck"
+      },
+      "minItems": 1,
+      "title": "Checks",
+      "type": "array"
+    },
+    "comparison_policy": {
+      "$ref": "#/$defs/ConversionComparisonPolicy"
+    },
+    "comparison_process_pid": {
+      "exclusiveMinimum": 0,
+      "title": "Comparison Process Pid",
+      "type": "integer"
+    },
+    "conversion_kind": {
+      "$ref": "#/$defs/ConversionKind"
+    },
+    "failed_check_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Failed Check Ids",
+      "type": "array"
+    },
+    "maximum_absolute_difference": {
+      "minimum": 0.0,
+      "title": "Maximum Absolute Difference",
+      "type": "number"
+    },
+    "passed": {
+      "title": "Passed",
+      "type": "boolean"
+    },
+    "recovery_verified": {
+      "const": false,
+      "default": false,
+      "title": "Recovery Verified",
+      "type": "boolean"
+    },
+    "resume_in_distinct_process": {
+      "title": "Resume In Distinct Process",
+      "type": "boolean"
+    },
+    "resume_worker_pid": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Resume Worker Pid"
+    },
+    "schema_version": {
+      "const": "flashpilot-conversion-case-v1",
+      "default": "flashpilot-conversion-case-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Artifact Sha256",
+      "type": "string"
+    },
+    "source_artifact_sha256_after": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Artifact Sha256 After",
+      "type": "string"
+    },
+    "source_representation": {
+      "$ref": "#/$defs/ConversionRepresentation"
+    },
+    "source_unmodified": {
+      "title": "Source Unmodified",
+      "type": "boolean"
+    },
+    "storage_savings_reported": {
+      "const": false,
+      "default": false,
+      "title": "Storage Savings Reported",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "conversion_kind",
+    "source_representation",
+    "candidate_representation",
+    "source_artifact_sha256",
+    "source_artifact_sha256_after",
+    "candidate_artifact_sha256",
+    "candidate_artifact_sha256_after",
+    "comparison_policy",
+    "checks",
+    "failed_check_ids",
+    "passed",
+    "maximum_absolute_difference",
+    "source_unmodified",
+    "candidate_unmodified",
+    "comparison_process_pid",
+    "resume_in_distinct_process"
+  ],
+  "title": "ConversionCaseResult",
+  "type": "object"
+}

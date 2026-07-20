@@ -3,7 +3,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "enum": [
     "exact-training-resume",
-    "model-only-inference"
+    "model-only-inference",
+    "checkpoint-conversion-equivalence"
   ],
   "title": "QualificationProfile",
   "type": "string"

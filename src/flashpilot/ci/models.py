@@ -60,10 +60,20 @@ class CICheck(StrictCIModel):
 
 class CIRunEvidence(StrictCIModel):
     schema_version: Literal["flashpilot-ci-run-evidence-v1"] = "flashpilot-ci-run-evidence-v1"
-    kind: Literal["static-audit", "native-qualification", "hf-qualification"]
+    kind: Literal[
+        "static-audit",
+        "native-qualification",
+        "hf-qualification",
+        "lightning-qualification",
+    ]
     status: CIStatus
     qualification_profile: QualificationProfile
-    framework: Literal["native-pytorch", "huggingface-trainer", "unknown"]
+    framework: Literal[
+        "native-pytorch",
+        "huggingface-trainer",
+        "pytorch-lightning",
+        "unknown",
+    ]
     checks: tuple[CICheck, ...] = Field(min_length=1)
     fault: Literal["process_termination"] | None = None
     rpo_steps: int | None = Field(default=None, ge=0)

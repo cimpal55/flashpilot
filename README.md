@@ -64,6 +64,63 @@ same documented contract explicitly. Omitting `--script` selects the installed
 package's offline worker entry. A base installation without the HF extra exits
 `5` with actionable `pip install 'flashpilot[hf]'` guidance.
 
+## V0.3 PyTorch Lightning qualification
+
+The V0.3 roadmap adds one explicit, optional PyTorch Lightning
+qualification adapter. It does not join the frozen native repair adapter and
+does not use plugin discovery or framework auto-detection:
+
+```powershell
+python -m pip install "flashpilot[lightning]"
+flashpilot qualify lightning `
+  --profile exact-training-resume `
+  --fault process-kill `
+  --scenario complete `
+  --run-dir .\runs\lightning-complete
+```
+
+The installed worker uses a tiny CPU-only `LightningModule`, deterministic
+synthetic data, and real dropout. A parent process terminates the checkpoint
+worker only after `Trainer.save_checkpoint` has returned and the resulting
+file passes a bounded `torch.load(..., weights_only=True)` inspection. Recovery
+runs in a distinct process. The `complete` scenario must pass the exact gate
+before bytes or an attestation are emitted. The real Lightning
+`weights_only=True` scenario remains loadable but fails exact resume because it
+omits optimizer, scheduler, RNG-bridge, and loss-history state.
+
+## V0.3 checkpoint conversion equivalence
+
+The second V0.3 roadmap item qualifies four fixed, local CPU conversion
+contracts together:
+
+```powershell
+flashpilot qualify conversions `
+  --run-dir .\runs\conversion-equivalence
+```
+
+The cases are full model to PEFT-style base plus rank-2 adapter, PEFT-style
+state to a merged model, two shards to one consolidated model, and legacy-v1
+training state to upgraded-v2 followed by continuation in a distinct process.
+Full-to-PEFT extraction and PEFT-to-merged inference use an explicit float64
+`atol=1e-12`, `rtol=1e-12` policy. Shard consolidation is bit-exact, while the
+version upgrade must reproduce the uninterrupted control's loss history,
+trainable state, evaluation, optimizer, scheduler, and final step exactly.
+
+Every artifact has a closed inventory, payload checksums, a manifest-bound
+completion marker, source provenance, bounded safe loading, and an atomic
+same-filesystem commit. A standalone comparison reuses the same typed core:
+
+```powershell
+flashpilot compare-checkpoints `
+  .\runs\conversion-equivalence\cases\peft-to-merged\source `
+  .\runs\conversion-equivalence\cases\peft-to-merged\candidate `
+  --output-dir .\runs\conversion-comparison
+```
+
+A passing conversion result is equivalence evidence, not crash-recovery
+verification. It emits neither a recovery attestation nor storage-savings
+claims.
+
 ## What the demo proves
 
 1. An uninterrupted seeded CPU control produces stable trajectory evidence.
@@ -235,11 +292,13 @@ field. Exit codes are stable: `0=verified/pass`, `2=warning or unknown review`,
 `3=qualification or enforced-policy failure`, `4=invalid/tampered evidence`,
 and `5=unsupported configuration`.
 
-[examples/github-actions/flashpilot-qualification.yml](examples/github-actions/flashpilot-qualification.yml)
-is an opt-in workflow example outside `.github/workflows`, so the repository
-does not impose a hosted CI service. It publishes diagnostics on failure and
-uploads `recovery.attestation.json` only after the qualification and typed policy
-both succeed.
+[.github/workflows/flashpilot-qualification.yml](.github/workflows/flashpilot-qualification.yml)
+is the active pull-request and manual hosted workflow, sourced from
+[examples/github-actions/flashpilot-qualification.yml](examples/github-actions/flashpilot-qualification.yml).
+It publishes diagnostics on failure and uploads `recovery.attestation.json`
+only after qualification and typed policy both succeed. Its quality matrix runs
+Python 3.11 and 3.12; the development extra now installs Lightning so the full
+suite exercises the optional adapter on both interpreters.
 
 ## Security model
 
@@ -273,18 +332,18 @@ execute repair code and did not declare recovery successful.
 ## Limitations and roadmap
 
 The verified scope is the controlled CPU-only native workload plus the included
-local Hugging Face Trainer example on Windows 11 with Python 3.12.13. Python 3.11
-compatibility is targeted but not locally verified. Windows directory fsync is
+local Hugging Face Trainer and PyTorch Lightning examples on Windows 11 with
+Python 3.12.13. Python 3.11 compatibility is targeted but not locally verified.
+Windows directory fsync is
 unavailable through Python and is best-effort. The project does not qualify
-arbitrary repositories or Trainer scripts, distributed training, CUDA,
+arbitrary repositories, Trainer scripts, or LightningModules, distributed training, CUDA,
 DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay is tied to the captured
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add separately qualified adapters, distributed and partial-write
-scenarios, previous-valid fallback, and broader platform validation. The
-checked-in CI file is an opt-in example, not a mandatory hosted service. Those
-roadmap items are not part of the v0.2 proof.
+Future work may add distributed and partial-write scenarios, previous-valid
+fallback, and broader platform validation. Those later roadmap items are not
+part of the completed conversion-equivalence milestone.
 
 ## Repository and license
 

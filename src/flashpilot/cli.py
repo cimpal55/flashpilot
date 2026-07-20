@@ -15,6 +15,10 @@ from flashpilot.adapters.huggingface import (
     HuggingFaceDependencyError,
     require_huggingface_dependencies,
 )
+from flashpilot.adapters.lightning import (
+    LightningDependencyError,
+    require_lightning_dependencies,
+)
 from flashpilot.adapters.native_pytorch import NativePyTorchAdapter
 from flashpilot.agent.fixture_provider import FixtureFailureProvider
 from flashpilot.agent.guardrails import validate_failure_analysis
@@ -81,6 +85,10 @@ def _default_audit_output_dir() -> Path:
 
 def _default_hf_script() -> Path:
     return Path(__file__).resolve().parent / "hf" / "worker.py"
+
+
+def _default_lightning_script() -> Path:
+    return Path(__file__).resolve().parent / "lightning" / "worker.py"
 
 
 def _load_repair_loop_result(run_dir: Path) -> RepairLoopResult:
@@ -260,6 +268,162 @@ def qualify_native_pytorch(
             f"Recovery attestation: {(selected_run_dir / RECOVERY_ATTESTATION_PATH).resolve()}"
         )
     else:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@qualify_app.command(
+    "lightning",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def qualify_lightning(
+    context: typer.Context,
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty isolated Lightning qualification directory."),
+    ],
+    script: Annotated[
+        Path | None,
+        typer.Option(
+            help=(
+                "Lightning script implementing the documented FlashPilot contract; "
+                "defaults to the installed offline example."
+            )
+        ),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile; only exact-training-resume is supported."),
+    ] = "exact-training-resume",
+    fault: Annotated[
+        str,
+        typer.Option(help="Fault mechanism; only process-kill is supported."),
+    ] = "process-kill",
+    scenario: Annotated[
+        str,
+        typer.Option(help="Checkpoint scenario: complete or weights-only."),
+    ] = "complete",
+) -> None:
+    """Qualify the included CPU PyTorch Lightning contract."""
+
+    if profile != "exact-training-resume" or fault != "process-kill":
+        typer.echo("Unsupported Lightning qualification profile or fault.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    if scenario not in {"complete", "weights-only"}:
+        typer.echo("Unsupported Lightning qualification scenario.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    try:
+        require_lightning_dependencies()
+    except LightningDependencyError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    try:
+        from flashpilot.lightning.qualification import (
+            LightningQualificationError,
+            LightningUnsupportedConfigurationError,
+            run_lightning_qualification,
+        )
+
+        result = run_lightning_qualification(
+            script_path=script or _default_lightning_script(),
+            run_root=run_dir,
+            scenario=cast("Any", scenario),
+            forwarded_arguments=tuple(context.args),
+        )
+    except (LightningUnsupportedConfigurationError, ValueError) as error:
+        typer.echo(f"Lightning qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    except LightningQualificationError as error:
+        typer.echo(f"Lightning qualification failed: {error}", err=True)
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED) from error
+    typer.echo(result.final_verdict)
+    typer.echo(
+        f"Processes: control={result.control_process.worker_pid}, "
+        f"terminated={result.crash_process.worker_pid}, "
+        f"recovery={result.recovery_process.worker_pid}"
+    )
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"Markdown report: {(run_dir / result.report_path).resolve()}")
+    typer.echo(f"HTML report: {(run_dir / result.html_report_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / 'junit.xml').resolve()}")
+    typer.echo(f"Job summary: {(run_dir / 'job-summary.md').resolve()}")
+    if result.final_verdict == "VERIFIED":
+        typer.echo(f"Recovery attestation: {(run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
+    else:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@qualify_app.command("conversions")
+def qualify_conversions(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty directory for all four conversion-equivalence cases."),
+    ],
+) -> None:
+    """Qualify every plan-defined V0.3 checkpoint conversion."""
+
+    try:
+        from flashpilot.conversion.service import (
+            ConversionQualificationError,
+            run_conversion_qualification,
+        )
+
+        result = run_conversion_qualification(run_root=run_dir)
+    except (ConversionQualificationError, OSError, ValueError) as error:
+        typer.echo(f"Conversion qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.verdict)
+    for case in result.cases:
+        typer.echo(
+            f"{case.conversion_kind.value}: "
+            f"{'PASS' if case.passed else 'FAILED'} "
+            f"({case.comparison_policy.mode})"
+        )
+    typer.echo("Recovery verified: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / result.junit_path).resolve()}")
+    typer.echo(f"Job summary: {(run_dir / result.job_summary_path).resolve()}")
+    if not result.passed:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@app.command("compare-checkpoints")
+def compare_checkpoints(
+    baseline: Annotated[Path, typer.Argument(help="Source conversion artifact directory.")],
+    candidate: Annotated[
+        Path,
+        typer.Argument(help="Converted candidate artifact directory."),
+    ],
+    output_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty comparison evidence directory."),
+    ],
+) -> None:
+    """Compare one typed source/candidate conversion pair deterministically."""
+
+    try:
+        from flashpilot.conversion.artifacts import ConversionArtifactError
+        from flashpilot.conversion.service import (
+            ConversionQualificationError,
+            compare_conversion_artifacts,
+        )
+
+        result = compare_conversion_artifacts(
+            source_path=baseline,
+            candidate_path=candidate,
+            output_dir=output_dir,
+        )
+    except (ConversionArtifactError, ConversionQualificationError, OSError, ValueError) as error:
+        typer.echo(f"Checkpoint comparison rejected invalid evidence: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo("PASS" if result.passed else "FAILED")
+    typer.echo(f"Conversion: {result.conversion_kind.value}")
+    typer.echo(f"Equivalence policy: {result.comparison_policy.mode}")
+    typer.echo(f"Source unmodified: {str(result.source_unmodified).lower()}")
+    typer.echo("Recovery verified: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Comparison JSON: {(output_dir / 'comparison.json').resolve()}")
+    if not result.passed:
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 

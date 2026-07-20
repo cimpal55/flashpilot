@@ -94,9 +94,11 @@ class RecoveryAttestationV1(StrictAttestationModel):
     qualification_profile: Literal[QualificationProfile.EXACT_TRAINING_RESUME] = (
         QualificationProfile.EXACT_TRAINING_RESUME
     )
-    framework: Literal["native-pytorch", "transformers"] = "native-pytorch"
+    framework: Literal["native-pytorch", "transformers", "lightning"] = "native-pytorch"
     framework_version: str = Field(min_length=1, max_length=200)
-    adapter: Literal["native-pytorch", "huggingface-trainer"] = "native-pytorch"
+    adapter: Literal["native-pytorch", "huggingface-trainer", "pytorch-lightning"] = (
+        "native-pytorch"
+    )
     run_id: str = Field(min_length=1)
     issued_at: datetime
     code_commit: str = Field(pattern=r"^(?:[0-9a-f]{40}|unavailable)$")
@@ -154,6 +156,10 @@ class RecoveryAttestationV1(StrictAttestationModel):
             self.adapter != "huggingface-trainer" or self.fault_scenario != "process_termination"
         ):
             raise ValueError("HF attestation framework, adapter, and fault must agree")
+        if self.framework == "lightning" and (
+            self.adapter != "pytorch-lightning" or self.fault_scenario != "process_termination"
+        ):
+            raise ValueError("Lightning attestation framework, adapter, and fault must agree")
         return self
 
 

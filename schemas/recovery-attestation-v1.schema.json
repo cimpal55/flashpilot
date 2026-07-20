@@ -5,7 +5,8 @@
       "default": "native-pytorch",
       "enum": [
         "native-pytorch",
-        "huggingface-trainer"
+        "huggingface-trainer",
+        "pytorch-lightning"
       ],
       "title": "Adapter",
       "type": "string"
@@ -95,7 +96,8 @@
       "default": "native-pytorch",
       "enum": [
         "native-pytorch",
-        "transformers"
+        "transformers",
+        "lightning"
       ],
       "title": "Framework",
       "type": "string"

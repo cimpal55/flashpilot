@@ -2599,3 +2599,251 @@ offline environment flags are not an OS network sandbox, the attestation is
 unsigned, dependency installation requires a package index or prepared local
 wheelhouse, and public release/tagging remains a human action. No V0.3 roadmap
 work was started.
+
+## V0.3 roadmap item 1 - PyTorch Lightning adapter
+
+Date: 2026-07-20
+
+Only roadmap item 1 was implemented. The frozen native adapter and six-action
+repair surface were not modified. The new `PyTorchLightningAdapter` is an
+optional, qualification-only adapter for the included deterministic CPU
+workload; it has no discovery or repair capability. Local validation used
+Python 3.12.13, Lightning 2.6.5, and Torch 2.13.0+cpu. Python 3.11 remains the
+declared compatibility target and is covered by the hosted quality matrix, not
+this local host.
+
+### Implementation evidence
+
+The included workload uses real dropout and a step-indexed synthetic batch.
+The checkpoint worker calls Lightning's public `Trainer.save_checkpoint`, then
+the callback validates the contained `.ckpt` with a 64 MiB bound and
+`torch.load(..., weights_only=True)` before emitting the lifecycle event. The
+parent validates that event and kills the worker. Recovery runs in a distinct
+process.
+
+The complete checkpoint inventory was:
+
+```text
+callbacks, epoch, flashpilot_exact_resume, global_step, hparams_name,
+hyper_parameters, loops, lr_schedulers, optimizer_states,
+pytorch-lightning_version, state_dict
+```
+
+The `flashpilot_exact_resume` module state contains JSON-safe Python and NumPy
+RNG state, Torch RNG as a tensor, and loss history. It is restored at the first
+resumed batch boundary so data-loader initialization cannot advance the
+restored dropout stream.
+
+### Manual complete qualification
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli qualify lightning --profile exact-training-resume --fault process-kill --scenario complete --run-dir .\runs\v03-lightning-complete-final
+VERIFIED
+Processes: control=768, terminated=26728, recovery=30012
+Result: C:\Programming\business\flashpilot\runs\v03-lightning-complete-final\result.json
+Markdown report: C:\Programming\business\flashpilot\runs\v03-lightning-complete-final\report.md
+HTML report: C:\Programming\business\flashpilot\runs\v03-lightning-complete-final\report.html
+JUnit XML: C:\Programming\business\flashpilot\runs\v03-lightning-complete-final\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\v03-lightning-complete-final\job-summary.md
+Recovery attestation: C:\Programming\business\flashpilot\runs\v03-lightning-complete-final\recovery.attestation.json
+```
+
+The gate passed 14/14 checks at exact `atol=0.0`, `rtol=0.0`. Checkpoint step
+was 4 of 8; verified logical bytes were 22,703; measured recovery duration was
+7.881628 seconds. Control and recovery matched exactly for loss history and
+these digests:
+
+```text
+trainable  92147948cf1bbb326c6ccf31bd456d37d2c06a8c6702717afac683b7cd7370af
+evaluation 966c02c178cef1bbef7d07b1cc491f45bb1ee288992a7657bd036f80a4143636
+optimizer  fba1e94775ff1663606e8f8a61c73739a4dfcf5a7854b05e814eb977678ef140
+scheduler  ce8fc7b9958043b43b1af5683656e04bb77f6d1cce16b011849df3083cad06d0
+```
+
+Attestation verification output was:
+
+```text
+Framework: lightning 2.6.5
+Recovery processes: 26728 -> 30012
+Recovery Gate: 14/14
+Exact policy: atol=0.0, rtol=0.0
+RPO / RTO: 0 steps / 7.882s
+Persisted bytes: 22,703
+Attestation SHA-256: 252e4e1ee1f51a543709f0e762afe0d0cbe2ee3cbe21f1ce503f0f47c09c8c73
+Unsigned integrity verification passed; no publisher signature was checked.
+```
+
+### Manual negative qualification
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli qualify lightning --profile exact-training-resume --fault process-kill --scenario weights-only --run-dir .\runs\v03-lightning-weights-only-final
+FAILED
+Processes: control=26912, terminated=14412, recovery=23136
+```
+
+The framework-produced weights-only checkpoint was valid and safely loadable.
+Its inventory retained `state_dict`, loop/global-step metadata, and
+hyperparameters, but omitted optimizer, scheduler, RNG-bridge, and loss-history
+state. Continued real dropout training diverged. Failed checks were:
+
+```text
+checkpoint.optimizer
+checkpoint.scheduler
+checkpoint.rng
+checkpoint.loss-history
+trajectory.loss-history
+state.trainable
+state.evaluation
+state.optimizer
+state.scheduler
+```
+
+No persisted-byte value or recovery attestation was emitted for this failed
+scenario.
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+134 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 32%]
+........................................................................ [ 64%]
+....................................s................................... [ 97%]
+......                                                                   [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+221 passed, 1 skipped in 203.89s (0:03:23)
+```
+
+The single skip is the unchanged Windows directory-symlink privilege test. The
+default pytest command used the preserved unique UUID basetemp plugin and
+disabled cache provider. Development caught and corrected one generated
+attestation-schema drift failure before the final green run.
+
+### Acceptance and unresolved risks
+
+Roadmap item 1 passes: optional dependency behavior is actionable; a full
+Lightning checkpoint survives real termination and resumes exactly in a new
+process; a weights-only checkpoint is loadable but fails closed; CI artifacts
+are derived from the same typed gate; and only the verified path receives
+bytes and an independently re-verifiable attestation.
+
+Remaining risks are the narrow included-module compatibility boundary,
+unsigned attestations, Windows-only local validation, Windows directory fsync
+remaining best-effort, and the fact that CPU controls do not constitute an OS
+network sandbox. Conversion equivalence, partial-write fuzzing,
+previous-valid fallback, randomized fault timing, SARIF, distributed/CUDA
+training, plugin discovery, and other adapters were not started.
+
+## V0.3 roadmap item 2 - checkpoint conversion equivalence
+
+Date: 2026-07-20
+
+Only roadmap item 2 was implemented. Local validation used Python 3.12.13 and
+Torch 2.13.0+cpu on Windows. Python 3.11 remains the declared compatibility
+target. The frozen native repair adapter, six-action repair surface, Lightning
+qualification behavior, and Recovery Gate were not changed.
+
+### Implementation evidence
+
+The fixed qualification covers full-to-PEFT, PEFT-to-merged,
+sharded-to-consolidated, and version-upgrade-resume. Every source and candidate
+artifact passed closed-inventory, checksum, completion-marker, provenance,
+bounded-safe-load, and before/after fingerprint checks. Source and candidate
+hashes remained unchanged during every comparison.
+
+The full-model fixture contains a controlled dense weight plus its declared
+reference base. Deterministic SVD rejects deltas above rank 2. Accepted
+full-to-PEFT extraction and PEFT-to-merged inference are checked with float64
+`atol=1e-12`, `rtol=1e-12`; the observed maximum absolute output difference in
+both cases was `8.881784197001252e-16`. Shard consolidation used exact tensor
+and output equality. Version-upgrade continuation ran in process `31224`,
+distinct from comparison process `19568`, and matched the uninterrupted
+control exactly for final step, loss history, trainable state, evaluation,
+optimizer, and scheduler.
+
+The authoritative artifact fingerprints were:
+
+```text
+full-to-peft source       1a9d69934b7318b5b317fb0a93afeaad790c9a61ce7f94692c41e47ccd57b5e5
+full-to-peft candidate    567fd2099297009ff6c0f784e1b6fa0f66a908b7e30dcc881fb3ff1c57195aba
+peft-to-merged source     e813a39ca046db5c858ce40fe43be1d6ea934e68924cb46e5bb385c55e047fb5
+peft-to-merged candidate  da6df6146af3c6d24284d34ee0f5743552fd61f7a97a9dbc05a6b16f53eecc2c
+sharded source            505154edbf3827512a3d96eb2973e732d31b7d1fa5eba0b15de9573d467d8a21
+consolidated candidate    46a8c9763e08da51babb7e8ead73745bfa17fc79c55a114634767d286de49fad
+legacy-v1 source          1c624b9378845a08689e29384fa2b1a8a234c7719b8fe49df83a3f254bac5cac
+upgraded-v2 candidate     fa2591f387dffe145920b97283ebfb9ad39c594a2fd55cae62ff4d1fb55b8525
+```
+
+### Manual qualification and standalone comparison
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli qualify conversions --run-dir .\runs\v03-conversion-equivalence-final
+PASS
+full-to-peft: PASS (tolerance-bounded)
+peft-to-merged: PASS (tolerance-bounded)
+sharded-to-consolidated: PASS (exact)
+version-upgrade-resume: PASS (exact-training-resume)
+Recovery verified: false
+Storage savings reported: false
+Result: C:\Programming\business\flashpilot\runs\v03-conversion-equivalence-final\result.json
+JUnit XML: C:\Programming\business\flashpilot\runs\v03-conversion-equivalence-final\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\v03-conversion-equivalence-final\job-summary.md
+
+.\.venv\Scripts\python.exe -m flashpilot.cli compare-checkpoints .\runs\v03-conversion-equivalence-final\cases\peft-to-merged\source .\runs\v03-conversion-equivalence-final\cases\peft-to-merged\candidate --output-dir .\runs\v03-conversion-equivalence-standalone
+PASS
+Conversion: peft-to-merged
+Equivalence policy: tolerance-bounded
+Source unmodified: true
+Recovery verified: false
+Storage savings reported: false
+Comparison JSON: C:\Programming\business\flashpilot\runs\v03-conversion-equivalence-standalone\comparison.json
+```
+
+The qualification emitted 7 checks for each model conversion and 13 checks
+for version-upgrade resume. It deliberately emitted no recovery attestation,
+verified-recovery verdict, artifact-byte comparison, or storage-savings claim.
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+144 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 30%]
+........................................................................ [ 61%]
+.................................................s...................... [ 91%]
+...................                                                      [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+234 passed, 1 skipped in 251.53s (0:04:11)
+```
+
+The single skip is the unchanged Windows directory-symlink privilege test. The
+default pytest command retained its unique UUID basetemp plugin and disabled
+cache provider.
+
+### Acceptance and unresolved risks
+
+Roadmap item 2 passes: all four conversion classes are executed; model
+equivalence is exact or bounded by an explicit tolerance; upgraded training
+state resumes exactly in another process; integrity-valid semantic mismatch,
+rank overflow, checksum tampering, extra files, and provenance mismatch fail
+closed; and comparison leaves both inputs unchanged.
+
+Remaining risks are the fixed local fixture boundary, Windows-only local
+validation, unverified Python 3.11 execution on this host, and best-effort
+Windows directory fsync. The PEFT fixture models the adapter/base structure but
+is not an arbitrary Hugging Face PEFT converter; the shard fixture is not
+PyTorch Distributed Checkpoint. Partial-write fuzzing, previous-valid fallback,
+randomized fault timing, SARIF, distributed/CUDA training, discovery, and
+additional adapters were not started.

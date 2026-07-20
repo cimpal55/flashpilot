@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from flashpilot.adapters.lightning import PyTorchLightningAdapter
 from flashpilot.attestation.integrity import (
     canonical_model_sha256,
     collect_evidence_entries,
@@ -29,11 +30,14 @@ from flashpilot.contracts import (
     huggingface_trainer_persistence_contract,
     native_minimum_persistence_contract,
     persistence_contract_sha256,
+    pytorch_lightning_persistence_contract,
     validate_persistence_contract,
 )
 from flashpilot.domain.repair import RepairLoopResult
 from flashpilot.hf.models import HFQualificationResult
 from flashpilot.hf.reporting import render_hf_html, render_hf_markdown
+from flashpilot.lightning.models import LightningQualificationResult
+from flashpilot.lightning.reporting import render_lightning_html, render_lightning_markdown
 from flashpilot.orchestration.repair_loop import render_repair_report
 from flashpilot.presentation.html_report import render_repair_html
 from flashpilot.security.paths import PathContainmentError, PathSandbox
@@ -188,6 +192,142 @@ def _verify_hf_result(
     )
 
 
+def _verify_lightning_result(
+    *,
+    sandbox: PathSandbox,
+    attestation: RecoveryAttestationV1,
+    resolved_attestation: Path,
+    checks: list[AttestationVerificationCheck],
+) -> AttestationVerificationResult:
+    try:
+        result_path = sandbox.resolve_relative(attestation.result_path, must_exist=True)
+    except PathContainmentError as error:
+        raise AttestationVerificationError("Lightning result path is missing or unsafe") from error
+    result = _read_model(result_path, LightningQualificationResult)
+    if result.final_verdict != "VERIFIED" or not result.gate.passed:
+        raise AttestationVerificationError("Lightning result lacks a passing exact gate")
+    comparisons = (
+        (result.run_id, attestation.run_id, "Lightning run ID mismatch"),
+        (result.created_at, attestation.issued_at, "Lightning timestamp mismatch"),
+        (
+            result.crash_process.worker_pid,
+            attestation.original_worker_pid,
+            "Lightning terminated worker PID mismatch",
+        ),
+        (
+            result.recovery_process.worker_pid,
+            attestation.recovery_worker_pid,
+            "Lightning recovery worker PID mismatch",
+        ),
+        (
+            result.control.trainable_state_sha256,
+            attestation.control_digest,
+            "Lightning control digest mismatch",
+        ),
+        (
+            result.recovery.trainable_state_sha256,
+            attestation.resumed_digest,
+            "Lightning resumed digest mismatch",
+        ),
+        (
+            result.control.evaluation_sha256,
+            attestation.control_evaluation_digest,
+            "Lightning control evaluation mismatch",
+        ),
+        (
+            result.recovery.evaluation_sha256,
+            attestation.resumed_evaluation_digest,
+            "Lightning resumed evaluation mismatch",
+        ),
+        (len(result.gate.checks), attestation.checks_total, "Lightning gate total mismatch"),
+        (
+            sum(check.status == "pass" for check in result.gate.checks),
+            attestation.checks_passed,
+            "Lightning gate passed count mismatch",
+        ),
+        (result.gate.atol, attestation.atol, "Lightning atol mismatch"),
+        (result.gate.rtol, attestation.rtol, "Lightning rtol mismatch"),
+        (result.gate.achieved_rpo_steps, attestation.rpo_steps, "Lightning RPO mismatch"),
+        (result.gate.max_rpo_steps, attestation.max_rpo_steps, "Lightning max RPO mismatch"),
+        (
+            result.verified_persisted_bytes,
+            attestation.verified_persisted_bytes,
+            "Lightning verified bytes mismatch",
+        ),
+    )
+    for actual, expected, message in comparisons:
+        _require_equal(actual, expected, message)
+    rto_seconds = (
+        result.recovery_process.completed_at - result.recovery_process.started_at
+    ).total_seconds()
+    _require_equal(rto_seconds, attestation.rto_seconds, "Lightning RTO mismatch")
+    checks.append(
+        _passed(
+            "consistency.result",
+            "Lightning result, exact gate, process, trajectory, and RPO agree.",
+        )
+    )
+
+    try:
+        report_path = sandbox.resolve_relative(attestation.report_path, must_exist=True)
+        html_path = sandbox.resolve_relative(attestation.html_report_path, must_exist=True)
+        markdown = report_path.read_text(encoding="utf-8")
+        html = html_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError, PathContainmentError) as error:
+        raise AttestationVerificationError(
+            "Lightning report paths are unsafe or unreadable"
+        ) from error
+    _require_equal(
+        markdown,
+        render_lightning_markdown(result),
+        "Lightning Markdown report/result mismatch",
+    )
+    _require_equal(html, render_lightning_html(result), "Lightning HTML report/result mismatch")
+    checks.append(_passed("consistency.reports", "Lightning reports derive from the result."))
+
+    try:
+        checkpoint_path = sandbox.resolve_relative(attestation.checkpoint_path, must_exist=True)
+        checkpoint = directory_content_fingerprint(checkpoint_path)
+        state = PyTorchLightningAdapter().training_state_presence(checkpoint_path)
+    except (OSError, ValueError, PathContainmentError) as error:
+        raise AttestationVerificationError(
+            "Lightning checkpoint is missing, unsafe, or invalid"
+        ) from error
+    if not all(state.values()):
+        raise AttestationVerificationError("Lightning checkpoint lacks exact-resume state")
+    for actual, expected, message in (
+        (
+            attestation.checkpoint_path,
+            result.checkpoint_event.checkpoint_path,
+            "Lightning checkpoint path differs from result",
+        ),
+        (checkpoint.sha256, attestation.checkpoint_sha256, "Lightning checkpoint hash mismatch"),
+        (
+            checkpoint.file_count,
+            attestation.checkpoint_file_count,
+            "Lightning checkpoint file count mismatch",
+        ),
+        (
+            checkpoint.logical_bytes,
+            attestation.checkpoint_logical_bytes,
+            "Lightning checkpoint logical bytes mismatch",
+        ),
+        (
+            checkpoint.logical_bytes,
+            attestation.verified_persisted_bytes,
+            "Lightning checkpoint bytes differ from verified bytes",
+        ),
+    ):
+        _require_equal(actual, expected, message)
+    checks.append(
+        _passed("integrity.checkpoint", "Lightning checkpoint hash and exact state agree.")
+    )
+    return AttestationVerificationResult(
+        attestation_sha256=sha256_file(resolved_attestation),
+        checks=tuple(checks),
+    )
+
+
 def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificationResult:
     """Verify schema, closed evidence inventory, hashes, and result consistency."""
 
@@ -257,7 +397,11 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
         attestation.dependency_environment_sha256,
         "dependency environment SHA-256 mismatch",
     )
-    framework_dependency = "transformers" if attestation.framework == "transformers" else "torch"
+    framework_dependency = {
+        "transformers": "transformers",
+        "lightning": "lightning",
+        "native-pytorch": "torch",
+    }[attestation.framework]
     framework_version = next(
         (item.version for item in environment.dependencies if item.name == framework_dependency),
         None,
@@ -305,6 +449,8 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
     expected_contract = (
         huggingface_trainer_persistence_contract()
         if attestation.framework == "transformers"
+        else pytorch_lightning_persistence_contract()
+        if attestation.framework == "lightning"
         else native_minimum_persistence_contract(
             attestation.qualification_profile,
             max_rpo_steps=attestation.max_rpo_steps,
@@ -319,6 +465,13 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
 
     if attestation.framework == "transformers":
         return _verify_hf_result(
+            sandbox=sandbox,
+            attestation=attestation,
+            resolved_attestation=resolved_attestation,
+            checks=checks,
+        )
+    if attestation.framework == "lightning":
+        return _verify_lightning_result(
             sandbox=sandbox,
             attestation=attestation,
             resolved_attestation=resolved_attestation,

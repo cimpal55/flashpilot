@@ -1,0 +1,142 @@
+{
+  "$defs": {
+    "ChecksumEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "ChecksumEntry",
+      "type": "object"
+    },
+    "ConversionKind": {
+      "enum": [
+        "full-to-peft",
+        "peft-to-merged",
+        "sharded-to-consolidated",
+        "version-upgrade-resume"
+      ],
+      "title": "ConversionKind",
+      "type": "string"
+    },
+    "ConversionRepresentation": {
+      "enum": [
+        "full-model",
+        "peft",
+        "merged-model",
+        "sharded",
+        "consolidated",
+        "legacy-v1",
+        "upgraded-v2"
+      ],
+      "title": "ConversionRepresentation",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "enum": [
+        "source",
+        "candidate"
+      ],
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "conversion_kind": {
+      "$ref": "#/$defs/ConversionKind"
+    },
+    "format_version": {
+      "pattern": "^[a-z][a-z0-9.-]*$",
+      "title": "Format Version",
+      "type": "string"
+    },
+    "global_step": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Global Step"
+    },
+    "payloads": {
+      "items": {
+        "$ref": "#/$defs/ChecksumEntry"
+      },
+      "minItems": 1,
+      "title": "Payloads",
+      "type": "array"
+    },
+    "profile": {
+      "enum": [
+        "conversion",
+        "ci"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "representation": {
+      "$ref": "#/$defs/ConversionRepresentation"
+    },
+    "role": {
+      "enum": [
+        "source",
+        "candidate"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-conversion-artifact-v1",
+      "default": "flashpilot-conversion-artifact-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_artifact_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Artifact Sha256"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "role",
+    "conversion_kind",
+    "representation",
+    "format_version",
+    "profile",
+    "payloads"
+  ],
+  "title": "ConversionArtifactManifestV1",
+  "type": "object"
+}

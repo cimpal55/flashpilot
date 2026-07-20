@@ -65,3 +65,37 @@ The measured recurring-byte difference is a structural result for this one
 controlled model and serialization format. The immutable base is counted
 separately and included in first-write cost. No general compression, physical
 device savings, SSD lifetime improvement, or recovery verdict is inferred.
+
+## PyTorch Lightning checkpoint contract
+
+The V0.3 adapter follows Lightning's documented native behavior rather than
+claiming a new checkpoint format. Full checkpoints are documented to include
+model, optimizer, scheduler, callback/data-module, hyperparameter, and loop
+state, and training resumes through `Trainer.fit(..., ckpt_path=...)`.
+Lightning also documents `save_weights_only=True` as a weights-only mode. The
+FlashPilot qualification adds a small workload-owned, JSON-safe RNG/history
+bridge because exact stochastic continuation is stricter than merely loading
+model weights. Sources: [Lightning checkpoint contents and resume](https://lightning.ai/docs/pytorch/stable/common/checkpointing_basic.html),
+[Lightning checkpoint saving options](https://lightning.ai/docs/pytorch/stable/common/checkpointing_intermediate.html).
+
+## Checkpoint conversion equivalence positioning
+
+Hugging Face PEFT documents that an adapter checkpoint contains adapter
+parameters and configuration rather than the base model, and that merging
+folds adapter weights into the base model. FlashPilot's V0.3 fixture follows
+that structural idea with a controlled local rank-2 linear delta, but it does
+not claim to emit or consume arbitrary Hugging Face PEFT repositories. Sources:
+[PEFT checkpoint format](https://huggingface.co/docs/peft/main/developer_guides/checkpoint),
+[PEFT tuner merge API](https://huggingface.co/docs/peft/en/package_reference/tuners).
+
+PyTorch Distributed Checkpoint documents state-dict loading across different
+cluster topologies and notes that distributed loading requires an initialized
+process group. FlashPilot's sharded fixture is intentionally smaller: two
+local, checksummed CPU tensor files plus a strict index are consolidated and
+compared exactly. It is not an implementation or qualification of PyTorch DCP.
+Source: [PyTorch Distributed Checkpoint](https://docs.pytorch.org/docs/stable/distributed.checkpoint.html).
+
+The version-upgrade fixture tests a FlashPilot-owned schema transition. Its
+strong claim is continuation equivalence for the deterministic CI workload in
+a separate process, not universal forward/backward compatibility for external
+checkpoint formats.
