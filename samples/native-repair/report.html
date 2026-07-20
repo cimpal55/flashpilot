@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlashPilot bounded repair report</title>
+<style>
+:root { color-scheme: dark; --bg:#0b1020; --card:#121a2f; --text:#e8edf8;
+--muted:#9ca9c6; --pass:#46d17d; --fail:#ff6577; --warn:#f6c85f; --info:#71b7ff; }
+* { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--text);
+font:16px/1.5 system-ui,sans-serif; } main { max-width:1100px; margin:auto; padding:32px 20px; }
+section { background:var(--card); border:1px solid #263351; border-radius:12px;
+padding:20px; margin:18px 0; } h1,h2 { margin-top:0; } .eyebrow { color:var(--info);
+font-weight:700; letter-spacing:.08em; text-transform:uppercase; } .verified,.pass { color:var(--pass); }
+.fail { color:var(--fail); } .unsupported { color:var(--warn); } .accepted { color:var(--info); }
+.headline { font-size:1.6rem; font-weight:800; } table { border-collapse:collapse; width:100%; }
+th,td { border-bottom:1px solid #2b3858; padding:10px; text-align:left; vertical-align:top; }
+code { color:#c9d7ff; } dl { display:grid; grid-template-columns:2fr 1fr; gap:8px 18px; }
+dt { color:var(--muted); } dd { margin:0; font-weight:700; } .disclaimer { color:var(--warn); }
+</style>
+</head>
+<body><main>
+<p class="eyebrow">Checkpoint recovery qualification and verification harness</p>
+<h1>FlashPilot bounded repair report</h1>
+<p>Final verdict: <strong class="verified">
+VERIFIED</strong>. Only the deterministic Recovery Gate sets this verdict.</p>
+<section><h2>Initial designed failure</h2>
+<p>Worker PID 31412 was terminated; recovery used PID
+16600. The valid checkpoint loaded and the gate failed:</p>
+<ul><li><code>state.optimizer</code></li><li><code>state.scheduler</code></li><li><code>state.python_rng</code></li><li><code>state.numpy_rng</code></li><li><code>state.torch_rng</code></li><li><code>trajectory.final_trainable</code></li><li><code>trajectory.final_evaluation</code></li><li><code>trajectory.loss_history</code></li><li><code>contract.no_mandatory_omission</code></li></ul></section>
+<section><h2>GPT-5.6 captured-response fixture/replay</h2>
+<p><strong>GPT source:</strong> GPT-5.6 captured-response fixture/replay</p>
+<p>The recommendation is evidence-bounded and cannot declare recovery or execute changes.</p>
+<table><thead><tr><th>Proposed action</th><th>Guardrail decision</th><th>Reason</th></tr></thead>
+<tbody><tr><td><code>change_supported_checkpoint_strategy</code></td><td class="unsupported">UNSUPPORTED</td><td>Known action is unsupported by NativePyTorchAdapter in P0.</td></tr><tr><td><code>persist_optimizer_state</code></td><td class="accepted">ACCEPTED</td><td>Typed action is supported and linked to request evidence.</td></tr><tr><td><code>persist_scheduler_state</code></td><td class="accepted">ACCEPTED</td><td>Typed action is supported and linked to request evidence.</td></tr><tr><td><code>persist_python_rng_state</code></td><td class="accepted">ACCEPTED</td><td>Typed action is supported and linked to request evidence.</td></tr><tr><td><code>persist_numpy_rng_state</code></td><td class="accepted">ACCEPTED</td><td>Typed action is supported and linked to request evidence.</td></tr><tr><td><code>persist_torch_rng_state</code></td><td class="accepted">ACCEPTED</td><td>Typed action is supported and linked to request evidence.</td></tr><tr><td><code>restore_state_before_next_batch</code></td><td class="accepted">ACCEPTED</td><td>Typed action is supported and linked to request evidence.</td></tr></tbody></table></section>
+<section><h2>Deterministic bounded repair</h2>
+<p>Attempt 1 created strategy
+<code>native-repaired-complete-v1</code> without modifying the
+historical failed checkpoint.</p></section>
+<section><h2>Final Recovery Gate</h2>
+<p>Worker PID 27632 was terminated; recovery used PID
+31396. Comparison remained exact at
+atol=0.0,
+rtol=0.0.</p>
+<table><thead><tr><th>Category</th><th>Check ID</th><th>Status</th><th>Check</th></tr></thead>
+<tbody><tr><td>Integrity</td><td><code>integrity.manifest_schema</code></td><td class="pass">PASS</td><td>Manifest schema valid</td></tr><tr><td>Integrity</td><td><code>integrity.completion_marker</code></td><td class="pass">PASS</td><td>Completion marker present</td></tr><tr><td>Integrity</td><td><code>integrity.checksums</code></td><td class="pass">PASS</td><td>All payload checksums valid</td></tr><tr><td>Integrity</td><td><code>integrity.base_present</code></td><td class="pass">PASS</td><td>Base artifact present when required</td></tr><tr><td>Integrity</td><td><code>integrity.base_hash</code></td><td class="pass">PASS</td><td>Base artifact hash matches</td></tr><tr><td>Required training state</td><td><code>state.global_step</code></td><td class="pass">PASS</td><td>Checkpoint global step is valid</td></tr><tr><td>Required training state</td><td><code>state.model_or_adapter</code></td><td class="pass">PASS</td><td>Model or adapter state restores</td></tr><tr><td>Required training state</td><td><code>state.optimizer</code></td><td class="pass">PASS</td><td>Optimizer state restores when required</td></tr><tr><td>Required training state</td><td><code>state.scheduler</code></td><td class="pass">PASS</td><td>Scheduler state restores when required</td></tr><tr><td>Required training state</td><td><code>state.python_rng</code></td><td class="pass">PASS</td><td>Python RNG state restores when required</td></tr><tr><td>Required training state</td><td><code>state.numpy_rng</code></td><td class="pass">PASS</td><td>NumPy RNG state restores when required</td></tr><tr><td>Required training state</td><td><code>state.torch_rng</code></td><td class="pass">PASS</td><td>Torch RNG state restores when required</td></tr><tr><td>Process recovery</td><td><code>process.next_step</code></td><td class="pass">PASS</td><td>Resumed run continues from the expected next step</td></tr><tr><td>Process recovery</td><td><code>process.original_pid</code></td><td class="pass">PASS</td><td>Original worker PID is recorded</td></tr><tr><td>Process recovery</td><td><code>process.expected_termination</code></td><td class="pass">PASS</td><td>Original worker termination is verified</td></tr><tr><td>Process recovery</td><td><code>process.new_recovery_pid</code></td><td class="pass">PASS</td><td>Recovery uses a different PID</td></tr><tr><td>Process recovery</td><td><code>process.recovery_exit</code></td><td class="pass">PASS</td><td>Recovery worker exits successfully</td></tr><tr><td>Safety and rollback</td><td><code>rollback.hard_limit</code></td><td class="pass">PASS</td><td>Achieved rollback is within the hard limit</td></tr><tr><td>Trajectory correctness</td><td><code>trajectory.checkpoint_evaluation</code></td><td class="pass">PASS</td><td>Fixed evaluation after restore matches</td></tr><tr><td>Trajectory correctness</td><td><code>trajectory.final_trainable</code></td><td class="pass">PASS</td><td>Final trainable parameters match control</td></tr><tr><td>Trajectory correctness</td><td><code>trajectory.final_evaluation</code></td><td class="pass">PASS</td><td>Final evaluation logits match control</td></tr><tr><td>Trajectory correctness</td><td><code>trajectory.loss_history</code></td><td class="pass">PASS</td><td>Continued loss trajectory matches control</td></tr><tr><td>Safety and rollback</td><td><code>safety.path_containment</code></td><td class="pass">PASS</td><td>All managed write paths passed containment</td></tr><tr><td>Safety and rollback</td><td><code>contract.no_mandatory_omission</code></td><td class="pass">PASS</td><td>No mandatory contract requirement was silently omitted</td></tr></tbody></table></section>
+<section><h2>Verified storage comparison</h2><p class="verified headline">17,317 fewer recurring logical bytes (38.48%)</p><dl><dt>safe_full recurring logical bytes</dt><dd>44,998</dd><dt>Repaired recurring logical bytes</dt><dd>27,681</dd><dt>One-time frozen-base cost</dt><dd>18,475</dd></dl><p>The first adapter-aware write is not presented as savings; the immutable base is a separate one-time cost.</p></section>
+<section class="disclaimer"><strong>Measurement limitation:</strong> Logical checkpoint bytes were
+measured in the controlled demo. Physical NAND writes, write amplification, and SSD lifetime were
+not measured.</section>
+</main></body></html>

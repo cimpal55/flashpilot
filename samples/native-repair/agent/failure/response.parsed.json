@@ -1,0 +1,117 @@
+{
+  "affected_gate_checks": [
+    "state.optimizer",
+    "state.scheduler",
+    "state.python_rng",
+    "state.numpy_rng",
+    "state.torch_rng",
+    "trajectory.final_trainable",
+    "trajectory.final_evaluation",
+    "trajectory.loss_history",
+    "contract.no_mandatory_omission"
+  ],
+  "confidence": "high",
+  "confirming_evidence": [
+    "restore:optimizer-state",
+    "restore:scheduler-state",
+    "restore:python-rng",
+    "restore:numpy-rng",
+    "restore:torch-rng",
+    "trajectory:final-trainable",
+    "trajectory:final-evaluation",
+    "trajectory:loss-history",
+    "contract:mandatory-state"
+  ],
+  "limitations": [
+    "The package demonstrates the omissions and resulting divergence but does not establish that any proposed repair has been implemented or validated.",
+    "Exact recovery remains subject to deterministic validation using a newly produced checkpoint containing all mandatory state.",
+    "The matching Python and NumPy RNG digests do not satisfy the serialization requirement because those states were not present in the checkpoint."
+  ],
+  "repair_plan": {
+    "actions": [
+      {
+        "action": "change_supported_checkpoint_strategy",
+        "evidence_ids": [
+          "contract:mandatory-state"
+        ],
+        "reason": "The current strategy advertises no supported repair actions and must be replaced or extended to support all mandatory continuation state."
+      },
+      {
+        "action": "persist_optimizer_state",
+        "evidence_ids": [
+          "restore:optimizer-state",
+          "contract:mandatory-state",
+          "trajectory:final-trainable",
+          "trajectory:loss-history"
+        ],
+        "reason": "Serialize the complete optimizer state required for exact continuation."
+      },
+      {
+        "action": "persist_scheduler_state",
+        "evidence_ids": [
+          "restore:scheduler-state",
+          "contract:mandatory-state",
+          "trajectory:final-trainable",
+          "trajectory:loss-history"
+        ],
+        "reason": "Serialize scheduler progress so resumed learning-rate behavior matches the uninterrupted run."
+      },
+      {
+        "action": "persist_python_rng_state",
+        "evidence_ids": [
+          "restore:python-rng",
+          "contract:mandatory-state"
+        ],
+        "reason": "Serialize Python RNG state because the workload requires it for strict continuation."
+      },
+      {
+        "action": "persist_numpy_rng_state",
+        "evidence_ids": [
+          "restore:numpy-rng",
+          "contract:mandatory-state"
+        ],
+        "reason": "Serialize NumPy RNG state because the workload uses NumPy randomness."
+      },
+      {
+        "action": "persist_torch_rng_state",
+        "evidence_ids": [
+          "restore:torch-rng",
+          "contract:mandatory-state",
+          "trajectory:final-trainable",
+          "trajectory:final-evaluation",
+          "trajectory:loss-history"
+        ],
+        "reason": "Serialize Torch RNG state because the workload uses Torch randomness and dropout."
+      },
+      {
+        "action": "restore_state_before_next_batch",
+        "evidence_ids": [
+          "restore:optimizer-state",
+          "restore:scheduler-state",
+          "restore:python-rng",
+          "restore:numpy-rng",
+          "restore:torch-rng",
+          "process:next-step"
+        ],
+        "reason": "Restore all persisted optimizer, scheduler, and RNG state before processing the next batch."
+      }
+    ],
+    "assumptions": [
+      "The controlled CPU-only workload and declared state requirements remain unchanged.",
+      "No CUDA RNG state is required.",
+      "Batch position remains derivable from the restored global step."
+    ],
+    "expected_gate_improvements": [
+      "Mandatory continuation state is declared and serialized.",
+      "Optimizer, scheduler, and required RNG states become restorable with exact digests.",
+      "Continued losses, final trainable parameters, and final evaluation outputs can be re-evaluated for exact agreement."
+    ],
+    "risks": [
+      "The current checkpoint strategy exposes no supported repair actions, so a compatible strategy or implementation change is required before these actions can be validated.",
+      "Existing checkpoints lacking the omitted state cannot provide strict continuation from those checkpoints.",
+      "Restoration ordering errors could still produce trajectory divergence even after all state is serialized."
+    ]
+  },
+  "root_cause_hypothesis": "The checkpoint strategy serialized the adapter and global step but omitted mandatory optimizer, scheduler, Python RNG, NumPy RNG, and Torch RNG state. Recovery therefore resumed with incomplete continuation state, causing divergence in losses, final trainable parameters, and final evaluation outputs.",
+  "schema_version": "failure-analysis-v2"
+}

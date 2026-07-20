@@ -1,0 +1,1144 @@
+{
+  "captured_live_failure_metadata": {
+    "fixture_provenance": "not_applicable",
+    "live_or_fixture": "live",
+    "model": "gpt-5.6",
+    "output_schema_version": "failure-analysis-v2",
+    "prompt_version": "v2",
+    "provider": "openai",
+    "request_sha256": "eaa6f7818ecdaf482525081514dccfbfe748ae79b0d17c1a719a5e60bfc5ba2e",
+    "response_id": "resp_0d7e808cd722f97f016a5a90f0300481908d22e7befa15e3fe",
+    "role": "failure-analysis",
+    "schema_version": "agent-call-metadata-v1",
+    "source": "captured_live_response",
+    "store": false,
+    "timestamp": "2026-07-17T20:31:09.771820Z",
+    "validation_status": "accepted"
+  },
+  "created_at": "2026-07-20T01:29:13.076645Z",
+  "fallback_status": "not_required",
+  "final_verdict": "VERIFIED",
+  "html_report_path": "report.html",
+  "initial_failure": {
+    "control": {
+      "evaluation_sha256": "a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a",
+      "global_step": 8,
+      "loss_history": [
+        3.5371975898742676,
+        3.434457540512085,
+        3.5977065563201904,
+        3.560746669769287,
+        3.670823574066162,
+        3.627253293991089,
+        3.508639335632324,
+        3.8248143196105957
+      ],
+      "optimizer_sha256": "c03dfc8b66e6645fb552223428ad86a855c97049d133b08984604f6e7d55a050",
+      "scheduler_sha256": "e07ffd6a89fefb61e80d1ca56025a927222a83180ffced778789606d3a7bec81",
+      "trainable_state_sha256": "1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997"
+    },
+    "crash": {
+      "checkpoint_path": "checkpoints/missing-training-state/checkpoint-step-000004",
+      "checkpoint_step": 4,
+      "event_received_at": "2026-07-20T01:28:59.132038Z",
+      "last_completed_step": 4,
+      "terminated_at": "2026-07-20T01:28:59.174202Z",
+      "termination_exit_code": 1,
+      "termination_method": "TerminateProcess via subprocess.Popen.kill",
+      "termination_verified": true,
+      "worker_pid": 31412
+    },
+    "created_at": "2026-07-20T01:29:05.119921Z",
+    "failure_artifact_path": "agent/request.redacted.json",
+    "gate": {
+      "achieved_rollback_steps": 0,
+      "checks": [
+        {
+          "actual": "checkpoint-manifest-v1",
+          "category": "Integrity",
+          "check_id": "integrity.manifest_schema",
+          "details": null,
+          "evidence_ids": [
+            "manifest:schema"
+          ],
+          "expected": "checkpoint-manifest-v1",
+          "label": "Manifest schema valid",
+          "status": "pass"
+        },
+        {
+          "actual": "present",
+          "category": "Integrity",
+          "check_id": "integrity.completion_marker",
+          "details": null,
+          "evidence_ids": [
+            "integrity:completion-marker"
+          ],
+          "expected": "COMPLETE present in final checkpoint",
+          "label": "Completion marker present",
+          "status": "pass"
+        },
+        {
+          "actual": "2 payloads validated",
+          "category": "Integrity",
+          "check_id": "integrity.checksums",
+          "details": null,
+          "evidence_ids": [
+            "integrity:sha256"
+          ],
+          "expected": "every manifest payload matches SHA-256 and size",
+          "label": "All payload checksums valid",
+          "status": "pass"
+        },
+        {
+          "actual": "present",
+          "category": "Integrity",
+          "check_id": "integrity.base_present",
+          "details": null,
+          "evidence_ids": [
+            "base:presence"
+          ],
+          "expected": "contained immutable base artifact",
+          "label": "Base artifact present when required",
+          "status": "pass"
+        },
+        {
+          "actual": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+          "category": "Integrity",
+          "check_id": "integrity.base_hash",
+          "details": null,
+          "evidence_ids": [
+            "base:sha256"
+          ],
+          "expected": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+          "label": "Base artifact hash matches",
+          "status": "pass"
+        },
+        {
+          "actual": "manifest=4, event=4, restored=4",
+          "category": "Required training state",
+          "check_id": "state.global_step",
+          "details": null,
+          "evidence_ids": [
+            "manifest:global-step"
+          ],
+          "expected": "0 < step < 8, consistent across restore",
+          "label": "Checkpoint global step is valid",
+          "status": "pass"
+        },
+        {
+          "actual": "serialized=True, digest_match=True",
+          "category": "Required training state",
+          "check_id": "state.model_or_adapter",
+          "details": null,
+          "evidence_ids": [
+            "restore:model-state"
+          ],
+          "expected": "serialized adapter and exact trainable-state digest",
+          "label": "Model or adapter state restores",
+          "status": "pass"
+        },
+        {
+          "actual": "serialized=False, digest_match=False",
+          "category": "Required training state",
+          "check_id": "state.optimizer",
+          "details": null,
+          "evidence_ids": [
+            "restore:optimizer-state"
+          ],
+          "expected": "serialized optimizer with exact digest",
+          "label": "Optimizer state restores when required",
+          "status": "fail"
+        },
+        {
+          "actual": "serialized=False, digest_match=False",
+          "category": "Required training state",
+          "check_id": "state.scheduler",
+          "details": null,
+          "evidence_ids": [
+            "restore:scheduler-state"
+          ],
+          "expected": "serialized scheduler with exact digest",
+          "label": "Scheduler state restores when required",
+          "status": "fail"
+        },
+        {
+          "actual": "serialized=False, digest_match=True",
+          "category": "Required training state",
+          "check_id": "state.python_rng",
+          "details": null,
+          "evidence_ids": [
+            "restore:python-rng"
+          ],
+          "expected": "serialized state with exact digest",
+          "label": "Python RNG state restores when required",
+          "status": "fail"
+        },
+        {
+          "actual": "serialized=False, digest_match=True",
+          "category": "Required training state",
+          "check_id": "state.numpy_rng",
+          "details": null,
+          "evidence_ids": [
+            "restore:numpy-rng"
+          ],
+          "expected": "serialized state with exact digest",
+          "label": "NumPy RNG state restores when required",
+          "status": "fail"
+        },
+        {
+          "actual": "serialized=False, digest_match=False",
+          "category": "Required training state",
+          "check_id": "state.torch_rng",
+          "details": null,
+          "evidence_ids": [
+            "restore:torch-rng"
+          ],
+          "expected": "serialized state with exact digest",
+          "label": "Torch RNG state restores when required",
+          "status": "fail"
+        },
+        {
+          "actual": "first batch at 4, first completion at 5",
+          "category": "Process recovery",
+          "check_id": "process.next_step",
+          "details": null,
+          "evidence_ids": [
+            "process:next-step"
+          ],
+          "expected": "first batch at 4, first completion at 5",
+          "label": "Resumed run continues from the expected next step",
+          "status": "pass"
+        },
+        {
+          "actual": "31412",
+          "category": "Process recovery",
+          "check_id": "process.original_pid",
+          "details": null,
+          "evidence_ids": [
+            "process:original-pid"
+          ],
+          "expected": "31412",
+          "label": "Original worker PID is recorded",
+          "status": "pass"
+        },
+        {
+          "actual": "method=TerminateProcess via subprocess.Popen.kill, exit=1, verified=True",
+          "category": "Process recovery",
+          "check_id": "process.expected_termination",
+          "details": null,
+          "evidence_ids": [
+            "process:termination"
+          ],
+          "expected": "parent termination with nonzero exit code",
+          "label": "Original worker termination is verified",
+          "status": "pass"
+        },
+        {
+          "actual": "16600",
+          "category": "Process recovery",
+          "check_id": "process.new_recovery_pid",
+          "details": null,
+          "evidence_ids": [
+            "process:recovery-pid"
+          ],
+          "expected": "PID different from 31412",
+          "label": "Recovery uses a different PID",
+          "status": "pass"
+        },
+        {
+          "actual": "exit=0, verified=True",
+          "category": "Process recovery",
+          "check_id": "process.recovery_exit",
+          "details": null,
+          "evidence_ids": [
+            "process:recovery-exit"
+          ],
+          "expected": "exit code 0",
+          "label": "Recovery worker exits successfully",
+          "status": "pass"
+        },
+        {
+          "actual": "0 steps",
+          "category": "Safety and rollback",
+          "check_id": "rollback.hard_limit",
+          "details": null,
+          "evidence_ids": [
+            "rollback:achieved"
+          ],
+          "expected": "<= 0 steps",
+          "label": "Achieved rollback is within the hard limit",
+          "status": "pass"
+        },
+        {
+          "actual": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+          "category": "Trajectory correctness",
+          "check_id": "trajectory.checkpoint_evaluation",
+          "details": "Exact SHA-256 comparison; no numerical tolerance is applied.",
+          "evidence_ids": [
+            "trajectory:checkpoint-evaluation"
+          ],
+          "expected": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+          "label": "Fixed evaluation after restore matches",
+          "status": "pass"
+        },
+        {
+          "actual": "d28547e82dc412d58060e8be64deb52191b7b258561be47874694b1c546eca66",
+          "category": "Trajectory correctness",
+          "check_id": "trajectory.final_trainable",
+          "details": "Exact SHA-256 comparison; no numerical tolerance is applied.",
+          "evidence_ids": [
+            "trajectory:final-trainable"
+          ],
+          "expected": "1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997",
+          "label": "Final trainable parameters match control",
+          "status": "fail"
+        },
+        {
+          "actual": "4346a2d77b37076b853d4529981824edd549538f938d4964220899149dd5b4cd",
+          "category": "Trajectory correctness",
+          "check_id": "trajectory.final_evaluation",
+          "details": "Exact SHA-256 comparison; no numerical tolerance is applied.",
+          "evidence_ids": [
+            "trajectory:final-evaluation"
+          ],
+          "expected": "a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a",
+          "label": "Final evaluation logits match control",
+          "status": "fail"
+        },
+        {
+          "actual": "sequence differs",
+          "category": "Trajectory correctness",
+          "check_id": "trajectory.loss_history",
+          "details": "Exact float sequence comparison; no numerical tolerance is applied.",
+          "evidence_ids": [
+            "trajectory:loss-history"
+          ],
+          "expected": "exact loss sequence equality",
+          "label": "Continued loss trajectory matches control",
+          "status": "fail"
+        },
+        {
+          "actual": "contained",
+          "category": "Safety and rollback",
+          "check_id": "safety.path_containment",
+          "details": null,
+          "evidence_ids": [
+            "safety:path-containment"
+          ],
+          "expected": "all paths contained; symlink escapes rejected",
+          "label": "All managed write paths passed containment",
+          "status": "pass"
+        },
+        {
+          "actual": "manifest lacks: numpy_rng, optimizer, python_rng, scheduler, torch_rng",
+          "category": "Safety and rollback",
+          "check_id": "contract.no_mandatory_omission",
+          "details": null,
+          "evidence_ids": [
+            "contract:mandatory-state"
+          ],
+          "expected": "all mandatory continuation state declared",
+          "label": "No mandatory contract requirement was silently omitted",
+          "status": "fail"
+        }
+      ],
+      "comparison_policy": {
+        "atol": 0.0,
+        "evaluation_logits": "sha256_exact",
+        "evidence": "The controlled CPU workload uses deterministic algorithms, one Torch thread, fixed seeds, and step-derived batches. Cross-process comparisons fail on any digest or loss-sequence difference.",
+        "loss_history": "sequence_exact",
+        "mode": "exact",
+        "optimizer_state": "sha256_exact",
+        "rng_state": "sha256_exact",
+        "rtol": 0.0,
+        "scheduler_state": "sha256_exact",
+        "trainable_parameters": "sha256_exact"
+      },
+      "failed_check_ids": [
+        "state.optimizer",
+        "state.scheduler",
+        "state.python_rng",
+        "state.numpy_rng",
+        "state.torch_rng",
+        "trajectory.final_trainable",
+        "trajectory.final_evaluation",
+        "trajectory.loss_history",
+        "contract.no_mandatory_omission"
+      ],
+      "hard_rollback_limit_steps": 0,
+      "passed": false,
+      "schema_version": "recovery-gate-v1"
+    },
+    "limitations": [
+      "Physical NAND writes, write amplification, and SSD lifetime were not measured.",
+      "No GPT provider, diagnosis, repair execution, HTML, or packaging is part of Prompt 3."
+    ],
+    "platform_support_note": "Windows: payload and metadata files are fsynced and directory rename is atomic; directory fsync is unavailable through Python and remains best-effort.",
+    "profile": "ci",
+    "recovery": {
+      "after_restore": {
+        "evaluation_sha256": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+        "global_step": 4,
+        "loss_history": [
+          3.5371975898742676,
+          3.434457540512085,
+          3.5977065563201904,
+          3.560746669769287
+        ],
+        "optimizer_sha256": "3fd0f50e0b483fd549520296f88ec6164c60dd8e753da543bff7ba535d9e6de3",
+        "scheduler_sha256": "78a0339e12abed3272bbbaab1f3ae6759b55eaf3f3ee807f998c5cc92113cfa8",
+        "trainable_state_sha256": "43ba75808906932a005b0d3e186b5786ab64a25fdce5542655d2d0951fc6eeb5"
+      },
+      "after_restore_rng": {
+        "numpy_sha256": "adc7e545ec0530eae9f1da725e83f48b146bd4ec79f98451367ca3d18e994db5",
+        "python_sha256": "dd8aec1ccf3053de61ed6a459e2668c385b7996eaedd947444006209995a7063",
+        "torch_sha256": "56a59ee4154c876386d9afa96a2427f79a736e98887cc6077a6409d0affee290"
+      },
+      "checkpoint_path": "checkpoints/missing-training-state/checkpoint-step-000004",
+      "completed_at": "2026-07-20T01:29:04.669645Z",
+      "final": {
+        "evaluation_sha256": "4346a2d77b37076b853d4529981824edd549538f938d4964220899149dd5b4cd",
+        "global_step": 8,
+        "loss_history": [
+          3.5371975898742676,
+          3.434457540512085,
+          3.5977065563201904,
+          3.560746669769287,
+          3.5904791355133057,
+          3.6091108322143555,
+          3.5213661193847656,
+          3.8659350872039795
+        ],
+        "optimizer_sha256": "e803114b5056070d75a3f02f6a1cd987f62b0d84fcb53350bb43e84757f29efa",
+        "scheduler_sha256": "caa817fb3191ab1456ade00320565fb3dfb7e7e648a1207f3f22f04893dec770",
+        "trainable_state_sha256": "d28547e82dc412d58060e8be64deb52191b7b258561be47874694b1c546eca66"
+      },
+      "first_completed_step": 5,
+      "first_resumed_batch_step": 4,
+      "restored_global_step": 4,
+      "schema_version": "recovery-worker-result-v1",
+      "started_at": "2026-07-20T01:29:03.186671Z",
+      "strategy": "missing_training_state",
+      "worker_pid": 16600
+    },
+    "recovery_process": {
+      "completed_at": "2026-07-20T01:29:05.088631Z",
+      "exit_code": 0,
+      "exit_verified": true,
+      "started_at": "2026-07-20T01:28:59.179201Z",
+      "worker_pid": 16600
+    },
+    "result_path": "result.json",
+    "run_id": "initial",
+    "schema_version": "crash-experiment-v1",
+    "strategy": "missing_training_state"
+  },
+  "limitations": [
+    "No live API call occurs; the diagnosis is an accepted GPT-5.6 capture replay.",
+    "A failed repaired gate stops closed without another diagnosis or repair attempt.",
+    "safe_full remains the documented complete-state fallback and is not auto-executed.",
+    "Windows directory fsync remains best-effort because Python does not expose it."
+  ],
+  "original_checkpoint_after": {
+    "file_count": 5,
+    "logical_bytes": 5169,
+    "sha256": "7548ba89ea18b3b78f1ea8990dcca66a1b3cb019c4cfc712c418b2de9bbeecaa"
+  },
+  "original_checkpoint_before": {
+    "file_count": 5,
+    "logical_bytes": 5169,
+    "sha256": "7548ba89ea18b3b78f1ea8990dcca66a1b3cb019c4cfc712c418b2de9bbeecaa"
+  },
+  "original_checkpoint_unmodified": true,
+  "plan_validation": {
+    "accepted_actions": [
+      "persist_optimizer_state",
+      "persist_scheduler_state",
+      "persist_python_rng_state",
+      "persist_numpy_rng_state",
+      "persist_torch_rng_state",
+      "restore_state_before_next_batch"
+    ],
+    "attempt_number": 1,
+    "decisions": [
+      {
+        "action": "change_supported_checkpoint_strategy",
+        "disposition": "unsupported",
+        "evidence_ids": [
+          "contract:mandatory-state"
+        ],
+        "reason": "Known action is unsupported by NativePyTorchAdapter in P0."
+      },
+      {
+        "action": "persist_optimizer_state",
+        "disposition": "accepted",
+        "evidence_ids": [
+          "restore:optimizer-state",
+          "contract:mandatory-state",
+          "trajectory:final-trainable",
+          "trajectory:loss-history"
+        ],
+        "reason": "Typed action is supported and linked to request evidence."
+      },
+      {
+        "action": "persist_scheduler_state",
+        "disposition": "accepted",
+        "evidence_ids": [
+          "restore:scheduler-state",
+          "contract:mandatory-state",
+          "trajectory:final-trainable",
+          "trajectory:loss-history"
+        ],
+        "reason": "Typed action is supported and linked to request evidence."
+      },
+      {
+        "action": "persist_python_rng_state",
+        "disposition": "accepted",
+        "evidence_ids": [
+          "restore:python-rng",
+          "contract:mandatory-state"
+        ],
+        "reason": "Typed action is supported and linked to request evidence."
+      },
+      {
+        "action": "persist_numpy_rng_state",
+        "disposition": "accepted",
+        "evidence_ids": [
+          "restore:numpy-rng",
+          "contract:mandatory-state"
+        ],
+        "reason": "Typed action is supported and linked to request evidence."
+      },
+      {
+        "action": "persist_torch_rng_state",
+        "disposition": "accepted",
+        "evidence_ids": [
+          "restore:torch-rng",
+          "contract:mandatory-state",
+          "trajectory:final-trainable",
+          "trajectory:final-evaluation",
+          "trajectory:loss-history"
+        ],
+        "reason": "Typed action is supported and linked to request evidence."
+      },
+      {
+        "action": "restore_state_before_next_batch",
+        "disposition": "accepted",
+        "evidence_ids": [
+          "restore:optimizer-state",
+          "restore:scheduler-state",
+          "restore:python-rng",
+          "restore:numpy-rng",
+          "restore:torch-rng",
+          "process:next-step"
+        ],
+        "reason": "Typed action is supported and linked to request evidence."
+      }
+    ],
+    "execution_performed": false,
+    "rejected_actions": [],
+    "schema_version": "repair-plan-validation-v1",
+    "unsupported_actions": [
+      "change_supported_checkpoint_strategy"
+    ]
+  },
+  "profile": "ci",
+  "proposed_analysis": {
+    "affected_gate_checks": [
+      "state.optimizer",
+      "state.scheduler",
+      "state.python_rng",
+      "state.numpy_rng",
+      "state.torch_rng",
+      "trajectory.final_trainable",
+      "trajectory.final_evaluation",
+      "trajectory.loss_history",
+      "contract.no_mandatory_omission"
+    ],
+    "confidence": "high",
+    "confirming_evidence": [
+      "restore:optimizer-state",
+      "restore:scheduler-state",
+      "restore:python-rng",
+      "restore:numpy-rng",
+      "restore:torch-rng",
+      "trajectory:final-trainable",
+      "trajectory:final-evaluation",
+      "trajectory:loss-history",
+      "contract:mandatory-state"
+    ],
+    "limitations": [
+      "The package demonstrates the omissions and resulting divergence but does not establish that any proposed repair has been implemented or validated.",
+      "Exact recovery remains subject to deterministic validation using a newly produced checkpoint containing all mandatory state.",
+      "The matching Python and NumPy RNG digests do not satisfy the serialization requirement because those states were not present in the checkpoint."
+    ],
+    "repair_plan": {
+      "actions": [
+        {
+          "action": "change_supported_checkpoint_strategy",
+          "evidence_ids": [
+            "contract:mandatory-state"
+          ],
+          "reason": "The current strategy advertises no supported repair actions and must be replaced or extended to support all mandatory continuation state."
+        },
+        {
+          "action": "persist_optimizer_state",
+          "evidence_ids": [
+            "restore:optimizer-state",
+            "contract:mandatory-state",
+            "trajectory:final-trainable",
+            "trajectory:loss-history"
+          ],
+          "reason": "Serialize the complete optimizer state required for exact continuation."
+        },
+        {
+          "action": "persist_scheduler_state",
+          "evidence_ids": [
+            "restore:scheduler-state",
+            "contract:mandatory-state",
+            "trajectory:final-trainable",
+            "trajectory:loss-history"
+          ],
+          "reason": "Serialize scheduler progress so resumed learning-rate behavior matches the uninterrupted run."
+        },
+        {
+          "action": "persist_python_rng_state",
+          "evidence_ids": [
+            "restore:python-rng",
+            "contract:mandatory-state"
+          ],
+          "reason": "Serialize Python RNG state because the workload requires it for strict continuation."
+        },
+        {
+          "action": "persist_numpy_rng_state",
+          "evidence_ids": [
+            "restore:numpy-rng",
+            "contract:mandatory-state"
+          ],
+          "reason": "Serialize NumPy RNG state because the workload uses NumPy randomness."
+        },
+        {
+          "action": "persist_torch_rng_state",
+          "evidence_ids": [
+            "restore:torch-rng",
+            "contract:mandatory-state",
+            "trajectory:final-trainable",
+            "trajectory:final-evaluation",
+            "trajectory:loss-history"
+          ],
+          "reason": "Serialize Torch RNG state because the workload uses Torch randomness and dropout."
+        },
+        {
+          "action": "restore_state_before_next_batch",
+          "evidence_ids": [
+            "restore:optimizer-state",
+            "restore:scheduler-state",
+            "restore:python-rng",
+            "restore:numpy-rng",
+            "restore:torch-rng",
+            "process:next-step"
+          ],
+          "reason": "Restore all persisted optimizer, scheduler, and RNG state before processing the next batch."
+        }
+      ],
+      "assumptions": [
+        "The controlled CPU-only workload and declared state requirements remain unchanged.",
+        "No CUDA RNG state is required.",
+        "Batch position remains derivable from the restored global step."
+      ],
+      "expected_gate_improvements": [
+        "Mandatory continuation state is declared and serialized.",
+        "Optimizer, scheduler, and required RNG states become restorable with exact digests.",
+        "Continued losses, final trainable parameters, and final evaluation outputs can be re-evaluated for exact agreement."
+      ],
+      "risks": [
+        "The current checkpoint strategy exposes no supported repair actions, so a compatible strategy or implementation change is required before these actions can be validated.",
+        "Existing checkpoints lacking the omitted state cannot provide strict continuation from those checkpoints.",
+        "Restoration ordering errors could still produce trajectory divergence even after all state is serialized."
+      ]
+    },
+    "root_cause_hypothesis": "The checkpoint strategy serialized the adapter and global step but omitted mandatory optimizer, scheduler, Python RNG, NumPy RNG, and Torch RNG state. Recovery therefore resumed with incomplete continuation state, causing divergence in losses, final trainable parameters, and final evaluation outputs.",
+    "schema_version": "failure-analysis-v2"
+  },
+  "repair_attempt_count": 1,
+  "repair_execution": {
+    "admitted_at": "2026-07-20T01:29:05.191509Z",
+    "applied_actions": [
+      "persist_optimizer_state",
+      "persist_scheduler_state",
+      "persist_python_rng_state",
+      "persist_numpy_rng_state",
+      "persist_torch_rng_state",
+      "restore_state_before_next_batch"
+    ],
+    "attempt_number": 1,
+    "execution_performed": true,
+    "original_config": {
+      "include_numpy_rng": false,
+      "include_optimizer": false,
+      "include_python_rng": false,
+      "include_scheduler": false,
+      "include_torch_rng": false,
+      "restore_before_next_batch": false,
+      "schema_version": "checkpoint-strategy-config-v1",
+      "strategy_id": "native-incomplete-v1"
+    },
+    "rejected_actions": [],
+    "repaired_config": {
+      "include_numpy_rng": true,
+      "include_optimizer": true,
+      "include_python_rng": true,
+      "include_scheduler": true,
+      "include_torch_rng": true,
+      "restore_before_next_batch": true,
+      "schema_version": "checkpoint-strategy-config-v1",
+      "strategy_id": "native-repaired-complete-v1"
+    },
+    "schema_version": "repair-execution-v1",
+    "unsupported_actions": [
+      "change_supported_checkpoint_strategy"
+    ]
+  },
+  "repaired_run": {
+    "control": {
+      "evaluation_sha256": "a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a",
+      "global_step": 8,
+      "loss_history": [
+        3.5371975898742676,
+        3.434457540512085,
+        3.5977065563201904,
+        3.560746669769287,
+        3.670823574066162,
+        3.627253293991089,
+        3.508639335632324,
+        3.8248143196105957
+      ],
+      "optimizer_sha256": "c03dfc8b66e6645fb552223428ad86a855c97049d133b08984604f6e7d55a050",
+      "scheduler_sha256": "e07ffd6a89fefb61e80d1ca56025a927222a83180ffced778789606d3a7bec81",
+      "trainable_state_sha256": "1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997"
+    },
+    "crash": {
+      "checkpoint_path": "checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004",
+      "checkpoint_step": 4,
+      "event_received_at": "2026-07-20T01:29:08.921856Z",
+      "last_completed_step": 4,
+      "terminated_at": "2026-07-20T01:29:08.944239Z",
+      "termination_exit_code": 1,
+      "termination_method": "TerminateProcess via subprocess.Popen.kill",
+      "termination_verified": true,
+      "worker_pid": 27632
+    },
+    "created_at": "2026-07-20T01:29:12.925243Z",
+    "failure_artifact_path": null,
+    "gate": {
+      "achieved_rollback_steps": 0,
+      "checks": [
+        {
+          "actual": "checkpoint-manifest-v1",
+          "category": "Integrity",
+          "check_id": "integrity.manifest_schema",
+          "details": null,
+          "evidence_ids": [
+            "manifest:schema"
+          ],
+          "expected": "checkpoint-manifest-v1",
+          "label": "Manifest schema valid",
+          "status": "pass"
+        },
+        {
+          "actual": "present",
+          "category": "Integrity",
+          "check_id": "integrity.completion_marker",
+          "details": null,
+          "evidence_ids": [
+            "integrity:completion-marker"
+          ],
+          "expected": "COMPLETE present in final checkpoint",
+          "label": "Completion marker present",
+          "status": "pass"
+        },
+        {
+          "actual": "5 payloads validated",
+          "category": "Integrity",
+          "check_id": "integrity.checksums",
+          "details": null,
+          "evidence_ids": [
+            "integrity:sha256"
+          ],
+          "expected": "every manifest payload matches SHA-256 and size",
+          "label": "All payload checksums valid",
+          "status": "pass"
+        },
+        {
+          "actual": "present",
+          "category": "Integrity",
+          "check_id": "integrity.base_present",
+          "details": null,
+          "evidence_ids": [
+            "base:presence"
+          ],
+          "expected": "contained immutable base artifact",
+          "label": "Base artifact present when required",
+          "status": "pass"
+        },
+        {
+          "actual": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+          "category": "Integrity",
+          "check_id": "integrity.base_hash",
+          "details": null,
+          "evidence_ids": [
+            "base:sha256"
+          ],
+          "expected": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+          "label": "Base artifact hash matches",
+          "status": "pass"
+        },
+        {
+          "actual": "manifest=4, event=4, restored=4",
+          "category": "Required training state",
+          "check_id": "state.global_step",
+          "details": null,
+          "evidence_ids": [
+            "manifest:global-step"
+          ],
+          "expected": "0 < step < 8, consistent across restore",
+          "label": "Checkpoint global step is valid",
+          "status": "pass"
+        },
+        {
+          "actual": "serialized=True, digest_match=True",
+          "category": "Required training state",
+          "check_id": "state.model_or_adapter",
+          "details": null,
+          "evidence_ids": [
+            "restore:model-state"
+          ],
+          "expected": "serialized adapter and exact trainable-state digest",
+          "label": "Model or adapter state restores",
+          "status": "pass"
+        },
+        {
+          "actual": "serialized=True, digest_match=True",
+          "category": "Required training state",
+          "check_id": "state.optimizer",
+          "details": null,
+          "evidence_ids": [
+            "restore:optimizer-state"
+          ],
+          "expected": "serialized optimizer with exact digest",
+          "label": "Optimizer state restores when required",
+          "status": "pass"
+        },
+        {
+          "actual": "serialized=True, digest_match=True",
+          "category": "Required training state",
+          "check_id": "state.scheduler",
+          "details": null,
+          "evidence_ids": [
+            "restore:scheduler-state"
+          ],
+          "expected": "serialized scheduler with exact digest",
+          "label": "Scheduler state restores when required",
+          "status": "pass"
+        },
+        {
+          "actual": "serialized=True, digest_match=True",
+          "category": "Required training state",
+          "check_id": "state.python_rng",
+          "details": null,
+          "evidence_ids": [
+            "restore:python-rng"
+          ],
+          "expected": "serialized state with exact digest",
+          "label": "Python RNG state restores when required",
+          "status": "pass"
+        },
+        {
+          "actual": "serialized=True, digest_match=True",
+          "category": "Required training state",
+          "check_id": "state.numpy_rng",
+          "details": null,
+          "evidence_ids": [
+            "restore:numpy-rng"
+          ],
+          "expected": "serialized state with exact digest",
+          "label": "NumPy RNG state restores when required",
+          "status": "pass"
+        },
+        {
+          "actual": "serialized=True, digest_match=True",
+          "category": "Required training state",
+          "check_id": "state.torch_rng",
+          "details": null,
+          "evidence_ids": [
+            "restore:torch-rng"
+          ],
+          "expected": "serialized state with exact digest",
+          "label": "Torch RNG state restores when required",
+          "status": "pass"
+        },
+        {
+          "actual": "first batch at 4, first completion at 5",
+          "category": "Process recovery",
+          "check_id": "process.next_step",
+          "details": null,
+          "evidence_ids": [
+            "process:next-step"
+          ],
+          "expected": "first batch at 4, first completion at 5",
+          "label": "Resumed run continues from the expected next step",
+          "status": "pass"
+        },
+        {
+          "actual": "27632",
+          "category": "Process recovery",
+          "check_id": "process.original_pid",
+          "details": null,
+          "evidence_ids": [
+            "process:original-pid"
+          ],
+          "expected": "27632",
+          "label": "Original worker PID is recorded",
+          "status": "pass"
+        },
+        {
+          "actual": "method=TerminateProcess via subprocess.Popen.kill, exit=1, verified=True",
+          "category": "Process recovery",
+          "check_id": "process.expected_termination",
+          "details": null,
+          "evidence_ids": [
+            "process:termination"
+          ],
+          "expected": "parent termination with nonzero exit code",
+          "label": "Original worker termination is verified",
+          "status": "pass"
+        },
+        {
+          "actual": "31396",
+          "category": "Process recovery",
+          "check_id": "process.new_recovery_pid",
+          "details": null,
+          "evidence_ids": [
+            "process:recovery-pid"
+          ],
+          "expected": "PID different from 27632",
+          "label": "Recovery uses a different PID",
+          "status": "pass"
+        },
+        {
+          "actual": "exit=0, verified=True",
+          "category": "Process recovery",
+          "check_id": "process.recovery_exit",
+          "details": null,
+          "evidence_ids": [
+            "process:recovery-exit"
+          ],
+          "expected": "exit code 0",
+          "label": "Recovery worker exits successfully",
+          "status": "pass"
+        },
+        {
+          "actual": "0 steps",
+          "category": "Safety and rollback",
+          "check_id": "rollback.hard_limit",
+          "details": null,
+          "evidence_ids": [
+            "rollback:achieved"
+          ],
+          "expected": "<= 0 steps",
+          "label": "Achieved rollback is within the hard limit",
+          "status": "pass"
+        },
+        {
+          "actual": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+          "category": "Trajectory correctness",
+          "check_id": "trajectory.checkpoint_evaluation",
+          "details": "Exact SHA-256 comparison; no numerical tolerance is applied.",
+          "evidence_ids": [
+            "trajectory:checkpoint-evaluation"
+          ],
+          "expected": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+          "label": "Fixed evaluation after restore matches",
+          "status": "pass"
+        },
+        {
+          "actual": "1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997",
+          "category": "Trajectory correctness",
+          "check_id": "trajectory.final_trainable",
+          "details": "Exact SHA-256 comparison; no numerical tolerance is applied.",
+          "evidence_ids": [
+            "trajectory:final-trainable"
+          ],
+          "expected": "1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997",
+          "label": "Final trainable parameters match control",
+          "status": "pass"
+        },
+        {
+          "actual": "a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a",
+          "category": "Trajectory correctness",
+          "check_id": "trajectory.final_evaluation",
+          "details": "Exact SHA-256 comparison; no numerical tolerance is applied.",
+          "evidence_ids": [
+            "trajectory:final-evaluation"
+          ],
+          "expected": "a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a",
+          "label": "Final evaluation logits match control",
+          "status": "pass"
+        },
+        {
+          "actual": "exact match",
+          "category": "Trajectory correctness",
+          "check_id": "trajectory.loss_history",
+          "details": "Exact float sequence comparison; no numerical tolerance is applied.",
+          "evidence_ids": [
+            "trajectory:loss-history"
+          ],
+          "expected": "exact loss sequence equality",
+          "label": "Continued loss trajectory matches control",
+          "status": "pass"
+        },
+        {
+          "actual": "contained",
+          "category": "Safety and rollback",
+          "check_id": "safety.path_containment",
+          "details": null,
+          "evidence_ids": [
+            "safety:path-containment"
+          ],
+          "expected": "all paths contained; symlink escapes rejected",
+          "label": "All managed write paths passed containment",
+          "status": "pass"
+        },
+        {
+          "actual": "complete",
+          "category": "Safety and rollback",
+          "check_id": "contract.no_mandatory_omission",
+          "details": null,
+          "evidence_ids": [
+            "contract:mandatory-state"
+          ],
+          "expected": "all mandatory continuation state declared",
+          "label": "No mandatory contract requirement was silently omitted",
+          "status": "pass"
+        }
+      ],
+      "comparison_policy": {
+        "atol": 0.0,
+        "evaluation_logits": "sha256_exact",
+        "evidence": "The controlled CPU workload uses deterministic algorithms, one Torch thread, fixed seeds, and step-derived batches. Cross-process comparisons fail on any digest or loss-sequence difference.",
+        "loss_history": "sequence_exact",
+        "mode": "exact",
+        "optimizer_state": "sha256_exact",
+        "rng_state": "sha256_exact",
+        "rtol": 0.0,
+        "scheduler_state": "sha256_exact",
+        "trainable_parameters": "sha256_exact"
+      },
+      "failed_check_ids": [],
+      "hard_rollback_limit_steps": 0,
+      "passed": true,
+      "schema_version": "recovery-gate-v1"
+    },
+    "limitations": [
+      "Physical NAND writes, write amplification, and SSD lifetime were not measured.",
+      "No GPT provider, diagnosis, repair execution, HTML, or packaging is part of Prompt 3."
+    ],
+    "platform_support_note": "Windows: payload and metadata files are fsynced and directory rename is atomic; directory fsync is unavailable through Python and remains best-effort.",
+    "profile": "ci",
+    "recovery": {
+      "after_restore": {
+        "evaluation_sha256": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+        "global_step": 4,
+        "loss_history": [
+          3.5371975898742676,
+          3.434457540512085,
+          3.5977065563201904,
+          3.560746669769287
+        ],
+        "optimizer_sha256": "9d74c2ab1d0065b9a270080cbacd3ccdf2937e8c2aee112d50171dec423a0a3a",
+        "scheduler_sha256": "caa817fb3191ab1456ade00320565fb3dfb7e7e648a1207f3f22f04893dec770",
+        "trainable_state_sha256": "43ba75808906932a005b0d3e186b5786ab64a25fdce5542655d2d0951fc6eeb5"
+      },
+      "after_restore_rng": {
+        "numpy_sha256": "adc7e545ec0530eae9f1da725e83f48b146bd4ec79f98451367ca3d18e994db5",
+        "python_sha256": "dd8aec1ccf3053de61ed6a459e2668c385b7996eaedd947444006209995a7063",
+        "torch_sha256": "fa163c67bdc6bd308e73799701eff603b07e6196b09748af3a051a16d257ca62"
+      },
+      "checkpoint_path": "checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004",
+      "completed_at": "2026-07-20T01:29:12.418105Z",
+      "final": {
+        "evaluation_sha256": "a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a",
+        "global_step": 8,
+        "loss_history": [
+          3.5371975898742676,
+          3.434457540512085,
+          3.5977065563201904,
+          3.560746669769287,
+          3.670823574066162,
+          3.627253293991089,
+          3.508639335632324,
+          3.8248143196105957
+        ],
+        "optimizer_sha256": "c03dfc8b66e6645fb552223428ad86a855c97049d133b08984604f6e7d55a050",
+        "scheduler_sha256": "e07ffd6a89fefb61e80d1ca56025a927222a83180ffced778789606d3a7bec81",
+        "trainable_state_sha256": "1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997"
+      },
+      "first_completed_step": 5,
+      "first_resumed_batch_step": 4,
+      "restored_global_step": 4,
+      "schema_version": "recovery-worker-result-v1",
+      "started_at": "2026-07-20T01:29:10.998216Z",
+      "strategy": "safe_adapter_aware",
+      "worker_pid": 31396
+    },
+    "recovery_process": {
+      "completed_at": "2026-07-20T01:29:12.909694Z",
+      "exit_code": 0,
+      "exit_verified": true,
+      "started_at": "2026-07-20T01:29:08.944239Z",
+      "worker_pid": 31396
+    },
+    "result_path": "result.json",
+    "run_id": "repaired",
+    "schema_version": "crash-experiment-v1",
+    "strategy": "safe_adapter_aware"
+  },
+  "replay_call_metadata": {
+    "fixture_provenance": "live_gpt_5_6_capture",
+    "live_or_fixture": "fixture",
+    "model": "gpt-5.6",
+    "output_schema_version": "failure-analysis-v2",
+    "prompt_version": "v2",
+    "provider": "fixture",
+    "request_sha256": "ae0ab9ea64dad5dd68d3437d27649987295637630d47647d9b2f27f9db06b178",
+    "response_id": null,
+    "role": "failure-analysis",
+    "schema_version": "agent-call-metadata-v1",
+    "source": "captured_live_response_replay",
+    "store": false,
+    "timestamp": "2026-07-20T01:29:05.160396Z",
+    "validation_status": "accepted"
+  },
+  "report_path": "report.md",
+  "result_path": "result.json",
+  "run_id": "milestone13-native",
+  "schema_version": "repair-loop-result-v1",
+  "storage_comparison": {
+    "checkpoint_step": 4,
+    "limitations": [
+      "The repaired recurring total excludes the immutable base artifact stored once per run.",
+      "Logical file bytes are measured; physical NAND writes and write amplification are not.",
+      "The safe_full source is the unchanged direct-restore measurement implementation."
+    ],
+    "measurement_scope": "logical_checkpoint_directory_bytes",
+    "profile": "ci",
+    "repaired_one_time_base_bytes": 18475,
+    "repaired_recurring_bytes": 27681,
+    "reported_after_recovery_passed": true,
+    "safe_full_bytes": 44998,
+    "safe_full_measurement_source": "unchanged_safe_full_direct_restore_baseline",
+    "schema_version": "storage-comparison-v1",
+    "structural_reduction_bytes": 17317,
+    "structural_reduction_percent": 38.483932619227524
+  }
+}

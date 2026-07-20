@@ -1,0 +1,18 @@
+{
+  "checkpoint_step": 4,
+  "limitations": [
+    "The repaired recurring total excludes the immutable base artifact stored once per run.",
+    "Logical file bytes are measured; physical NAND writes and write amplification are not.",
+    "The safe_full source is the unchanged direct-restore measurement implementation."
+  ],
+  "measurement_scope": "logical_checkpoint_directory_bytes",
+  "profile": "ci",
+  "repaired_one_time_base_bytes": 18475,
+  "repaired_recurring_bytes": 27681,
+  "reported_after_recovery_passed": true,
+  "safe_full_bytes": 44998,
+  "safe_full_measurement_source": "unchanged_safe_full_direct_restore_baseline",
+  "schema_version": "storage-comparison-v1",
+  "structural_reduction_bytes": 17317,
+  "structural_reduction_percent": 38.483932619227524
+}

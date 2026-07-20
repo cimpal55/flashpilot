@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="flashpilot.attestation-verification" tests="8" failures="0" errors="0" skipped="0">
+  <properties>
+    <property name="verdict" value="VERIFIED" />
+    <property name="attestation_sha256" value="377663fe94f4abb153d94570b3b8e420f764761788a6820d66b83eb9efd78ce5" />
+  </properties>
+  <testcase classname="flashpilot.attestation" name="schema.attestation">
+    <system-out>RecoveryAttestationV1 schema is valid.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="integrity.evidence-manifest">
+    <system-out>Evidence manifest schema and SHA-256 passed.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="integrity.evidence-files">
+    <system-out>Closed inventory verified 54 evidence artifacts.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="integrity.environment">
+    <system-out>Dependency environment identity is consistent.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="consistency.contract">
+    <system-out>Contract hash and deterministic minimum agree.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="consistency.result">
+    <system-out>Result, gate, process, trajectory, RPO, and RTO agree.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="consistency.reports">
+    <system-out>Markdown and HTML are exact result-derived views.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="integrity.checkpoint">
+    <system-out>Referenced checkpoint hash and metrics agree.</system-out>
+  </testcase>
+</testsuite>

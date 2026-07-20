@@ -1,0 +1,52 @@
+{
+  "schema_version": "checkpoint-manifest-v1",
+  "checkpoint_id": "checkpoint-step-000004",
+  "strategy": "safe_full",
+  "profile": "ci",
+  "global_step": 4,
+  "created_at": "2026-07-20T01:29:13.028370Z",
+  "serialized_state": [
+    "model",
+    "optimizer",
+    "scheduler",
+    "global_step",
+    "python_rng",
+    "numpy_rng",
+    "torch_rng",
+    "config"
+  ],
+  "omitted_state": [],
+  "base_artifact": null,
+  "payloads": [
+    {
+      "role": "model",
+      "path": "model.pt",
+      "sha256": "2bbdd47b7e346ed7d8f3ee443897ce9884dbe4517d06da2bbd371f02f43f3d1b",
+      "size_bytes": 20718
+    },
+    {
+      "role": "optimizer",
+      "path": "optimizer.pt",
+      "sha256": "ce1a57f6b5ed144f5ffed0a73b27cda66f49caa19f06124984dbb9eedabf4baf",
+      "size_bytes": 5795
+    },
+    {
+      "role": "rng",
+      "path": "rng.pt",
+      "sha256": "71ed181a88f9f4250fa37088ace6e502308b66f72dae3e4c085514511630f97e",
+      "size_bytes": 14285
+    },
+    {
+      "role": "scheduler",
+      "path": "scheduler.pt",
+      "sha256": "4b06758dd8c53f4479c37b7e5b5ff7a5850408ec7e9a519d30c58cb8b61a6759",
+      "size_bytes": 1465
+    },
+    {
+      "role": "state",
+      "path": "state.json",
+      "sha256": "6dffd484aceb5285169fc1726547b1f3cd1215b412e6252c8cfb0643f0df5d9f",
+      "size_bytes": 533
+    }
+  ]
+}

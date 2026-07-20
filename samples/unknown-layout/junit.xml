@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="flashpilot.static-audit" tests="1" failures="0" errors="0" skipped="1">
+  <properties>
+    <property name="status" value="UNKNOWN" />
+    <property name="framework" value="unknown" />
+    <property name="qualification_profile" value="exact-training-resume" />
+    <property name="recovery_verified" value="false" />
+  </properties>
+  <testcase classname="flashpilot.audit.unknown" name="detection.framework">
+    <skipped message="UNKNOWN: Checkpoint layout is unknown or ambiguous; it was not trusted." />
+    <system-out>Checkpoint layout is unknown or ambiguous; it was not trusted.</system-out>
+  </testcase>
+</testsuite>

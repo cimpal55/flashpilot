@@ -1,0 +1,38 @@
+{
+  "admitted_at": "2026-07-20T01:29:05.191509Z",
+  "applied_actions": [
+    "persist_optimizer_state",
+    "persist_scheduler_state",
+    "persist_python_rng_state",
+    "persist_numpy_rng_state",
+    "persist_torch_rng_state",
+    "restore_state_before_next_batch"
+  ],
+  "attempt_number": 1,
+  "execution_performed": true,
+  "original_config": {
+    "include_numpy_rng": false,
+    "include_optimizer": false,
+    "include_python_rng": false,
+    "include_scheduler": false,
+    "include_torch_rng": false,
+    "restore_before_next_batch": false,
+    "schema_version": "checkpoint-strategy-config-v1",
+    "strategy_id": "native-incomplete-v1"
+  },
+  "rejected_actions": [],
+  "repaired_config": {
+    "include_numpy_rng": true,
+    "include_optimizer": true,
+    "include_python_rng": true,
+    "include_scheduler": true,
+    "include_torch_rng": true,
+    "restore_before_next_batch": true,
+    "schema_version": "checkpoint-strategy-config-v1",
+    "strategy_id": "native-repaired-complete-v1"
+  },
+  "schema_version": "repair-execution-v1",
+  "unsupported_actions": [
+    "change_supported_checkpoint_strategy"
+  ]
+}

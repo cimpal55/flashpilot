@@ -1,0 +1,59 @@
+name: report-ui
+
+# Publishes the static report UI to GitHub Pages, but only after the sample
+# corpus has been re-verified. A bundle whose evidence does not hash correctly
+# is never deployed — the site fails closed the same way the UI does.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "report-ui/**"
+      - "samples/**"
+      - "tools/build_samples.py"
+      - "tools/verify_samples.py"
+      - ".github/workflows/report-ui-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: report-ui-pages
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Re-verify the sample evidence
+        run: python tools/verify_samples.py
+      - name: Check the UI ships only static assets
+        run: |
+          if grep -rniE 'https?://(?!fonts\.(googleapis|gstatic)\.com)' report-ui/index.html report-ui/src --include='*.js' --include='*.css' --include='*.html' -P; then
+            echo "::error::report-ui references an external origin other than the optional webfont host"
+            exit 1
+          fi
+          echo "no unexpected external origins"
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Upload report-ui as-is
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: report-ui
+      - id: deployment
+        uses: actions/deploy-pages@v4

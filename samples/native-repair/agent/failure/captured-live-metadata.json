@@ -1,0 +1,16 @@
+{
+  "fixture_provenance": "not_applicable",
+  "live_or_fixture": "live",
+  "model": "gpt-5.6",
+  "output_schema_version": "failure-analysis-v2",
+  "prompt_version": "v2",
+  "provider": "openai",
+  "request_sha256": "eaa6f7818ecdaf482525081514dccfbfe748ae79b0d17c1a719a5e60bfc5ba2e",
+  "response_id": "resp_0d7e808cd722f97f016a5a90f0300481908d22e7befa15e3fe",
+  "role": "failure-analysis",
+  "schema_version": "agent-call-metadata-v1",
+  "source": "captured_live_response",
+  "store": false,
+  "timestamp": "2026-07-17T20:31:09.771820Z",
+  "validation_status": "accepted"
+}

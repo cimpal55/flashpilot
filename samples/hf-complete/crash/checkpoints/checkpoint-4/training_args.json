@@ -1,0 +1,9 @@
+{
+  "data_seed": 20260720,
+  "gradient_accumulation_steps": 1,
+  "max_steps": 8,
+  "per_device_train_batch_size": 4,
+  "save_only_model": false,
+  "seed": 20260720,
+  "train_sampling_strategy": "sequential"
+}

@@ -1,0 +1,136 @@
+{
+  "entries": [
+    {
+      "path": "control/result.json",
+      "sha256": "e95c1fcc449c3d2ad4b7f6cfbeeeba8989c96f6489ec5455643720a1664177b3",
+      "size_bytes": 929
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/config.json",
+      "sha256": "79022546312547e56c66fdf41a75b3506e879e6d2ec92f134b88646d53acf6e7",
+      "size_bytes": 520
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/flashpilot-callback.json",
+      "sha256": "01fd157fb4d2399664cd6edf022b698f86ec34b179f7db82482fa783e7cbb23b",
+      "size_bytes": 411
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/model.safetensors",
+      "sha256": "5cd6469c3ca883cceee01dc61fdda32afadacb6adb37405d2fb25292bebf4923",
+      "size_bytes": 4468
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/optimizer.pt",
+      "sha256": "643dc8343f65cb80d8e243ff8d9bc9e83a848dc6498fe4ec0ea30292008da249",
+      "size_bytes": 13536
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/rng_state.pth",
+      "sha256": "fd1ab2990bdb7ce78633b6b1e51b1afc78d29059de4e8af1e8a42f1ff076d795",
+      "size_bytes": 14391
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/scheduler.pt",
+      "sha256": "ab504dd35b81e19ef766aa82b7cf76e21cc60e3214db3527d1ce046baa137779",
+      "size_bytes": 1465
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/trainer_state.json",
+      "sha256": "5ce71797da7b014442879e08ad9d6c600f4dfa581576baf680bd876ed93fd4c3",
+      "size_bytes": 1434
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/training_args.bin",
+      "sha256": "4a05da750bc0fc619e815c3cd0a1ec5e2e02ef5d2094dcdb9ba736d71ae16cd0",
+      "size_bytes": 5201
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/training_args.json",
+      "sha256": "eafd2a1c47ca3aa0c81bd2ac7308dc127a373bfc759dac317baa2e03310937fe",
+      "size_bytes": 209
+    },
+    {
+      "path": "environment.json",
+      "sha256": "eae21da0cd622432aa2a76b4de6c69dc195b584cdff04b2b8bc68308bca71af0",
+      "size_bytes": 913
+    },
+    {
+      "path": "inputs/train.py",
+      "sha256": "3d4c303a5894ac145d791fa06e756abc3a54230d44350b0f85940d288f1041dc",
+      "size_bytes": 159
+    },
+    {
+      "path": "job-summary.md",
+      "sha256": "70ac502bb5dc427bab31a1c70cd3d6d8cd30ef065546033c441c1580b9f5925c",
+      "size_bytes": 357
+    },
+    {
+      "path": "junit.xml",
+      "sha256": "f464eaf5912da99d0be3cb8f667710f9100f9b59a484e35e9df83f2c4d8650a3",
+      "size_bytes": 3490
+    },
+    {
+      "path": "logs/control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "logs/control.stdout.log",
+      "sha256": "706927d643011725410cc43dabcb7cace60d5abee2a2cc339c107ed8d853b540",
+      "size_bytes": 815
+    },
+    {
+      "path": "logs/crash.stderr.log",
+      "sha256": "6533ba74765525aa34d53961ae98c977f3b1900e8d31fdb3dc22058dec69267e",
+      "size_bytes": 121
+    },
+    {
+      "path": "logs/crash.stdout.log",
+      "sha256": "a126ffd8891c6ee25031aa7a164bd44cc94f18db7ec466ff61eba25091669bee",
+      "size_bytes": 702
+    },
+    {
+      "path": "logs/recovery.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "logs/recovery.stdout.log",
+      "sha256": "d7837afd05bcb017be75b7f7782a2aea1cab8e07ede909ce8653c61592e54fee",
+      "size_bytes": 475
+    },
+    {
+      "path": "persistence-contract.json",
+      "sha256": "1a832e1fc13aaaeffe3aef81ae8f056aba7697bafdc2375783c97e21c3884692",
+      "size_bytes": 2364
+    },
+    {
+      "path": "recovery/result.json",
+      "sha256": "316ecafaad51df90a7c982e94fe511584897e53728d99fe0961edd8a2b0ea07a",
+      "size_bytes": 928
+    },
+    {
+      "path": "report.html",
+      "sha256": "95894478c0c259b0ffad430d1e3e014c90bf4292fca6006597cc9273669739e9",
+      "size_bytes": 2066
+    },
+    {
+      "path": "report.md",
+      "sha256": "9075c4decb858d9806c1e752ccbe9ded7f925b1ab303a972098db27bd2659a2f",
+      "size_bytes": 1522
+    },
+    {
+      "path": "result.json",
+      "sha256": "a7d92c4d72c0a55d8c3104d24a548b27baad49e3e14a77604025e53eadd844c3",
+      "size_bytes": 7981
+    }
+  ],
+  "excluded_statement_artifacts": [
+    "attestation.junit.xml",
+    "evidence-manifest.json",
+    "recovery.attestation.json"
+  ],
+  "root_scope": "attestation-directory",
+  "schema_version": "flashpilot-evidence-manifest-v1"
+}

@@ -1,0 +1,2 @@
+Copied verbatim from runs/milestone13-hf-complete of the FlashPilot core repository.
+No value in this directory was edited, regenerated, or synthesised.

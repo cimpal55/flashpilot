@@ -1,0 +1,448 @@
+{
+  "checkpoint_contract": {
+    "correctness_priority": "strict",
+    "required_integrity_controls": [
+      "manifest",
+      "checksums",
+      "completion_marker",
+      "atomic_commit",
+      "base_artifact_hash"
+    ],
+    "required_state": [
+      "adapter",
+      "optimizer",
+      "scheduler",
+      "global_step",
+      "python_rng",
+      "numpy_rng",
+      "torch_rng",
+      "base_model_identity"
+    ]
+  },
+  "crash_metadata": {
+    "checkpoint_id": "checkpoint-step-000004",
+    "checkpoint_step": 4,
+    "last_completed_step": 4,
+    "recovery_worker_pid": 16600,
+    "termination_exit_code": 1,
+    "termination_method": "TerminateProcess via subprocess.Popen.kill",
+    "worker_pid": 31412
+  },
+  "evidence_catalog": {
+    "base:presence": "Base artifact present when required",
+    "base:sha256": "Base artifact hash matches",
+    "contract:mandatory-state": "No mandatory contract requirement was silently omitted",
+    "integrity:completion-marker": "Completion marker present",
+    "integrity:sha256": "All payload checksums valid",
+    "manifest:global-step": "Checkpoint global step is valid",
+    "manifest:schema": "Manifest schema valid",
+    "process:next-step": "Resumed run continues from the expected next step",
+    "process:original-pid": "Original worker PID is recorded",
+    "process:recovery-exit": "Recovery worker exits successfully",
+    "process:recovery-pid": "Recovery uses a different PID",
+    "process:termination": "Original worker termination is verified",
+    "restore:model-state": "Model or adapter state restores",
+    "restore:numpy-rng": "NumPy RNG state restores when required",
+    "restore:optimizer-state": "Optimizer state restores when required",
+    "restore:python-rng": "Python RNG state restores when required",
+    "restore:scheduler-state": "Scheduler state restores when required",
+    "restore:torch-rng": "Torch RNG state restores when required",
+    "rollback:achieved": "Achieved rollback is within the hard limit",
+    "safety:path-containment": "All managed write paths passed containment",
+    "trajectory:checkpoint-evaluation": "Fixed evaluation after restore matches",
+    "trajectory:final-evaluation": "Final evaluation logits match control",
+    "trajectory:final-trainable": "Final trainable parameters match control",
+    "trajectory:loss-history": "Continued loss trajectory matches control"
+  },
+  "gate_checks": [
+    {
+      "actual": "checkpoint-manifest-v1",
+      "category": "Integrity",
+      "check_id": "integrity.manifest_schema",
+      "details": null,
+      "evidence_ids": [
+        "manifest:schema"
+      ],
+      "expected": "checkpoint-manifest-v1",
+      "label": "Manifest schema valid",
+      "status": "pass"
+    },
+    {
+      "actual": "present",
+      "category": "Integrity",
+      "check_id": "integrity.completion_marker",
+      "details": null,
+      "evidence_ids": [
+        "integrity:completion-marker"
+      ],
+      "expected": "COMPLETE present in final checkpoint",
+      "label": "Completion marker present",
+      "status": "pass"
+    },
+    {
+      "actual": "2 payloads validated",
+      "category": "Integrity",
+      "check_id": "integrity.checksums",
+      "details": null,
+      "evidence_ids": [
+        "integrity:sha256"
+      ],
+      "expected": "every manifest payload matches SHA-256 and size",
+      "label": "All payload checksums valid",
+      "status": "pass"
+    },
+    {
+      "actual": "present",
+      "category": "Integrity",
+      "check_id": "integrity.base_present",
+      "details": null,
+      "evidence_ids": [
+        "base:presence"
+      ],
+      "expected": "contained immutable base artifact",
+      "label": "Base artifact present when required",
+      "status": "pass"
+    },
+    {
+      "actual": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+      "category": "Integrity",
+      "check_id": "integrity.base_hash",
+      "details": null,
+      "evidence_ids": [
+        "base:sha256"
+      ],
+      "expected": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+      "label": "Base artifact hash matches",
+      "status": "pass"
+    },
+    {
+      "actual": "manifest=4, event=4, restored=4",
+      "category": "Required training state",
+      "check_id": "state.global_step",
+      "details": null,
+      "evidence_ids": [
+        "manifest:global-step"
+      ],
+      "expected": "0 < step < 8, consistent across restore",
+      "label": "Checkpoint global step is valid",
+      "status": "pass"
+    },
+    {
+      "actual": "serialized=True, digest_match=True",
+      "category": "Required training state",
+      "check_id": "state.model_or_adapter",
+      "details": null,
+      "evidence_ids": [
+        "restore:model-state"
+      ],
+      "expected": "serialized adapter and exact trainable-state digest",
+      "label": "Model or adapter state restores",
+      "status": "pass"
+    },
+    {
+      "actual": "serialized=False, digest_match=False",
+      "category": "Required training state",
+      "check_id": "state.optimizer",
+      "details": null,
+      "evidence_ids": [
+        "restore:optimizer-state"
+      ],
+      "expected": "serialized optimizer with exact digest",
+      "label": "Optimizer state restores when required",
+      "status": "fail"
+    },
+    {
+      "actual": "serialized=False, digest_match=False",
+      "category": "Required training state",
+      "check_id": "state.scheduler",
+      "details": null,
+      "evidence_ids": [
+        "restore:scheduler-state"
+      ],
+      "expected": "serialized scheduler with exact digest",
+      "label": "Scheduler state restores when required",
+      "status": "fail"
+    },
+    {
+      "actual": "serialized=False, digest_match=True",
+      "category": "Required training state",
+      "check_id": "state.python_rng",
+      "details": null,
+      "evidence_ids": [
+        "restore:python-rng"
+      ],
+      "expected": "serialized state with exact digest",
+      "label": "Python RNG state restores when required",
+      "status": "fail"
+    },
+    {
+      "actual": "serialized=False, digest_match=True",
+      "category": "Required training state",
+      "check_id": "state.numpy_rng",
+      "details": null,
+      "evidence_ids": [
+        "restore:numpy-rng"
+      ],
+      "expected": "serialized state with exact digest",
+      "label": "NumPy RNG state restores when required",
+      "status": "fail"
+    },
+    {
+      "actual": "serialized=False, digest_match=False",
+      "category": "Required training state",
+      "check_id": "state.torch_rng",
+      "details": null,
+      "evidence_ids": [
+        "restore:torch-rng"
+      ],
+      "expected": "serialized state with exact digest",
+      "label": "Torch RNG state restores when required",
+      "status": "fail"
+    },
+    {
+      "actual": "first batch at 4, first completion at 5",
+      "category": "Process recovery",
+      "check_id": "process.next_step",
+      "details": null,
+      "evidence_ids": [
+        "process:next-step"
+      ],
+      "expected": "first batch at 4, first completion at 5",
+      "label": "Resumed run continues from the expected next step",
+      "status": "pass"
+    },
+    {
+      "actual": "31412",
+      "category": "Process recovery",
+      "check_id": "process.original_pid",
+      "details": null,
+      "evidence_ids": [
+        "process:original-pid"
+      ],
+      "expected": "31412",
+      "label": "Original worker PID is recorded",
+      "status": "pass"
+    },
+    {
+      "actual": "method=TerminateProcess via subprocess.Popen.kill, exit=1, verified=True",
+      "category": "Process recovery",
+      "check_id": "process.expected_termination",
+      "details": null,
+      "evidence_ids": [
+        "process:termination"
+      ],
+      "expected": "parent termination with nonzero exit code",
+      "label": "Original worker termination is verified",
+      "status": "pass"
+    },
+    {
+      "actual": "16600",
+      "category": "Process recovery",
+      "check_id": "process.new_recovery_pid",
+      "details": null,
+      "evidence_ids": [
+        "process:recovery-pid"
+      ],
+      "expected": "PID different from 31412",
+      "label": "Recovery uses a different PID",
+      "status": "pass"
+    },
+    {
+      "actual": "exit=0, verified=True",
+      "category": "Process recovery",
+      "check_id": "process.recovery_exit",
+      "details": null,
+      "evidence_ids": [
+        "process:recovery-exit"
+      ],
+      "expected": "exit code 0",
+      "label": "Recovery worker exits successfully",
+      "status": "pass"
+    },
+    {
+      "actual": "0 steps",
+      "category": "Safety and rollback",
+      "check_id": "rollback.hard_limit",
+      "details": null,
+      "evidence_ids": [
+        "rollback:achieved"
+      ],
+      "expected": "<= 0 steps",
+      "label": "Achieved rollback is within the hard limit",
+      "status": "pass"
+    },
+    {
+      "actual": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+      "category": "Trajectory correctness",
+      "check_id": "trajectory.checkpoint_evaluation",
+      "details": "Exact SHA-256 comparison; no numerical tolerance is applied.",
+      "evidence_ids": [
+        "trajectory:checkpoint-evaluation"
+      ],
+      "expected": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+      "label": "Fixed evaluation after restore matches",
+      "status": "pass"
+    },
+    {
+      "actual": "d28547e82dc412d58060e8be64deb52191b7b258561be47874694b1c546eca66",
+      "category": "Trajectory correctness",
+      "check_id": "trajectory.final_trainable",
+      "details": "Exact SHA-256 comparison; no numerical tolerance is applied.",
+      "evidence_ids": [
+        "trajectory:final-trainable"
+      ],
+      "expected": "1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997",
+      "label": "Final trainable parameters match control",
+      "status": "fail"
+    },
+    {
+      "actual": "4346a2d77b37076b853d4529981824edd549538f938d4964220899149dd5b4cd",
+      "category": "Trajectory correctness",
+      "check_id": "trajectory.final_evaluation",
+      "details": "Exact SHA-256 comparison; no numerical tolerance is applied.",
+      "evidence_ids": [
+        "trajectory:final-evaluation"
+      ],
+      "expected": "a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a",
+      "label": "Final evaluation logits match control",
+      "status": "fail"
+    },
+    {
+      "actual": "sequence differs",
+      "category": "Trajectory correctness",
+      "check_id": "trajectory.loss_history",
+      "details": "Exact float sequence comparison; no numerical tolerance is applied.",
+      "evidence_ids": [
+        "trajectory:loss-history"
+      ],
+      "expected": "exact loss sequence equality",
+      "label": "Continued loss trajectory matches control",
+      "status": "fail"
+    },
+    {
+      "actual": "contained",
+      "category": "Safety and rollback",
+      "check_id": "safety.path_containment",
+      "details": null,
+      "evidence_ids": [
+        "safety:path-containment"
+      ],
+      "expected": "all paths contained; symlink escapes rejected",
+      "label": "All managed write paths passed containment",
+      "status": "pass"
+    },
+    {
+      "actual": "manifest lacks: numpy_rng, optimizer, python_rng, scheduler, torch_rng",
+      "category": "Safety and rollback",
+      "check_id": "contract.no_mandatory_omission",
+      "details": null,
+      "evidence_ids": [
+        "contract:mandatory-state"
+      ],
+      "expected": "all mandatory continuation state declared",
+      "label": "No mandatory contract requirement was silently omitted",
+      "status": "fail"
+    }
+  ],
+  "integrity_summary": {
+    "checkpoint_load_succeeded": true,
+    "checksums_valid": true,
+    "completion_marker_present": true,
+    "manifest_valid": true
+  },
+  "manifest_summary": {
+    "global_step": 4,
+    "has_base_reference": true,
+    "payload_roles": [
+      "adapter",
+      "state"
+    ],
+    "profile": "ci",
+    "schema_version": "checkpoint-manifest-v1",
+    "serialized_state": [
+      "adapter",
+      "global_step",
+      "config",
+      "base_model_identity"
+    ]
+  },
+  "restore_order": [
+    "validate checkpoint metadata and payload checksums",
+    "validate immutable base identity when referenced",
+    "load declared model state",
+    "resume from the restored global step"
+  ],
+  "save_restore_summary": {
+    "integrity_controls": [
+      "manifest",
+      "SHA-256 checksums",
+      "completion marker",
+      "atomic directory commit",
+      "base artifact SHA-256"
+    ],
+    "restored_global_step": 4,
+    "serialized_state": [
+      "adapter",
+      "global_step",
+      "config",
+      "base_model_identity"
+    ]
+  },
+  "schema_version": "sanitized-failure-v1",
+  "state_differences": {
+    "checkpoint_trainable_match": true,
+    "numpy_rng_match": true,
+    "optimizer_match": false,
+    "python_rng_match": true,
+    "scheduler_match": false,
+    "torch_rng_match": false
+  },
+  "trajectory_summary": {
+    "checkpoint_step": 4,
+    "final_evaluation_match": false,
+    "final_step": 8,
+    "final_trainable_match": false,
+    "loss_history_match": false
+  },
+  "user_objective": {
+    "hard_rollback_limit_steps": 0,
+    "recovery_correctness": "strict"
+  },
+  "workload_capabilities": {
+    "adapter_name": "native-pytorch",
+    "assumptions": [
+      "CPU-only controlled workload",
+      "Only residual-adapter parameters are trainable"
+    ],
+    "batch_position_is_step_derived": true,
+    "framework": "native-pytorch",
+    "has_frozen_base": true,
+    "has_trainable_adapter": true,
+    "optimizer_type": "AdamW",
+    "scheduler_type": "LinearLR",
+    "supported_repair_actions": [
+      "persist_optimizer_state",
+      "persist_scheduler_state",
+      "persist_python_rng_state",
+      "persist_numpy_rng_state",
+      "persist_torch_rng_state",
+      "restore_state_before_next_batch"
+    ],
+    "supported_state": [
+      "model",
+      "adapter",
+      "optimizer",
+      "scheduler",
+      "global_step",
+      "python_rng",
+      "numpy_rng",
+      "torch_rng",
+      "base_model_identity"
+    ],
+    "uses_cuda_rng": false,
+    "uses_dropout": true,
+    "uses_numpy_rng": true,
+    "uses_python_rng": true,
+    "uses_torch_rng": true
+  }
+}

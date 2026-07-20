@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="flashpilot.hf-qualification" tests="13" failures="8" errors="0" skipped="0">
+  <properties>
+    <property name="status" value="FAILED" />
+    <property name="framework" value="huggingface-trainer" />
+    <property name="qualification_profile" value="exact-training-resume" />
+    <property name="rpo_steps" value="0" />
+    <property name="rto_seconds" value="6.75701" />
+  </properties>
+  <testcase classname="flashpilot.huggingface-trainer" name="checkpoint.model">
+    <system-out>Model state is present Expected=present; actual=present.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="checkpoint.trainer-state">
+    <system-out>Trainer state is present Expected=present; actual=present.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="checkpoint.optimizer">
+    <failure message="Optimizer state is present" type="qualification-requirement">Optimizer state is present Expected=present; actual=missing.</failure>
+    <system-out>Optimizer state is present Expected=present; actual=missing.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="checkpoint.scheduler">
+    <failure message="Scheduler state is present" type="qualification-requirement">Scheduler state is present Expected=present; actual=missing.</failure>
+    <system-out>Scheduler state is present Expected=present; actual=missing.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="checkpoint.rng">
+    <failure message="RNG state is present" type="qualification-requirement">RNG state is present Expected=present; actual=missing.</failure>
+    <system-out>RNG state is present Expected=present; actual=missing.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="process.real-termination">
+    <system-out>Checkpoint worker was really terminated Expected=verified nonzero exit; actual=verified=True, exit=1.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="process.distinct-recovery">
+    <system-out>Recovery ran in a new process Expected=distinct PIDs; actual=29604 -&gt; 28232.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="progress.global-step">
+    <system-out>Recovered global step matches control Expected=8; actual=8.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="trajectory.loss-history">
+    <failure message="Loss history exactly matches control" type="qualification-requirement">Loss history exactly matches control Expected=exact control loss history; actual=different.</failure>
+    <system-out>Loss history exactly matches control Expected=exact control loss history; actual=different.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="state.trainable">
+    <failure message="Trainable state digest exactly matches control" type="qualification-requirement">Trainable state digest exactly matches control Expected=834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3; actual=8bd5001c874e89bbb60af70bc002e290c84aeeec0918d5d804f3a4ec151a5dfc.</failure>
+    <system-out>Trainable state digest exactly matches control Expected=834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3; actual=8bd5001c874e89bbb60af70bc002e290c84aeeec0918d5d804f3a4ec151a5dfc.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="state.evaluation">
+    <failure message="Evaluation digest exactly matches control" type="qualification-requirement">Evaluation digest exactly matches control Expected=0e2baf1f2c06964cc38cbfd3b4278dd50423475af83bb435195c815174ec63c9; actual=0349f7a7c042b0ea978bb895f8ea0593a2a1e0b9cb3f7236f6c609b8649ffcee.</failure>
+    <system-out>Evaluation digest exactly matches control Expected=0e2baf1f2c06964cc38cbfd3b4278dd50423475af83bb435195c815174ec63c9; actual=0349f7a7c042b0ea978bb895f8ea0593a2a1e0b9cb3f7236f6c609b8649ffcee.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="state.optimizer">
+    <failure message="Optimizer digest exactly matches control" type="qualification-requirement">Optimizer digest exactly matches control Expected=6973dbbf26f14b71755dfa998029c9895283c450703c9fd4827fc2b351beaa63; actual=b45b313281ecb221ac2e4371fe2adb6ff4018b9782c3a6de3104ba73d77d98fa.</failure>
+    <system-out>Optimizer digest exactly matches control Expected=6973dbbf26f14b71755dfa998029c9895283c450703c9fd4827fc2b351beaa63; actual=b45b313281ecb221ac2e4371fe2adb6ff4018b9782c3a6de3104ba73d77d98fa.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.huggingface-trainer" name="state.scheduler">
+    <failure message="Scheduler digest exactly matches control" type="qualification-requirement">Scheduler digest exactly matches control Expected=7b9e523d685a2faf6a45c0c4ff59aa618d900ddfa1255f1d4cf934a8dd733d41; actual=c0e1339157199be3a4c601c4b001608fbef42875cf7d29d0211554a96ded2826.</failure>
+    <system-out>Scheduler digest exactly matches control Expected=7b9e523d685a2faf6a45c0c4ff59aa618d900ddfa1255f1d4cf934a8dd733d41; actual=c0e1339157199be3a4c601c4b001608fbef42875cf7d29d0211554a96ded2826.</system-out>
+  </testcase>
+</testsuite>

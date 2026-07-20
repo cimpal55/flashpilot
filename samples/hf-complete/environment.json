@@ -1,0 +1,48 @@
+{
+  "code_commit": "97267a3515c9b9add31a63487149d5757a758f0d",
+  "cpu_only": true,
+  "dependencies": [
+    {
+      "name": "accelerate",
+      "version": "1.14.0"
+    },
+    {
+      "name": "flashpilot",
+      "version": "0.1.0"
+    },
+    {
+      "name": "numpy",
+      "version": "2.5.1"
+    },
+    {
+      "name": "openai",
+      "version": "2.46.0"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.13.4"
+    },
+    {
+      "name": "rich",
+      "version": "14.3.4"
+    },
+    {
+      "name": "torch",
+      "version": "2.13.0+cpu"
+    },
+    {
+      "name": "transformers",
+      "version": "5.14.1"
+    },
+    {
+      "name": "typer",
+      "version": "0.27.0"
+    }
+  ],
+  "deterministic_algorithms": false,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python_version": "3.12.13",
+  "schema_version": "flashpilot-dependency-environment-v1",
+  "source_tree_state": "dirty",
+  "torch_threads": 6
+}

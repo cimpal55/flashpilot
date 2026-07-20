@@ -1,0 +1,46 @@
+{
+  "after_restore": {
+    "evaluation_sha256": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+    "global_step": 4,
+    "loss_history": [
+      3.5371975898742676,
+      3.434457540512085,
+      3.5977065563201904,
+      3.560746669769287
+    ],
+    "optimizer_sha256": "3fd0f50e0b483fd549520296f88ec6164c60dd8e753da543bff7ba535d9e6de3",
+    "scheduler_sha256": "78a0339e12abed3272bbbaab1f3ae6759b55eaf3f3ee807f998c5cc92113cfa8",
+    "trainable_state_sha256": "43ba75808906932a005b0d3e186b5786ab64a25fdce5542655d2d0951fc6eeb5"
+  },
+  "after_restore_rng": {
+    "numpy_sha256": "adc7e545ec0530eae9f1da725e83f48b146bd4ec79f98451367ca3d18e994db5",
+    "python_sha256": "dd8aec1ccf3053de61ed6a459e2668c385b7996eaedd947444006209995a7063",
+    "torch_sha256": "56a59ee4154c876386d9afa96a2427f79a736e98887cc6077a6409d0affee290"
+  },
+  "checkpoint_path": "checkpoints/missing-training-state/checkpoint-step-000004",
+  "completed_at": "2026-07-20T01:29:04.669645Z",
+  "final": {
+    "evaluation_sha256": "4346a2d77b37076b853d4529981824edd549538f938d4964220899149dd5b4cd",
+    "global_step": 8,
+    "loss_history": [
+      3.5371975898742676,
+      3.434457540512085,
+      3.5977065563201904,
+      3.560746669769287,
+      3.5904791355133057,
+      3.6091108322143555,
+      3.5213661193847656,
+      3.8659350872039795
+    ],
+    "optimizer_sha256": "e803114b5056070d75a3f02f6a1cd987f62b0d84fcb53350bb43e84757f29efa",
+    "scheduler_sha256": "caa817fb3191ab1456ade00320565fb3dfb7e7e648a1207f3f22f04893dec770",
+    "trainable_state_sha256": "d28547e82dc412d58060e8be64deb52191b7b258561be47874694b1c546eca66"
+  },
+  "first_completed_step": 5,
+  "first_resumed_batch_step": 4,
+  "restored_global_step": 4,
+  "schema_version": "recovery-worker-result-v1",
+  "started_at": "2026-07-20T01:29:03.186671Z",
+  "strategy": "missing_training_state",
+  "worker_pid": 16600
+}
