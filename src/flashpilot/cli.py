@@ -72,12 +72,21 @@ from flashpilot.presentation.console import (
     render_demo_start,
     render_doctor_result,
 )
+from flashpilot.registry import (
+    AttestationRegistryError,
+    history_json,
+    initialize_attestation_registry,
+    register_recovery_attestation,
+    verify_attestation_registry,
+)
 from flashpilot.verification.console import render_recovery_gate
 from flashpilot.workload.control import run_control
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 qualify_app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
+attestation_registry_app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 app.add_typer(qualify_app, name="qualify")
+app.add_typer(attestation_registry_app, name="attestation-registry")
 
 _CAPTURED_FAILURE_REQUEST = Path("runs/manual-prompt3-incomplete/agent/request.redacted.json")
 _LIVE_CONTRACT_OBJECTIVE = (
@@ -1298,6 +1307,92 @@ def verify_attestation(
         typer.echo(f"Signature artifact SHA-256: {verification.signature_artifact_sha256}")
     else:
         typer.echo("Unsigned integrity verification passed; no publisher signature was checked.")
+
+
+@attestation_registry_app.command("init")
+def initialize_registry(
+    registry_root: Annotated[
+        Path,
+        typer.Argument(help="New local append-only attestation-registry directory."),
+    ],
+) -> None:
+    """Initialize an optional local registry without overwriting an existing path."""
+
+    try:
+        initialize_attestation_registry(registry_root)
+    except (AttestationRegistryError, OSError, ValueError) as error:
+        typer.echo(f"REGISTRY REFUSED: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo("ATTESTATION REGISTRY INITIALIZED")
+    typer.echo(f"Registry: {registry_root.resolve()}")
+
+
+@attestation_registry_app.command("add")
+def add_registry_attestation(
+    file: Annotated[
+        Path,
+        typer.Argument(help="Path to a signed recovery.attestation.json bundle."),
+    ],
+    registry_root: Annotated[
+        Path,
+        typer.Option(help="Initialized local attestation-registry directory."),
+    ],
+    public_key: Annotated[
+        Path,
+        typer.Option(help="Explicitly trusted SubjectPublicKeyInfo PEM Ed25519 key."),
+    ],
+) -> None:
+    """Append one fully verified signed attestation to the local history."""
+
+    try:
+        entry = register_recovery_attestation(
+            registry_root=registry_root,
+            attestation_path=file,
+            public_key_path=public_key,
+        )
+    except (AttestationRegistryError, OSError, UnicodeError, ValueError) as error:
+        typer.echo(f"REGISTRY ADMISSION REFUSED: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo("REGISTERED")
+    typer.echo(f"Sequence: {entry.sequence}")
+    typer.echo(f"Attestation SHA-256: {entry.attestation_sha256}")
+    typer.echo(f"Trusted public key SHA-256: {entry.signing_key_sha256}")
+
+
+@attestation_registry_app.command("verify")
+def verify_registry(
+    registry_root: Annotated[
+        Path,
+        typer.Argument(help="Local attestation-registry directory."),
+    ],
+) -> None:
+    """Verify the complete local history, signatures, inventory, and hash chain."""
+
+    try:
+        history = verify_attestation_registry(registry_root)
+    except (AttestationRegistryError, OSError, UnicodeError, ValueError) as error:
+        typer.echo(f"INVALID OR TAMPERED REGISTRY: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo("REGISTRY VERIFIED")
+    typer.echo(f"Entries: {history.entry_count}")
+    typer.echo(f"Head entry SHA-256: {history.head_entry_sha256 or 'none'}")
+
+
+@attestation_registry_app.command("history")
+def show_registry_history(
+    registry_root: Annotated[
+        Path,
+        typer.Argument(help="Local attestation-registry directory."),
+    ],
+) -> None:
+    """Print deterministic JSON only after the complete registry verifies."""
+
+    try:
+        history = verify_attestation_registry(registry_root)
+    except (AttestationRegistryError, OSError, UnicodeError, ValueError) as error:
+        typer.echo(f"INVALID OR TAMPERED REGISTRY: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(history_json(history), nl=False)
 
 
 @app.command("emit-junit")

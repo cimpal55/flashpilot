@@ -1,0 +1,31 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "admission": {
+      "const": "verified-signed-recovery-attestation",
+      "default": "verified-signed-recovery-attestation",
+      "title": "Admission",
+      "type": "string"
+    },
+    "history": {
+      "const": "append-only-hash-chain",
+      "default": "append-only-hash-chain",
+      "title": "History",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-attestation-registry-v1",
+      "default": "flashpilot-attestation-registry-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "storage": {
+      "const": "local-directory",
+      "default": "local-directory",
+      "title": "Storage",
+      "type": "string"
+    }
+  },
+  "title": "AttestationRegistryMetadataV1",
+  "type": "object"
+}

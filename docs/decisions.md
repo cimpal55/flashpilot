@@ -1025,3 +1025,50 @@ the official keyless provenance protocol. FlashPilot does not add its own
 registry, history API, remote lookup, retention policy, organization policy,
 key rotation, KMS/HSM custody, or new recovery verdict. The optional
 attestation registry/history remains the separate next roadmap item.
+
+## D-063: keep attestation history local, explicit, signed, and append-only
+
+The seventh V1.0 production-infrastructure item is a bounded local directory,
+not the commercial hosted registry contemplated by the long-term plan. It is
+created only by `flashpilot attestation-registry init` and changed only by an
+explicit `add` call. Qualification, policy enforcement, GitHub OIDC, and normal
+attestation verification do not discover or publish to it automatically.
+
+Admission requires the complete source recovery-attestation bundle to pass the
+existing verifier twice with `require_signed=True` and a caller-supplied trusted
+Ed25519 public key. The first pass establishes the deterministic recovery and
+publisher-signature evidence before any registry write. Exact attestation,
+signature, and key bytes are captured, checked against the verification
+result, copied durably, and compared with a second source verification before
+commit. The registry therefore cannot admit an unsigned, UNKNOWN, failed,
+malformed, or tampered recovery statement by interpreting it more leniently.
+
+An entry stores only those three public artifacts. Its strict manifest records
+their byte sizes and SHA-256 values, immutable attestation identity fields,
+the exact successful verification check IDs, a monotonic sequence, and the
+previous entry-manifest hash. `COMPLETE` binds the sequence and manifest hash;
+the final directory name binds the same hash. A same-filesystem rename commits
+the fully fsynced temporary directory atomically. A strict `HEAD` file records
+the expected count and newest manifest hash and is atomically replaced only
+after the entry rename, so newest-suffix truncation and interrupted entry/head
+updates fail closed. Windows directory fsync remains best-effort, as elsewhere
+in FlashPilot.
+
+The registry has a fixed root inventory, fixed entry inventory, 10,000-entry
+bound, strict contiguous sequence, exclusive create-only writer lock, no stale
+lock recovery, and full-history validation before read, append, or JSON output.
+Duplicate attestation hashes are rejected rather than creating misleading
+history events. Unknown files, symbolic links, temporary directories, gaps,
+reordering, retained locks, altered checksums, malformed metadata, invalid
+signatures, or chain changes all fail closed.
+
+This history is tamper-evident under the operator's local trust boundary, not
+an independently anchored transparency log. Because it intentionally omits the
+large source checkpoint and evidence bundle, a later registry verification
+rechecks the exact stored Ed25519 signature and chain but does not rerun the
+source Recovery Gate. An attacker able to replace the entire registry root can
+construct a new root; filesystem custody, backup, and distribution remain
+operator responsibilities. Remote lookup/publication, services, databases,
+deletion, pruning, retention automation, revocation, key rotation,
+organization policy, policy inheritance, OIDC import, and new recovery verdicts
+remain out of scope. Organization-level policy is the separate next milestone.

@@ -1,0 +1,35 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "entry_count": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Entry Count",
+      "type": "integer"
+    },
+    "head_entry_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Head Entry Sha256"
+    },
+    "schema_version": {
+      "const": "flashpilot-attestation-registry-head-v1",
+      "default": "flashpilot-attestation-registry-head-v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "entry_count"
+  ],
+  "title": "AttestationRegistryHeadV1",
+  "type": "object"
+}

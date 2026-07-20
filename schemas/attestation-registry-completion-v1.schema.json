@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "entry_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Entry Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-attestation-registry-completion-v1",
+      "default": "flashpilot-attestation-registry-completion-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "sequence",
+    "entry_sha256"
+  ],
+  "title": "AttestationRegistryCompletionV1",
+  "type": "object"
+}

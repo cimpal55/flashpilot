@@ -70,6 +70,22 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
 
     assert "schemas/ci-policy-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert "schemas/attestation-signature-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    assert "schemas/attestation-registry-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    assert (
+        "schemas/attestation-registry-entry-v1.schema.json"
+        in data_files["share/flashpilot/schemas"]
+    )
+    assert (
+        "schemas/attestation-registry-head-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    )
+    assert (
+        "schemas/attestation-registry-history-v1.schema.json"
+        in data_files["share/flashpilot/schemas"]
+    )
+    assert (
+        "schemas/attestation-registry-completion-v1.schema.json"
+        in data_files["share/flashpilot/schemas"]
+    )
     assert "schemas/qualification-policy-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert (
         "schemas/qualification-policy-evaluation-v1.schema.json"

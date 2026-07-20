@@ -615,6 +615,44 @@ identity constraint. GitHub provenance authenticates who produced the fixed
 policy-evaluation artifact; it cannot create or upgrade a FlashPilot recovery
 verdict.
 
+## Optional local attestation history
+
+V1.0 can preserve verified signed recovery statements in an explicitly chosen
+local append-only registry. Registration first verifies the complete source
+bundle with the existing deterministic verifier and an explicitly trusted
+Ed25519 public key. It then copies only the exact attestation, detached
+signature, and public key into a content-addressed entry:
+
+```powershell
+flashpilot attestation-registry init .\runs\attestation-registry
+
+flashpilot attestation-registry add `
+  .\runs\ci-hf\recovery.attestation.json `
+  --registry-root .\runs\attestation-registry `
+  --public-key .\runs\qualification-signing-key\ed25519-public.pem
+
+flashpilot attestation-registry verify .\runs\attestation-registry
+flashpilot attestation-registry history .\runs\attestation-registry
+```
+
+Each entry has a strict manifest, fixed three-file artifact inventory,
+completion marker, sequential predecessor hash, and directory name bound to
+the exact manifest SHA-256. A strict atomically replaced `HEAD` binds the
+expected count and newest entry, including suffix-deletion detection. Files and
+metadata are fsynced before atomic same-filesystem replacement; directory fsync
+remains explicitly best-effort on Windows. Reads validate the complete bounded
+history and every stored signature before returning JSON. Duplicate attestations, gaps,
+unexpected files, symbolic links, interrupted temporary entries, retained
+writer locks, hash changes, or malformed statements fail closed.
+
+This is an optional single-host evidence archive, not a remote publication
+service or a second recovery oracle. Stored entries preserve the exact signed
+statement but not the source checkpoint/evidence bundle, so later history
+verification proves signature and chain integrity, not a fresh Recovery Gate
+run. Trust in the registry root and admission key remains an operator concern;
+there is no deletion, pruning, revocation, key rotation, organization policy,
+network API, database, or hosted registry.
+
 ## Security model
 
 FlashPilot accepts no arbitrary commands or source patches. Managed writes are
@@ -640,6 +678,15 @@ quality-job default remains `contents: read`. The saved bundle and local
 verification result contain no private key or repository secret. This
 provenance layer is downstream of deterministic policy and Recovery Gate
 results and cannot change them.
+
+The optional local registry is disabled unless its commands are invoked. It
+uses one exclusive writer lock, caps history at 10,000 entries, binds the
+newest committed entry through `HEAD`, refuses stale locks rather than guessing
+whether they are safe to remove, and never reads a private key. Registry entry
+and head commits are atomic on one filesystem. A process death can leave an
+entry/head mismatch, temporary file/directory, or lock; any such condition
+intentionally blocks subsequent reads and writes until an operator inspects the
+local path.
 
 ## Prior art and positioning
 
@@ -674,9 +721,10 @@ distributed training, CUDA, NeMo, TensorFlow, or JAX. Fixture replay is tied to 
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add elastic membership, multi-node/CUDA fault scenarios, an
-optional attestation registry/history, and broader platform validation. Those
-later roadmap items are not implied by the bounded typed production matrix.
+Future work may add elastic membership, multi-node/CUDA fault scenarios,
+organization-level qualification policy, and broader platform validation.
+Those later roadmap items are not implied by the bounded typed production
+matrix or the local attestation history.
 
 ## Repository and license
 

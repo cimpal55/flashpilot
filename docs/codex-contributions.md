@@ -819,3 +819,38 @@ key cleanup, and both artifact uploads. The public GitHub attestation view for
 ID 36247182 confirmed the SLSA predicate, exact workflow, PR merge ref, source
 and signer digest, GitHub OIDC issuer, hosted runner, and the final policy-
 evaluation subject digest.
+
+## V1.0 item 7 - optional local attestation registry and history
+
+Codex implemented only the seventh V1.0 production-infrastructure item:
+
+- added an explicitly initialized local registry with strict metadata, entry,
+  completion, and validated-history schemas;
+- required each admission source to pass the unchanged complete
+  recovery-attestation verifier twice with a caller-supplied trusted Ed25519
+  key and `require_signed=True`;
+- preserved exact attestation, detached-signature, and public-key bytes without
+  copying private keys or mutating source runs;
+- bound a fixed artifact inventory, immutable statement summary, successful
+  verification check IDs, monotonic sequence, and predecessor manifest hash
+  into each content-addressed entry;
+- added an atomically replaced strict head record so the expected count and
+  newest entry hash detect suffix truncation and interrupted head updates;
+- used file fsync, atomic same-filesystem directory rename, explicit Windows
+  directory-fsync limitations, and an exclusive create-only writer lock;
+- made every read and append validate the bounded complete history, strict
+  inventories, completion markers, hashes, signatures, sequences, and chain;
+- rejected duplicates, symbolic links, unknown files, interrupted temporary
+  entries, retained locks, malformed metadata, and all byte or chain mutations;
+- exposed only `init`, `add`, `verify`, and deterministic JSON `history`
+  commands under `flashpilot attestation-registry`;
+- added five checked portable JSON Schemas, package coverage, synthetic two-entry
+  chain tests, and real deterministic signed-bundle admission coverage.
+
+Codex did not add a hosted service, remote publication or lookup, database,
+repository scanner, deletion, pruning, retention automation, revocation, key
+rotation, OIDC import, transparency-log claim, organization-level policy,
+framework behavior, GPT work, repair behavior, or Recovery Gate change. The
+compact registry does not copy source checkpoints and therefore re-verifies
+stored signature/chain integrity rather than claiming a fresh recovery verdict.
+Organization policy and all later roadmap items were not started.

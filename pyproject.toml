@@ -74,6 +74,11 @@ where = ["src"]
 ]
 "share/flashpilot/schemas" = [
     "schemas/attestation-signature-v1.schema.json",
+    "schemas/attestation-registry-completion-v1.schema.json",
+    "schemas/attestation-registry-entry-v1.schema.json",
+    "schemas/attestation-registry-head-v1.schema.json",
+    "schemas/attestation-registry-history-v1.schema.json",
+    "schemas/attestation-registry-v1.schema.json",
     "schemas/ci-policy-v1.schema.json",
     "schemas/conversion-artifact-v1.schema.json",
     "schemas/conversion-case-v1.schema.json",
