@@ -259,6 +259,8 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
         "flashpilot qualify hf-trainer",
         "flashpilot qualify distributed-pytorch",
         "--strategy fsdp",
+        "flashpilot qualify deepspeed",
+        "--zero-stage 2",
         "--backend gloo",
         "--world-size 2",
         "flashpilot certify-preemption",

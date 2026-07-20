@@ -648,3 +648,30 @@ GitHub Actions run 29758530327 subsequently passed both Python quality jobs
 and the complete Ubuntu qualification job. The hosted FSDP command passed all
 24 checks with six distinct processes, successful POSIX directory fsync, and a
 verified-only unsigned attestation.
+
+## V1.0 item 2 - DeepSpeed support
+
+Codex implemented only the second V1.0 item:
+
+- added `qualify deepspeed` with one explicit Linux/CPU/Gloo/world-size-2/
+  ZeRO-stage-2/DeepSpeed-0.19.x contract;
+- ran real two-rank control, collective checkpoint, and recovery phases in six
+  distinct processes with the included stochastic workload;
+- wrapped DeepSpeed's model/scheduler file and exact two ZeRO optimizer shards
+  in FlashPilot containment, fsync, checksum, manifest, completion, closed
+  inventory, and atomic directory-commit controls;
+- stored exact rank-local Python/NumPy/Torch RNG, progress, scheduler reference,
+  and trajectory state, plus strict namespaced DeepSpeed client identity;
+- required DeepSpeed itself to restore engine progress, optimizer, and
+  scheduler before exact continuation through a 30-check Recovery Gate;
+- extended typed Persistence Contract, CI/SARIF evidence, checked schemas,
+  reports, package data, active/example workflows, and verified-only unsigned
+  attestation support;
+- added fail-closed model, identity, CLI, layout, tamper, schema, package, CI,
+  and real Linux integration coverage.
+
+Codex did not begin multi-rank failure injection, elastic or universal
+recovery, ZeRO stages 1/3, CUDA/NCCL, signing, OIDC, registry publication,
+organization policy, GPT work, or additional adapters. Windows returns the
+unsupported exit before worker launch. Verified bytes are reported only after
+the DeepSpeed Gate passes.

@@ -28,6 +28,7 @@ from flashpilot.checkpoints.loader import CheckpointValidationError, validate_ch
 from flashpilot.contracts import (
     PersistenceContract,
     QualificationProfile,
+    deepspeed_zero2_persistence_contract,
     distributed_fsdp_persistence_contract,
     huggingface_trainer_persistence_contract,
     native_minimum_persistence_contract,
@@ -35,6 +36,12 @@ from flashpilot.contracts import (
     pytorch_lightning_persistence_contract,
     validate_persistence_contract,
 )
+from flashpilot.deepspeed.checkpoint import (
+    DeepSpeedCheckpointError,
+    validate_deepspeed_checkpoint,
+)
+from flashpilot.deepspeed.models import DeepSpeedQualificationResult
+from flashpilot.deepspeed.reporting import render_deepspeed_html, render_deepspeed_markdown
 from flashpilot.distributed.checkpoint import (
     DistributedCheckpointError,
     validate_distributed_checkpoint,
@@ -667,6 +674,164 @@ def _verify_distributed_result(
     )
 
 
+def _verify_deepspeed_result(
+    *,
+    sandbox: PathSandbox,
+    attestation: RecoveryAttestationV1,
+    resolved_attestation: Path,
+    checks: list[AttestationVerificationCheck],
+) -> AttestationVerificationResult:
+    try:
+        result_path = sandbox.resolve_relative(attestation.result_path, must_exist=True)
+    except PathContainmentError as error:
+        raise AttestationVerificationError("DeepSpeed result path is missing or unsafe") from error
+    result = _read_model(result_path, DeepSpeedQualificationResult)
+    if result.final_verdict != "VERIFIED" or not result.gate.passed:
+        raise AttestationVerificationError("DeepSpeed result lacks a passing exact Gate")
+    original_pids = tuple(item.worker_pid for item in result.checkpoint_processes.ranks)
+    recovery_pids = tuple(item.worker_pid for item in result.recovery_processes.ranks)
+    comparisons = (
+        (result.run_id, attestation.run_id, "DeepSpeed run ID mismatch"),
+        (result.created_at, attestation.issued_at, "DeepSpeed timestamp mismatch"),
+        (result.strategy, attestation.distributed_strategy, "DeepSpeed strategy mismatch"),
+        (
+            result.implementation,
+            attestation.distributed_implementation,
+            "DeepSpeed implementation mismatch",
+        ),
+        (result.zero_stage, attestation.distributed_zero_stage, "DeepSpeed ZeRO stage mismatch"),
+        (result.backend, attestation.distributed_backend, "DeepSpeed backend mismatch"),
+        (result.world_size, attestation.distributed_world_size, "DeepSpeed world size mismatch"),
+        (original_pids, attestation.original_worker_pids, "DeepSpeed checkpoint PID set mismatch"),
+        (recovery_pids, attestation.recovery_worker_pids, "DeepSpeed recovery PID set mismatch"),
+        (original_pids[0], attestation.original_worker_pid, "DeepSpeed rank-zero PID mismatch"),
+        (recovery_pids[0], attestation.recovery_worker_pid, "DeepSpeed recovery PID mismatch"),
+        (
+            result.control[0].trainable_state_sha256,
+            attestation.control_digest,
+            "DeepSpeed control digest mismatch",
+        ),
+        (
+            result.recovery[0].trainable_state_sha256,
+            attestation.resumed_digest,
+            "DeepSpeed recovery digest mismatch",
+        ),
+        (
+            result.control[0].evaluation_sha256,
+            attestation.control_evaluation_digest,
+            "DeepSpeed control evaluation mismatch",
+        ),
+        (
+            result.recovery[0].evaluation_sha256,
+            attestation.resumed_evaluation_digest,
+            "DeepSpeed recovery evaluation mismatch",
+        ),
+        (len(result.gate.checks), attestation.checks_total, "DeepSpeed Gate total mismatch"),
+        (
+            sum(check.status == "pass" for check in result.gate.checks),
+            attestation.checks_passed,
+            "DeepSpeed Gate passed count mismatch",
+        ),
+        (result.gate.atol, attestation.atol, "DeepSpeed atol mismatch"),
+        (result.gate.rtol, attestation.rtol, "DeepSpeed rtol mismatch"),
+        (result.gate.achieved_rpo_steps, attestation.rpo_steps, "DeepSpeed RPO mismatch"),
+        (result.gate.max_rpo_steps, attestation.max_rpo_steps, "DeepSpeed max RPO mismatch"),
+        (result.recovery_rto_seconds, attestation.rto_seconds, "DeepSpeed RTO mismatch"),
+        (
+            result.verified_persisted_bytes,
+            attestation.verified_persisted_bytes,
+            "DeepSpeed verified bytes mismatch",
+        ),
+    )
+    for actual, expected, message in comparisons:
+        _require_equal(actual, expected, message)
+    checks.append(
+        _passed(
+            "consistency.result",
+            "DeepSpeed result, topology, exact Gate, process groups, and trajectory agree.",
+        )
+    )
+
+    try:
+        report_path = sandbox.resolve_relative(attestation.report_path, must_exist=True)
+        html_path = sandbox.resolve_relative(attestation.html_report_path, must_exist=True)
+        markdown = report_path.read_text(encoding="utf-8")
+        html = html_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError, PathContainmentError) as error:
+        raise AttestationVerificationError(
+            "DeepSpeed report paths are unsafe or unreadable"
+        ) from error
+    _require_equal(
+        markdown,
+        render_deepspeed_markdown(result),
+        "DeepSpeed Markdown report/result mismatch",
+    )
+    _require_equal(
+        html,
+        render_deepspeed_html(result),
+        "DeepSpeed HTML report/result mismatch",
+    )
+    checks.append(_passed("consistency.reports", "DeepSpeed reports derive from result."))
+
+    try:
+        checkpoint_path = sandbox.resolve_relative(attestation.checkpoint_path, must_exist=True)
+        validated = validate_deepspeed_checkpoint(
+            run_root=sandbox.root,
+            checkpoint_path=checkpoint_path,
+        )
+        checkpoint = directory_content_fingerprint(checkpoint_path)
+    except (
+        DeepSpeedCheckpointError,
+        OSError,
+        ValueError,
+        PathContainmentError,
+    ) as error:
+        raise AttestationVerificationError(
+            "DeepSpeed checkpoint is missing, unsafe, or invalid"
+        ) from error
+    for actual, expected, message in (
+        (
+            attestation.checkpoint_path,
+            result.checkpoint_event.checkpoint_path,
+            "DeepSpeed checkpoint path differs from result",
+        ),
+        (
+            validated.manifest,
+            result.checkpoint_manifest,
+            "DeepSpeed checkpoint manifest differs from result",
+        ),
+        (
+            validated.inventory,
+            result.checkpoint_inventory,
+            "DeepSpeed checkpoint inventory differs from result",
+        ),
+        (checkpoint.sha256, attestation.checkpoint_sha256, "DeepSpeed hash mismatch"),
+        (
+            checkpoint.file_count,
+            attestation.checkpoint_file_count,
+            "DeepSpeed file-count mismatch",
+        ),
+        (
+            checkpoint.logical_bytes,
+            attestation.checkpoint_logical_bytes,
+            "DeepSpeed logical-byte mismatch",
+        ),
+        (
+            checkpoint.logical_bytes,
+            attestation.verified_persisted_bytes,
+            "DeepSpeed verified-byte mismatch",
+        ),
+    ):
+        _require_equal(actual, expected, message)
+    checks.append(
+        _passed("integrity.checkpoint", "DeepSpeed checkpoint hash and closed state agree.")
+    )
+    return AttestationVerificationResult(
+        attestation_sha256=sha256_file(resolved_attestation),
+        checks=tuple(checks),
+    )
+
+
 def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificationResult:
     """Verify schema, closed evidence inventory, hashes, and result consistency."""
 
@@ -741,6 +906,7 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
         "lightning": "lightning",
         "native-pytorch": "torch",
         "pytorch-distributed": "torch",
+        "deepspeed": "deepspeed",
     }[attestation.framework]
     framework_version = next(
         (item.version for item in environment.dependencies if item.name == framework_dependency),
@@ -793,6 +959,8 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
         if attestation.framework == "lightning"
         else distributed_fsdp_persistence_contract()
         if attestation.framework == "pytorch-distributed"
+        else deepspeed_zero2_persistence_contract()
+        if attestation.framework == "deepspeed"
         else native_minimum_persistence_contract(
             attestation.qualification_profile,
             max_rpo_steps=attestation.max_rpo_steps,
@@ -831,6 +999,13 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
         )
     if attestation.framework == "pytorch-distributed":
         return _verify_distributed_result(
+            sandbox=sandbox,
+            attestation=attestation,
+            resolved_attestation=resolved_attestation,
+            checks=checks,
+        )
+    if attestation.framework == "deepspeed":
+        return _verify_deepspeed_result(
             sandbox=sandbox,
             attestation=attestation,
             resolved_attestation=resolved_attestation,

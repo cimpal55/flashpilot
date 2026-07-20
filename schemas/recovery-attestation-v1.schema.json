@@ -7,7 +7,8 @@
         "native-pytorch",
         "huggingface-trainer",
         "pytorch-lightning",
-        "pytorch-fsdp"
+        "pytorch-fsdp",
+        "deepspeed-engine"
       ],
       "title": "Adapter",
       "type": "string"
@@ -102,7 +103,10 @@
     "distributed_implementation": {
       "anyOf": [
         {
-          "const": "fully_shard",
+          "enum": [
+            "fully_shard",
+            "zero-stage-2"
+          ],
           "type": "string"
         },
         {
@@ -115,7 +119,10 @@
     "distributed_strategy": {
       "anyOf": [
         {
-          "const": "fsdp",
+          "enum": [
+            "fsdp",
+            "zero"
+          ],
           "type": "string"
         },
         {
@@ -137,6 +144,19 @@
       ],
       "default": null,
       "title": "Distributed World Size"
+    },
+    "distributed_zero_stage": {
+      "anyOf": [
+        {
+          "const": 2,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed Zero Stage"
     },
     "evidence_manifest_path": {
       "const": "evidence-manifest.json",
@@ -166,7 +186,8 @@
         "native-pytorch",
         "transformers",
         "lightning",
-        "pytorch-distributed"
+        "pytorch-distributed",
+        "deepspeed"
       ],
       "title": "Framework",
       "type": "string"

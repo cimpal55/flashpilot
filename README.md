@@ -284,9 +284,39 @@ collective probe to match the uninterrupted control exactly.
 This qualification is CPU-only, Gloo-only, fixed at world size 2, and restores
 at the same world size. It proves a clean checkpoint restart for the included
 workload; it does not inject a multi-rank failure, test elastic resharding,
-qualify CUDA/NCCL or network filesystems, or support DeepSpeed. Verified bytes
-and the unsigned attestation are emitted only after the deterministic Gate
-passes.
+or qualify CUDA/NCCL or network filesystems. Verified bytes and the unsigned
+attestation are emitted only after the deterministic Gate passes.
+
+## V1.0 two-rank DeepSpeed ZeRO-2 restart qualification
+
+On Linux, install the explicit optional dependency and run the fixed CPU/Gloo
+contract:
+
+```bash
+python -m pip install -e ".[deepspeed]"
+flashpilot qualify deepspeed \
+  --zero-stage 2 \
+  --backend gloo \
+  --world-size 2 \
+  --profile exact-training-resume \
+  --run-dir runs/deepspeed-zero2
+```
+
+The harness runs two-rank control, checkpoint, and recovery groups in six
+distinct processes. Both checkpoint ranks call DeepSpeed's real collective
+`save_checkpoint`; the committed checkpoint requires one model/scheduler
+state, exact rank 0 and 1 ZeRO optimizer shards, strict per-rank RNG/progress/
+trajectory state, a tag bound to the global step, SHA-256 checksums, a
+completion marker, and an atomic same-filesystem directory rename. Recovery
+uses `load_checkpoint` in two new processes and must pass all 30 exact Gate
+checks before bytes or an unsigned attestation are reported.
+
+The qualified claim is intentionally limited to DeepSpeed 0.19.x, ZeRO stage
+2, CPU, Gloo, world size 2, same-world-size clean restart, and the included
+offline workload. Windows fails closed before workers start because the
+supported qualification runtime is Linux. Multi-rank failure injection,
+elastic or universal checkpoints, ZeRO stages 1/3, CUDA/NCCL, downloaded
+models or datasets, and network filesystems are outside this item.
 
 ## What the demo proves
 
@@ -464,8 +494,9 @@ is the active pull-request and manual hosted workflow, sourced from
 [examples/github-actions/flashpilot-qualification.yml](examples/github-actions/flashpilot-qualification.yml).
 It publishes diagnostics on failure and uploads `recovery.attestation.json`
 only after qualification and typed policy both succeed. Its quality matrix runs
-Python 3.11 and 3.12; the development extra now installs Lightning so the full
-suite exercises the optional adapter on both interpreters.
+Python 3.11 and 3.12; on Linux, the development extra installs Lightning and
+DeepSpeed so the full suite exercises both optional qualification paths on
+both interpreters.
 
 ## Security model
 
@@ -499,19 +530,20 @@ execute repair code and did not declare recovery successful.
 ## Limitations and roadmap
 
 The locally verified scope is the controlled CPU-only native workload plus the
-included local Hugging Face Trainer and PyTorch Lightning examples on Windows
-11 with Python 3.12.13. Python 3.11 compatibility is targeted but not locally
-verified. Managed-preemption certification requires POSIX `SIGTERM` and cannot
-be certified by this Windows host.
+included local Hugging Face Trainer, PyTorch Lightning, and FSDP examples on
+Windows 11 with Python 3.12.13. DeepSpeed and managed-preemption qualification
+require a Linux/POSIX host and cannot be certified by this Windows host.
+Python 3.11 compatibility is targeted but not locally verified.
 Windows directory fsync is
 unavailable through Python and is best-effort. The project does not qualify
-arbitrary repositories, Trainer scripts, or LightningModules, distributed training, CUDA,
-DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay is tied to the captured
+arbitrary repositories, Trainer scripts, or LightningModules, arbitrary
+distributed training, CUDA, NeMo, TensorFlow, or JAX. Fixture replay is tied to the captured
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add distributed scenarios and broader platform validation.
-Those later roadmap items are not part of the narrow V0.4 preemption path.
+Future work may add multi-rank failure scenarios and broader platform
+validation. Those later roadmap items are not part of the narrow DeepSpeed
+clean-restart path.
 
 ## Repository and license
 

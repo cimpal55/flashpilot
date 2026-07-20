@@ -591,3 +591,44 @@ The qualified surface is intentionally fixed to CPU, Gloo, FSDP2, world size
 2, same-world-size restart, and the included workload. Multi-rank failure
 injection, elastic resharding, CUDA/NCCL, DeepSpeed, and network filesystems are
 separate work.
+
+## V1.0 item 2: bounded DeepSpeed ZeRO-2 qualification
+
+`qualify deepspeed` owns the same six-process lifecycle but uses a distinct,
+strict DeepSpeed evidence model. The only supported topology is Linux, CPU,
+Gloo, world size 2, ZeRO stage 2, DeepSpeed 0.19.x, same-world-size restart,
+and the included deterministic workload. Unsupported operating systems,
+versions, stages, backends, world sizes, or profiles fail before worker launch.
+
+```text
+two-rank uninterrupted control
+-> two new ranks train to the fixed checkpoint step
+-> both ranks call DeepSpeedEngine.save_checkpoint with one exact tag
+-> rank 0 fsyncs and hashes the closed payload set
+-> rank 0 writes checksums + manifest + COMPLETE
+-> atomic same-filesystem directory rename
+-> parent validates without deserializing .pt payloads
+-> two new ranks call DeepSpeedEngine.load_checkpoint
+-> strict namespaced client state and per-rank RNG state restored
+-> continuation to final step
+-> 30-check exact Recovery Gate
+-> result-derived CI/SARIF/reports and verified-only unsigned attestation
+```
+
+The checkpoint layout is closed to `latest`, `zero_to_fp32.py`, one tagged
+model/scheduler state, exact rank 0 and 1 ZeRO optimizer shards, and exact rank
+0 and 1 JSON state. FlashPilot checks every size and SHA-256 plus the tag,
+manifest, completion marker, containment, and directory layout before allowing
+DeepSpeed to deserialize its own checkpoint. DeepSpeed must restore engine
+progress, optimizer, and scheduler; FlashPilot restores only rank-local
+Python/NumPy/Torch RNG after verifying the scheduler state already matches.
+
+The Gate compares each rank's stochastic loss history, trainable state,
+evaluation, ZeRO optimizer partition, scheduler, final progress, and collective
+probe to the uninterrupted control with `atol=0.0`, `rtol=0.0`. Logical bytes
+and the unsigned attestation remain unavailable until every check passes.
+
+This item proves a clean same-world-size checkpoint restart. It does not kill
+a distributed rank, coordinate partial group failure, qualify universal or
+elastic checkpoints, support ZeRO stages 1/3, use CUDA/NCCL, or claim network
+filesystem durability. Those remain separate later milestones.

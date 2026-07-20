@@ -839,3 +839,36 @@ Checkpoint commitment retains the existing same-filesystem atomic rename,
 closed inventory, SHA-256, completion marker, containment, and fsync rules.
 Windows directory fsync remains explicitly best effort. Unknown or malformed
 topology, payload, state, or evidence fails closed.
+
+## D-058: DeepSpeed is one explicit ZeRO-2 qualification, not a generic adapter
+
+The second V1.0 production-infrastructure item accepts exactly DeepSpeed
+0.19.x, ZeRO stage 2, CPU, Gloo, world size 2, same-world-size clean restart,
+and the included deterministic workload. It adds no adapter discovery,
+framework auto-detection, arbitrary DeepSpeed configuration, CUDA/NCCL, or
+repair capability.
+
+DeepSpeed's checkpoint API is collective, so both saving ranks must call it
+with the same global-step-derived tag. Rank 0 may close and atomically rename
+the directory only after DeepSpeed's internal barriers and a FlashPilot barrier
+complete. The accepted layout is exact: one model/scheduler state, two ZeRO
+optimizer shards, `latest`, `zero_to_fp32.py`, and two rank-local JSON state
+files. Extra, missing, malformed, tampered, symlinked, or out-of-sandbox state
+fails closed before framework deserialization.
+
+FlashPilot stores its client data below one `flashpilot` namespace and validates
+it exactly after load. DeepSpeed-owned 0.19.x client fields are allowlisted by
+name but are never persisted again or treated as FlashPilot evidence. The
+scheduler must already match the rank record after `load_checkpoint`; only the
+rank-local Python, NumPy, and Torch RNG streams are then restored by FlashPilot.
+
+Windows rejects the qualification before creating a run. The local DeepSpeed
+source build cannot provide the optional CPU shared-memory JIT source expected
+by this wheel, and bypassing framework internals is not an acceptable product
+path. Hosted Ubuntu is therefore the authoritative real integration surface.
+Directory fsync follows existing semantics and remains explicitly best effort
+where the host does not expose it.
+
+Verified bytes and an unsigned attestation are emitted only after the 30-check
+exact Gate passes. This item is a clean restart, not the next multi-rank failure
+scenario milestone.

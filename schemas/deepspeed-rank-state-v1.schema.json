@@ -1,0 +1,227 @@
+{
+  "$defs": {
+    "LinearSchedulerState": {
+      "additionalProperties": false,
+      "properties": {
+        "base_lrs": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Base Lrs",
+          "type": "array"
+        },
+        "end_factor": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "End Factor",
+          "type": "number"
+        },
+        "get_lr_called_within_step": {
+          "title": "Get Lr Called Within Step",
+          "type": "boolean"
+        },
+        "is_initial": {
+          "title": "Is Initial",
+          "type": "boolean"
+        },
+        "last_epoch": {
+          "minimum": 0,
+          "title": "Last Epoch",
+          "type": "integer"
+        },
+        "last_lrs": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Last Lrs",
+          "type": "array"
+        },
+        "start_factor": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Start Factor",
+          "type": "number"
+        },
+        "step_count": {
+          "minimum": 1,
+          "title": "Step Count",
+          "type": "integer"
+        },
+        "total_iters": {
+          "exclusiveMinimum": 0,
+          "title": "Total Iters",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_factor",
+        "end_factor",
+        "total_iters",
+        "base_lrs",
+        "last_epoch",
+        "step_count",
+        "is_initial",
+        "get_lr_called_within_step",
+        "last_lrs"
+      ],
+      "title": "LinearSchedulerState",
+      "type": "object"
+    },
+    "NumPyRngState": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "MT19937",
+          "default": "MT19937",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "cached_gaussian": {
+          "title": "Cached Gaussian",
+          "type": "number"
+        },
+        "has_gaussian": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Has Gaussian",
+          "type": "integer"
+        },
+        "keys": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Keys",
+          "type": "array"
+        },
+        "position": {
+          "minimum": 0,
+          "title": "Position",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "keys",
+        "position",
+        "has_gaussian",
+        "cached_gaussian"
+      ],
+      "title": "NumPyRngState",
+      "type": "object"
+    },
+    "PythonRngState": {
+      "additionalProperties": false,
+      "properties": {
+        "gaussian_cache": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gaussian Cache"
+        },
+        "internal_state": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Internal State",
+          "type": "array"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "internal_state"
+      ],
+      "title": "PythonRngState",
+      "type": "object"
+    },
+    "TorchRngState": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Bytes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "bytes"
+      ],
+      "title": "TorchRngState",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "global_step": {
+      "exclusiveMinimum": 0,
+      "title": "Global Step",
+      "type": "integer"
+    },
+    "loss_history": {
+      "items": {
+        "type": "number"
+      },
+      "minItems": 1,
+      "title": "Loss History",
+      "type": "array"
+    },
+    "numpy_rng": {
+      "$ref": "#/$defs/NumPyRngState"
+    },
+    "python_rng": {
+      "$ref": "#/$defs/PythonRngState"
+    },
+    "rank": {
+      "minimum": 0,
+      "title": "Rank",
+      "type": "integer"
+    },
+    "scheduler": {
+      "$ref": "#/$defs/LinearSchedulerState"
+    },
+    "schema_version": {
+      "const": "flashpilot-deepspeed-rank-state-v1",
+      "default": "flashpilot-deepspeed-rank-state-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "torch_rng": {
+      "$ref": "#/$defs/TorchRngState"
+    },
+    "world_size": {
+      "const": 2,
+      "default": 2,
+      "title": "World Size",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "rank",
+    "global_step",
+    "loss_history",
+    "scheduler",
+    "python_rng",
+    "numpy_rng",
+    "torch_rng"
+  ],
+  "title": "DeepSpeedRankCheckpointState",
+  "type": "object"
+}
