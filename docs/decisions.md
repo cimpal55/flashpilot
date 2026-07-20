@@ -872,3 +872,9 @@ where the host does not expose it.
 Verified bytes and an unsigned attestation are emitted only after the 30-check
 exact Gate passes. This item is a clean restart, not the next multi-rank failure
 scenario milestone.
+
+GitHub Actions run 29763457210 is the authoritative Linux acceptance for this
+decision. DeepSpeed 0.19.2 completed the exact two-rank ZeRO-2 command, all 30
+Gate checks passed, POSIX directory fsync succeeded, and the verified-only
+attestation upload ran. The Windows diagnostic bypass remains non-product
+evidence and is not required by or present in the accepted implementation.

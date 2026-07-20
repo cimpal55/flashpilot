@@ -3705,3 +3705,47 @@ identical, the active workflow retains global `contents: read`, and the quality
 matrix remains Python 3.11/3.12. Hosted Ubuntu acceptance is pending at this
 point; no Linux DeepSpeed byte or timing metric is recorded until that command
 actually succeeds.
+
+### Hosted Ubuntu acceptance
+
+GitHub Actions pull-request run 29763457210 executed commit `6e2c3bf` on
+Ubuntu with Python 3.11.15 and 3.12. All three jobs passed:
+
+```text
+Quality (Python 3.11): PASS in 5m23s; Ruff PASS; format PASS (205 files); 325 passed, 1 skipped in 180.33s
+Quality (Python 3.12): PASS in 7m08s; Ruff PASS; format PASS (205 files); 325 passed, 1 skipped in 310.09s
+qualify-checkpoint: PASS in 3m30s
+```
+
+The one hosted skip is the Windows-only DeepSpeed CLI rejection test. The real
+Linux DeepSpeed integration, POSIX preemption integration, and symlink
+containment test all executed and passed.
+
+The exact hosted DeepSpeed command completed:
+
+```text
+VERIFIED
+Strategy: zero via zero-stage-2
+Backend/world size: gloo/2
+Recovery Gate: 30/30
+Recovery RTO: 7.122461 seconds
+Verified persisted bytes: 217120
+```
+
+The persisted result additionally measured a 0.015481656-second checkpoint
+commit, six distinct worker PIDs, DeepSpeed 0.19.2, and PyTorch 2.13.0. POSIX
+directory fsync was supported and succeeded. The closed checkpoint inventory
+contained exactly `COMPLETE`, `checksums.json`, `manifest.json`, `latest`,
+`zero_to_fp32.py`, one tagged model-state file, two tagged ZeRO optimizer
+shards, and rank 0/1 state JSON. The 217,120 bytes are one invocation's logical
+checkpoint size, reported only after the Gate passed; no storage-savings or
+physical-write claim is made.
+
+The qualification job also passed the existing real Hugging Face, FSDP,
+managed SIGTERM, static audit, and typed-policy steps. The always-on diagnostic
+artifact was 36,566 bytes with SHA-256
+`f56ed8f78e9c6935fb2bcae394ee3c515ee7ff9986ccdac680155092560989a2`.
+The success-only attestation artifact contained four verified attestations and
+was 5,378 bytes with SHA-256
+`5fc3409d7030996e5106cb0d0548797961d0306a20fd1d2ba8869d482ccb69b2`.
+Hosted values are measurements for this workflow run only.

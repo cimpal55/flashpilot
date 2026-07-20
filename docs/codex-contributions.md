@@ -675,3 +675,9 @@ recovery, ZeRO stages 1/3, CUDA/NCCL, signing, OIDC, registry publication,
 organization policy, GPT work, or additional adapters. Windows returns the
 unsupported exit before worker launch. Verified bytes are reported only after
 the DeepSpeed Gate passes.
+
+GitHub Actions run 29763457210 subsequently passed both Python quality jobs
+and the complete Ubuntu qualification job. The hosted DeepSpeed command passed
+all 30 checks with six distinct processes, successful POSIX directory fsync,
+a 0.015481656-second checkpoint commit, a 7.122461-second recovery RTO,
+217,120 verified logical bytes, and a verified-only unsigned attestation.
