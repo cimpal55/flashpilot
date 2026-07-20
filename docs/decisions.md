@@ -733,3 +733,25 @@ is preserved for diagnostics, the previous checkpoint remains immutable, and
 no repair action is executed. The verified result reports no bytes or storage
 savings and does not emit an attestation; its recovery claim derives solely
 from the deterministic Gate.
+
+## D-055: Randomized timing is seeded, RPO-stratified, and fully reverified
+
+Repeated fault timing uses a local recorded seed and a closed schedule schema,
+not wall-clock sleeps or nondeterministic thread races. Each consecutive block
+of four trials covers RPO values 0, 1, 2, and 3 exactly once in randomized
+order. Checkpoint steps are selected only where the scheduled completed fault
+boundary remains inside the fixed CI workload. The maximum accepted RPO is a
+fixed three completed steps.
+
+Every entry invokes the existing native `safe_full` experiment: the parent
+terminates a real producer, recovery occurs in a distinct process, and the
+unchanged 24-check Gate requires exact continuation at `atol=0.0`, `rtol=0.0`.
+Aggregate success requires every trial to pass. A seeded schedule hash, the
+full SHA-256 fingerprint of each closed trial directory, and each underlying
+result hash prevent the summary from substituting, omitting, or rewriting
+trial evidence.
+
+This milestone randomizes completed-step boundaries only. It does not simulate
+mid-instruction interruption, add a scheduler or policy engine, call GPT,
+execute repair, or issue a recovery attestation. No checkpoint bytes or
+storage savings are computed or reported.

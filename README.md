@@ -174,6 +174,32 @@ checkpoint and rejected newest evidence are fingerprinted before and after
 recovery. A verified fallback reports neither storage savings nor checkpoint
 bytes and currently emits no recovery attestation.
 
+## V0.3 repeated randomized fault timing
+
+The fifth V0.3 roadmap item repeats the unchanged native `safe_full` crash and
+recovery experiment at a reproducible, seeded set of completed-step boundaries:
+
+```powershell
+flashpilot qualify randomized-fault-timing `
+  --profile exact-training-resume `
+  --fault process-kill `
+  --iterations 8 `
+  --seed 20260720 `
+  --run-dir .\runs\randomized-fault-timing
+```
+
+Every four-trial schedule block covers an achieved RPO of 0, 1, 2, and 3
+completed steps in randomized order. Each trial uses a real parent-owned
+process termination and a distinct recovery process. All 24 exact Recovery
+Gate checks must pass with `atol=0.0`, `rtol=0.0`, and the achieved RPO must
+remain within the fixed three-step limit. The aggregate binds its seeded
+schedule and each complete trial directory by SHA-256, then revalidates the
+underlying experiment evidence before reporting `VERIFIED`.
+
+The result includes relative paths, JSON, Markdown, JUnit, and a job summary.
+It does not call GPT, execute repair, emit an attestation, or calculate or
+report checkpoint bytes or storage savings.
+
 ## What the demo proves
 
 1. An uninterrupted seeded CPU control produces stable trajectory evidence.
@@ -394,9 +420,9 @@ DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay is tied to the captured
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add distributed scenarios, randomized fault timing, SARIF, and
-broader platform validation. Those later roadmap items are not part of the
-completed previous-valid fallback milestone.
+Future work may add distributed scenarios, SARIF, and broader platform
+validation. Those later roadmap items are not part of the completed repeated
+randomized fault-timing milestone.
 
 ## Repository and license
 

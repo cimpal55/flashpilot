@@ -1,0 +1,167 @@
+{
+  "$defs": {
+    "FaultTimingScheduleEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_step": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Checkpoint Step",
+          "type": "integer"
+        },
+        "fault_after_step": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Fault After Step",
+          "type": "integer"
+        },
+        "iteration": {
+          "exclusiveMinimum": 0,
+          "maximum": 32,
+          "title": "Iteration",
+          "type": "integer"
+        },
+        "post_commit_steps": {
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Post Commit Steps",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "iteration",
+        "checkpoint_step",
+        "post_commit_steps",
+        "fault_after_step"
+      ],
+      "title": "FaultTimingScheduleEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "achieved_rpo_steps": {
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Achieved Rpo Steps",
+      "type": "integer"
+    },
+    "exact_control_match": {
+      "title": "Exact Control Match",
+      "type": "boolean"
+    },
+    "failed_gate_check_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Failed Gate Check Ids",
+      "type": "array"
+    },
+    "gate_checks_passed": {
+      "minimum": 0,
+      "title": "Gate Checks Passed",
+      "type": "integer"
+    },
+    "gate_checks_total": {
+      "const": 24,
+      "default": 24,
+      "title": "Gate Checks Total",
+      "type": "integer"
+    },
+    "max_rpo_steps": {
+      "const": 3,
+      "default": 3,
+      "title": "Max Rpo Steps",
+      "type": "integer"
+    },
+    "passed": {
+      "title": "Passed",
+      "type": "boolean"
+    },
+    "producer_exit_code": {
+      "title": "Producer Exit Code",
+      "type": "integer"
+    },
+    "producer_pid": {
+      "exclusiveMinimum": 0,
+      "title": "Producer Pid",
+      "type": "integer"
+    },
+    "producer_termination_verified": {
+      "title": "Producer Termination Verified",
+      "type": "boolean"
+    },
+    "recovery_exit_code": {
+      "title": "Recovery Exit Code",
+      "type": "integer"
+    },
+    "recovery_exit_verified": {
+      "title": "Recovery Exit Verified",
+      "type": "boolean"
+    },
+    "recovery_pid": {
+      "exclusiveMinimum": 0,
+      "title": "Recovery Pid",
+      "type": "integer"
+    },
+    "rto_seconds": {
+      "exclusiveMinimum": 0.0,
+      "title": "Rto Seconds",
+      "type": "number"
+    },
+    "schedule": {
+      "$ref": "#/$defs/FaultTimingScheduleEntry"
+    },
+    "schema_version": {
+      "const": "flashpilot-fault-timing-trial-v1",
+      "default": "flashpilot-fault-timing-trial-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "trial_directory_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Trial Directory Sha256",
+      "type": "string"
+    },
+    "trial_file_count": {
+      "exclusiveMinimum": 0,
+      "title": "Trial File Count",
+      "type": "integer"
+    },
+    "trial_path": {
+      "title": "Trial Path",
+      "type": "string"
+    },
+    "trial_result_path": {
+      "title": "Trial Result Path",
+      "type": "string"
+    },
+    "trial_result_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Trial Result Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schedule",
+    "trial_path",
+    "trial_result_path",
+    "trial_result_sha256",
+    "trial_directory_sha256",
+    "trial_file_count",
+    "producer_pid",
+    "producer_exit_code",
+    "producer_termination_verified",
+    "recovery_pid",
+    "recovery_exit_code",
+    "recovery_exit_verified",
+    "gate_checks_passed",
+    "failed_gate_check_ids",
+    "achieved_rpo_steps",
+    "rto_seconds",
+    "exact_control_match",
+    "passed"
+  ],
+  "title": "FaultTimingTrialResult",
+  "type": "object"
+}

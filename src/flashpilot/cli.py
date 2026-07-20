@@ -443,6 +443,67 @@ def qualify_previous_valid_fallback(
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 
+@qualify_app.command("randomized-fault-timing")
+def qualify_randomized_fault_timing(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty repeated fault-timing evidence directory."),
+    ],
+    iterations: Annotated[
+        int,
+        typer.Option(help="Seeded process-kill trials, from 4 through 32."),
+    ] = 8,
+    seed: Annotated[
+        int,
+        typer.Option(help="Recorded nonnegative 63-bit schedule seed."),
+    ] = 20_260_720,
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile; only exact-training-resume is supported."),
+    ] = "exact-training-resume",
+    fault: Annotated[
+        str,
+        typer.Option(help="Fault mechanism; only process-kill is supported."),
+    ] = "process-kill",
+) -> None:
+    """Run seeded RPO-stratified native process-kill recovery trials."""
+
+    if profile != "exact-training-resume" or fault != "process-kill":
+        typer.echo("Unsupported randomized fault-timing profile or fault.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    if not 4 <= iterations <= 32 or not 0 <= seed <= 9_223_372_036_854_775_807:
+        typer.echo("Unsupported randomized fault-timing iteration count or seed.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    try:
+        from flashpilot.fault_timing.service import (
+            RandomizedFaultTimingError,
+            run_randomized_fault_timing,
+        )
+
+        result = run_randomized_fault_timing(
+            run_root=run_dir,
+            iterations=iterations,
+            seed=seed,
+        )
+    except (RandomizedFaultTimingError, OSError, RuntimeError, ValueError) as error:
+        typer.echo(f"Randomized fault-timing qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.final_verdict)
+    typer.echo(f"Trials: {result.passed_trials}/{result.iterations}")
+    typer.echo(f"Seed: {result.seed}")
+    typer.echo(f"Schedule SHA-256: {result.schedule_sha256}")
+    typer.echo(f"Observed RPO steps: {result.observed_rpo_steps}")
+    typer.echo("Recovery Gate: 24/24 required per trial")
+    typer.echo(f"Recovery verified: {str(result.recovery_verified).lower()}")
+    typer.echo("Attestation emitted: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / result.junit_path).resolve()}")
+    typer.echo(f"Job summary: {(run_dir / result.job_summary_path).resolve()}")
+    if not result.recovery_verified:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
 @app.command("compare-checkpoints")
 def compare_checkpoints(
     baseline: Annotated[Path, typer.Argument(help="Source conversion artifact directory.")],

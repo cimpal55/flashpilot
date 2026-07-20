@@ -458,3 +458,35 @@ immutability, and preservation of the rejected newest artifact. The Gate then
 proves exact continued training. The workflow does not delete or repair the
 corrupt checkpoint, call GPT, select across arbitrary repositories, emit a
 storage metric, or run the later randomized-timing matrix.
+
+## V0.3 repeated randomized fault timing
+
+This qualification layer composes the existing native crash experiment rather
+than introducing a second checkpoint writer, recovery worker, or Gate. A local
+`random.Random` instance produces an RPO-stratified schedule from a recorded
+63-bit seed. Each four-entry block contains one boundary for every allowed RPO
+value, 0 through 3, and chooses a checkpoint step that keeps the completed
+fault boundary within the eight-step CI workload.
+
+```text
+seed + iteration count
+-> deterministic RPO-stratified schedule and SHA-256
+-> N isolated safe_full native experiment directories
+-> parent-owned termination after the scheduled completed step
+-> distinct recovery process per trial
+-> unchanged 24-check exact Recovery Gate per trial
+-> closed aggregate with per-trial result and directory SHA-256
+-> deterministic Markdown + JUnit + job summary
+```
+
+The aggregate verifier regenerates the schedule from the seed, resolves only
+contained relative paths, fingerprints every trial directory, hashes every
+underlying `result.json`, and compares process, timing, RPO, Gate, profile,
+strategy, and exactness evidence to the strict aggregate. It rejects symlinks,
+missing artifacts, mutation, schedule substitution, relaxed tolerances, or an
+unexpected recovery attestation.
+
+Randomization is limited to completed training-step boundaries. The design
+does not claim mid-instruction, filesystem-controller, network-filesystem, or
+distributed timing coverage. It calls no GPT provider, executes no repair,
+emits no attestation, and never computes a storage byte or savings result.

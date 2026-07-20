@@ -76,11 +76,13 @@ where = ["src"]
     "schemas/fallback-checkpoint-set-v1.schema.json",
     "schemas/fuzz-case-v1.schema.json",
     "schemas/fuzz-checkpoint-artifact-v1.schema.json",
+    "schemas/fault-timing-trial-v1.schema.json",
     "schemas/partial-write-fuzz-v1.schema.json",
     "schemas/previous-valid-fallback-v1.schema.json",
     "schemas/persistence-contract-v1.schema.json",
     "schemas/persistence-item-v1.schema.json",
     "schemas/qualification-profile-v1.schema.json",
+    "schemas/randomized-fault-timing-v1.schema.json",
     "schemas/recovery-attestation-v1.schema.json",
 ]
 "share/flashpilot/examples/ci" = ["examples/ci/policy.yml"]

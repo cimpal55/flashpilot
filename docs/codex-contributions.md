@@ -543,3 +543,25 @@ Codex did not begin randomized fault timing, SARIF, distributed/CUDA
 qualification, discovery, or another adapter. It did not repair or delete the
 corrupt checkpoint, call GPT, report bytes or storage savings, or emit an
 attestation.
+
+## V0.3 roadmap item 5 - repeated randomized fault timing
+
+Codex implemented only the fifth V0.3 roadmap item:
+
+- added a strict seeded schedule whose four-trial blocks each cover RPO 0, 1,
+  2, and 3 at valid completed-step boundaries;
+- composed the existing real native `safe_full` process-kill experiment and
+  unchanged 24-check exact Recovery Gate for every isolated trial;
+- required a distinct recovery process, verified producer termination, exact
+  continuation, and the fixed three-step maximum RPO in every trial;
+- bound the aggregate to its regenerated schedule, every complete trial
+  directory fingerprint, and every underlying experiment-result SHA-256;
+- added `qualify randomized-fault-timing`, strict JSON Schemas, Markdown,
+  per-trial JUnit, job-summary output, packaging coverage, and focused
+  reproducibility, boundary, containment, redaction, process, and tamper tests;
+- performed an authoritative eight-trial local run covering eight unique
+  checkpoint/RPO timing pairs with all trials verified.
+
+Codex did not begin SARIF, distributed/CUDA qualification, discovery, or
+another adapter. The implementation made no GPT call, executed no repair,
+reported no checkpoint bytes or storage savings, and emitted no attestation.

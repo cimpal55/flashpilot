@@ -3087,3 +3087,139 @@ post-commit corruption type, Windows-only local validation, unverified Python
 does not establish remote/object-store consistency or a general retention
 policy. Randomized fault timing, SARIF, distributed/CUDA qualification,
 discovery, and additional adapters were not started.
+
+## V0.3 roadmap item 5 - repeated randomized fault timing
+
+Date: 2026-07-20
+
+Only roadmap item 5 was implemented. Local validation used Python 3.12.13 on
+Windows with the existing CPU-only native PyTorch CI workload. Python 3.11
+remains the declared compatibility target. Existing `safe_full` serialization,
+parent-owned process termination, distinct-process recovery, and every one of
+the 24 Recovery Gate checks were reused without changing tolerances.
+
+### Implementation evidence
+
+Seed `20260720` generated eight reproducible, unique checkpoint/RPO timing
+pairs. Each consecutive four-trial block covered RPO values 0, 1, 2, and 3.
+Every trial terminated a real producer with exit code `1`, recovered in a
+different process with exit code `0`, stayed within the fixed three-step RPO,
+and matched the uninterrupted control exactly at `atol=0.0`, `rtol=0.0`.
+
+The aggregate schedule SHA-256 was:
+
+```text
+ef36661e18d168af723da306169da0b85dd0f76bb4ec662db267f89237384af4
+```
+
+| Trial | Checkpoint | Fault after | RPO | Producer | Recovery | RTO seconds | Gate |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 4 | 7 | 3 | 28760 | 34196 | 3.996744 | 24/24 |
+| 2 | 6 | 7 | 1 | 19896 | 10504 | 3.934607 | 24/24 |
+| 3 | 1 | 1 | 0 | 22576 | 35096 | 3.680709 | 24/24 |
+| 4 | 3 | 5 | 2 | 21816 | 37268 | 3.794198 | 24/24 |
+| 5 | 4 | 6 | 2 | 14936 | 22740 | 3.874699 | 24/24 |
+| 6 | 4 | 4 | 0 | 28496 | 4392 | 3.759783 | 24/24 |
+| 7 | 4 | 5 | 1 | 30400 | 5816 | 4.322715 | 24/24 |
+| 8 | 2 | 5 | 3 | 12256 | 32440 | 4.084041 | 24/24 |
+
+Measured recovery-process RTO was 3.680709 seconds minimum, 4.322715 seconds
+maximum, and 3.930937 seconds mean. These are local observed durations, not a
+general service-level claim. No checkpoint byte metric or storage-savings
+figure was calculated.
+
+### Authoritative qualification
+
+The initial attempted invocation used a module entry that the package does not
+provide and failed before creating evidence:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot qualify randomized-fault-timing --run-dir runs\manual-v03-randomized-fault-timing --iterations 8 --seed 20260720
+C:\Programming\business\flashpilot\.venv\Scripts\python.exe: No module named flashpilot.__main__; 'flashpilot' is a package and cannot be directly executed
+```
+
+The installed console entry point is the supported command and produced:
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify randomized-fault-timing --run-dir runs\manual-v03-randomized-fault-timing --iterations 8 --seed 20260720
+VERIFIED
+Trials: 8/8
+Seed: 20260720
+Schedule SHA-256: ef36661e18d168af723da306169da0b85dd0f76bb4ec662db267f89237384af4
+Observed RPO steps: (0, 1, 2, 3)
+Recovery Gate: 24/24 required per trial
+Recovery verified: true
+Attestation emitted: false
+Storage savings reported: false
+Result: C:\Programming\business\flashpilot\runs\manual-v03-randomized-fault-timing\result.json
+JUnit XML: C:\Programming\business\flashpilot\runs\manual-v03-randomized-fault-timing\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\manual-v03-randomized-fault-timing\job-summary.md
+```
+
+### Focused validation
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_fault_timing.py tests\unit\test_packaging.py -q
+..................                                                       [100%]
+18 passed in 1.57s
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_randomized_fault_timing.py -q
+.....                                                                    [100%]
+5 passed in 32.61s
+
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_fault_timing.py tests\integration\test_randomized_fault_timing.py tests\unit\test_packaging.py -q
+.......................                                                  [100%]
+23 passed in 32.92s
+```
+
+The integration path performed four real process-kill/recovery trials, then
+mutated one closed underlying trial result and proved that full-directory
+fingerprint verification rejected the aggregate.
+
+A subsequent development check temporarily required all 24 statuses to equal
+`pass`. The focused run then failed 1 test (`1 failed, 22 passed in 34.12s`)
+because the unchanged native Gate correctly returns 22 `pass` and 2
+`not_applicable` integrity checks for `safe_full`, which has no external base
+artifact. The attempted change was reverted. The final implementation retains
+the Gate's existing derived verdict: all 24 checks are satisfied when none is
+`fail`; `not_applicable` is not rewritten or hidden.
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+168 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 26%]
+........................................................................ [ 53%]
+........................................................................ [ 79%]
+.............s.........................................                  [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+270 passed, 1 skipped in 222.55s (0:03:42)
+```
+
+The single skip is the unchanged Windows directory-symlink privilege test. The
+default pytest command retained its unique UUID basetemp plugin and disabled
+the cache provider.
+
+### Acceptance and unresolved risks
+
+Roadmap item 5 passes: the schedule is seed-reproducible and RPO-stratified;
+all eight real producers were terminated and recovered in distinct processes;
+every unchanged exact Gate passed 24/24; achieved RPO covered 0 through 3 and
+never exceeded the fixed limit; aggregate and trial evidence are hash-bound;
+and tampering fails closed. No API call, GPT analysis, repair, attestation,
+checkpoint byte total, or storage-savings claim was made.
+
+Remaining risks are the fixed local native-PyTorch CI workload, completed-step
+rather than mid-instruction fault boundaries, Windows-only local validation,
+unverified Python 3.11 execution on this host, and best-effort Windows directory
+fsync. The run does not characterize probabilistic failure distributions,
+network filesystems, storage-controller persistence, distributed/CUDA
+coordination, or a general RTO. SARIF, distributed qualification, discovery,
+and additional adapters were not started.

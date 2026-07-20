@@ -127,3 +127,20 @@ The fixed test models one post-commit corruption and a two-step rollback on the
 local CPU workload. It does not establish a general retention policy, repair
 corrupt data, assess remote/object-store consistency, or characterize the
 probability and timing of failures.
+
+## Repeated randomized fault-timing positioning
+
+Randomized fault injection and repeated recovery trials are established chaos
+and resilience-testing practices, not a novel FlashPilot algorithm. The V0.3
+contribution is the narrow evidence contract around the existing deterministic
+native experiment: a recorded seed creates a reproducible completed-step
+schedule, RPO 0 through 3 is covered by construction, and every real
+termination must independently pass the same exact Recovery Gate.
+
+The qualification binds every complete trial directory and its underlying
+result to the aggregate, so schedule reproducibility cannot stand in for
+recovery proof. It measures recovery-process duration and achieved completed-
+step rollback for this fixed local CPU workload. It does not characterize a
+failure probability distribution, mid-instruction crashes, distributed
+coordination, network filesystems, physical persistence, or general recovery
+time objectives.

@@ -1,0 +1,315 @@
+{
+  "$defs": {
+    "FaultTimingScheduleEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_step": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Checkpoint Step",
+          "type": "integer"
+        },
+        "fault_after_step": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Fault After Step",
+          "type": "integer"
+        },
+        "iteration": {
+          "exclusiveMinimum": 0,
+          "maximum": 32,
+          "title": "Iteration",
+          "type": "integer"
+        },
+        "post_commit_steps": {
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Post Commit Steps",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "iteration",
+        "checkpoint_step",
+        "post_commit_steps",
+        "fault_after_step"
+      ],
+      "title": "FaultTimingScheduleEntry",
+      "type": "object"
+    },
+    "FaultTimingTrialResult": {
+      "additionalProperties": false,
+      "properties": {
+        "achieved_rpo_steps": {
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Achieved Rpo Steps",
+          "type": "integer"
+        },
+        "exact_control_match": {
+          "title": "Exact Control Match",
+          "type": "boolean"
+        },
+        "failed_gate_check_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Gate Check Ids",
+          "type": "array"
+        },
+        "gate_checks_passed": {
+          "minimum": 0,
+          "title": "Gate Checks Passed",
+          "type": "integer"
+        },
+        "gate_checks_total": {
+          "const": 24,
+          "default": 24,
+          "title": "Gate Checks Total",
+          "type": "integer"
+        },
+        "max_rpo_steps": {
+          "const": 3,
+          "default": 3,
+          "title": "Max Rpo Steps",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "producer_exit_code": {
+          "title": "Producer Exit Code",
+          "type": "integer"
+        },
+        "producer_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Producer Pid",
+          "type": "integer"
+        },
+        "producer_termination_verified": {
+          "title": "Producer Termination Verified",
+          "type": "boolean"
+        },
+        "recovery_exit_code": {
+          "title": "Recovery Exit Code",
+          "type": "integer"
+        },
+        "recovery_exit_verified": {
+          "title": "Recovery Exit Verified",
+          "type": "boolean"
+        },
+        "recovery_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Recovery Pid",
+          "type": "integer"
+        },
+        "rto_seconds": {
+          "exclusiveMinimum": 0.0,
+          "title": "Rto Seconds",
+          "type": "number"
+        },
+        "schedule": {
+          "$ref": "#/$defs/FaultTimingScheduleEntry"
+        },
+        "schema_version": {
+          "const": "flashpilot-fault-timing-trial-v1",
+          "default": "flashpilot-fault-timing-trial-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "trial_directory_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Trial Directory Sha256",
+          "type": "string"
+        },
+        "trial_file_count": {
+          "exclusiveMinimum": 0,
+          "title": "Trial File Count",
+          "type": "integer"
+        },
+        "trial_path": {
+          "title": "Trial Path",
+          "type": "string"
+        },
+        "trial_result_path": {
+          "title": "Trial Result Path",
+          "type": "string"
+        },
+        "trial_result_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Trial Result Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schedule",
+        "trial_path",
+        "trial_result_path",
+        "trial_result_sha256",
+        "trial_directory_sha256",
+        "trial_file_count",
+        "producer_pid",
+        "producer_exit_code",
+        "producer_termination_verified",
+        "recovery_pid",
+        "recovery_exit_code",
+        "recovery_exit_verified",
+        "gate_checks_passed",
+        "failed_gate_check_ids",
+        "achieved_rpo_steps",
+        "rto_seconds",
+        "exact_control_match",
+        "passed"
+      ],
+      "title": "FaultTimingTrialResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "attestation_emitted": {
+      "const": false,
+      "default": false,
+      "title": "Attestation Emitted",
+      "type": "boolean"
+    },
+    "failed_trials": {
+      "minimum": 0,
+      "title": "Failed Trials",
+      "type": "integer"
+    },
+    "final_verdict": {
+      "enum": [
+        "VERIFIED",
+        "FAILED"
+      ],
+      "title": "Final Verdict",
+      "type": "string"
+    },
+    "iterations": {
+      "maximum": 32,
+      "minimum": 4,
+      "title": "Iterations",
+      "type": "integer"
+    },
+    "job_summary_path": {
+      "const": "job-summary.md",
+      "default": "job-summary.md",
+      "title": "Job Summary Path",
+      "type": "string"
+    },
+    "junit_path": {
+      "const": "junit.xml",
+      "default": "junit.xml",
+      "title": "Junit Path",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "max_rpo_steps": {
+      "const": 3,
+      "default": 3,
+      "title": "Max Rpo Steps",
+      "type": "integer"
+    },
+    "observed_rpo_steps": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Observed Rpo Steps",
+      "type": "array"
+    },
+    "passed_trials": {
+      "minimum": 0,
+      "title": "Passed Trials",
+      "type": "integer"
+    },
+    "profile": {
+      "const": "ci",
+      "default": "ci",
+      "title": "Profile",
+      "type": "string"
+    },
+    "recovery_verified": {
+      "title": "Recovery Verified",
+      "type": "boolean"
+    },
+    "report_path": {
+      "const": "report.md",
+      "default": "report.md",
+      "title": "Report Path",
+      "type": "string"
+    },
+    "result_path": {
+      "const": "result.json",
+      "default": "result.json",
+      "title": "Result Path",
+      "type": "string"
+    },
+    "schedule_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-randomized-fault-timing-v1",
+      "default": "flashpilot-randomized-fault-timing-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "storage_savings_reported": {
+      "const": false,
+      "default": false,
+      "title": "Storage Savings Reported",
+      "type": "boolean"
+    },
+    "strategy": {
+      "const": "safe_full",
+      "default": "safe_full",
+      "title": "Strategy",
+      "type": "string"
+    },
+    "trials": {
+      "items": {
+        "$ref": "#/$defs/FaultTimingTrialResult"
+      },
+      "maxItems": 32,
+      "minItems": 4,
+      "title": "Trials",
+      "type": "array"
+    },
+    "unique_timing_pairs": {
+      "exclusiveMinimum": 0,
+      "title": "Unique Timing Pairs",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "seed",
+    "iterations",
+    "schedule_sha256",
+    "trials",
+    "observed_rpo_steps",
+    "unique_timing_pairs",
+    "passed_trials",
+    "failed_trials",
+    "recovery_verified",
+    "final_verdict",
+    "limitations"
+  ],
+  "title": "RandomizedFaultTimingResult",
+  "type": "object"
+}
