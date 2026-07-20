@@ -9,6 +9,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from flashpilot.contracts.models import QualificationProfile
 
+CIFault = Literal[
+    "process_termination",
+    "managed_preemption",
+    "checkpoint_restart",
+    "rank_process_termination",
+]
+
 
 class StrictCIModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -37,9 +44,7 @@ class CIPolicyV1(StrictCIModel):
         QualificationProfile.PREEMPTION_SAFE_TRAINING,
     ] = QualificationProfile.EXACT_TRAINING_RESUME
     unknown_state: Literal["fail"] = "fail"
-    required_faults: tuple[
-        Literal["process_termination", "managed_preemption", "checkpoint_restart"], ...
-    ] = Field(min_length=1)
+    required_faults: tuple[CIFault, ...] = Field(min_length=1)
     max_rpo_steps: int = Field(ge=0)
     max_rto_seconds: float = Field(gt=0.0)
     require_attestation: bool
@@ -48,10 +53,8 @@ class CIPolicyV1(StrictCIModel):
     @classmethod
     def unique_faults(
         cls,
-        values: tuple[
-            Literal["process_termination", "managed_preemption", "checkpoint_restart"], ...
-        ],
-    ) -> tuple[Literal["process_termination", "managed_preemption", "checkpoint_restart"], ...]:
+        values: tuple[CIFault, ...],
+    ) -> tuple[CIFault, ...]:
         if len(values) != len(set(values)):
             raise ValueError("required fault identifiers must be unique")
         return tuple(sorted(values))
@@ -87,7 +90,7 @@ class CIRunEvidence(StrictCIModel):
         "unknown",
     ]
     checks: tuple[CICheck, ...] = Field(min_length=1)
-    fault: Literal["process_termination", "managed_preemption", "checkpoint_restart"] | None = None
+    fault: CIFault | None = None
     rpo_steps: int | None = Field(default=None, ge=0)
     rto_seconds: float | None = Field(default=None, gt=0.0)
 

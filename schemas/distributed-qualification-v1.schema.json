@@ -565,6 +565,466 @@
       ],
       "title": "DistributedRecoveryGateV1",
       "type": "object"
+    },
+    "MultiRankFailureEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "enum": [
+            "pytorch-fsdp",
+            "deepspeed-engine"
+          ],
+          "title": "Adapter",
+          "type": "string"
+        },
+        "backend": {
+          "const": "gloo",
+          "default": "gloo",
+          "title": "Backend",
+          "type": "string"
+        },
+        "checkpoint_id": {
+          "pattern": "^checkpoint-step-[0-9]{6}$",
+          "title": "Checkpoint Id",
+          "type": "string"
+        },
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "checkpoint_step": {
+          "exclusiveMinimum": 0,
+          "title": "Checkpoint Step",
+          "type": "integer"
+        },
+        "checkpoint_tag": {
+          "anyOf": [
+            {
+              "pattern": "^global_step[0-9]{6}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checkpoint Tag"
+        },
+        "delivered_at": {
+          "format": "date-time",
+          "title": "Delivered At",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "event": {
+          "const": "multi_rank_process_terminated",
+          "default": "multi_rank_process_terminated",
+          "title": "Event",
+          "type": "string"
+        },
+        "failure_rpo_steps": {
+          "const": 0,
+          "default": 0,
+          "title": "Failure Rpo Steps",
+          "type": "integer"
+        },
+        "fault_method": {
+          "const": "subprocess_kill",
+          "default": "subprocess_kill",
+          "title": "Fault Method",
+          "type": "string"
+        },
+        "fault_scenario": {
+          "const": "rank_process_termination",
+          "default": "rank_process_termination",
+          "title": "Fault Scenario",
+          "type": "string"
+        },
+        "framework": {
+          "enum": [
+            "pytorch-distributed",
+            "deepspeed"
+          ],
+          "title": "Framework",
+          "type": "string"
+        },
+        "group_cleanup_complete": {
+          "const": true,
+          "default": true,
+          "title": "Group Cleanup Complete",
+          "type": "boolean"
+        },
+        "implementation": {
+          "enum": [
+            "fully_shard",
+            "zero-stage-2"
+          ],
+          "title": "Implementation",
+          "type": "string"
+        },
+        "peer_failure": {
+          "$ref": "#/$defs/MultiRankPeerFailureEvidence"
+        },
+        "peer_failure_propagated": {
+          "const": true,
+          "default": true,
+          "title": "Peer Failure Propagated",
+          "type": "boolean"
+        },
+        "rank_processes": {
+          "items": {
+            "$ref": "#/$defs/MultiRankFaultProcessEvidence"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Rank Processes",
+          "type": "array"
+        },
+        "ready_evidence": {
+          "items": {
+            "$ref": "#/$defs/MultiRankFaultReadyEvidence"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Ready Evidence",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "flashpilot-multi-rank-failure-event-v1",
+          "default": "flashpilot-multi-rank-failure-event-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "strategy": {
+          "enum": [
+            "fsdp",
+            "zero"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "target_rank": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Target Rank",
+          "type": "integer"
+        },
+        "world_size": {
+          "const": 2,
+          "default": 2,
+          "title": "World Size",
+          "type": "integer"
+        },
+        "zero_stage": {
+          "anyOf": [
+            {
+              "const": 2,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Zero Stage"
+        }
+      },
+      "required": [
+        "framework",
+        "adapter",
+        "strategy",
+        "implementation",
+        "target_rank",
+        "checkpoint_path",
+        "checkpoint_id",
+        "checkpoint_step",
+        "ready_evidence",
+        "peer_failure",
+        "rank_processes",
+        "delivered_at",
+        "emitted_at"
+      ],
+      "title": "MultiRankFailureEvent",
+      "type": "object"
+    },
+    "MultiRankFaultProcessEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "cleanup_forced": {
+          "title": "Cleanup Forced",
+          "type": "boolean"
+        },
+        "collective_failure_observed": {
+          "title": "Collective Failure Observed",
+          "type": "boolean"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "exit_code": {
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "externally_terminated": {
+          "title": "Externally Terminated",
+          "type": "boolean"
+        },
+        "rank": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Rank",
+          "type": "integer"
+        },
+        "ready_at": {
+          "format": "date-time",
+          "title": "Ready At",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rank",
+        "worker_pid",
+        "started_at",
+        "ready_at",
+        "completed_at",
+        "exit_code",
+        "externally_terminated",
+        "collective_failure_observed",
+        "cleanup_forced"
+      ],
+      "title": "MultiRankFaultProcessEvidence",
+      "type": "object"
+    },
+    "MultiRankFaultReadyEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "enum": [
+            "pytorch-fsdp",
+            "deepspeed-engine"
+          ],
+          "title": "Adapter",
+          "type": "string"
+        },
+        "backend": {
+          "const": "gloo",
+          "default": "gloo",
+          "title": "Backend",
+          "type": "string"
+        },
+        "checkpoint_id": {
+          "pattern": "^checkpoint-step-[0-9]{6}$",
+          "title": "Checkpoint Id",
+          "type": "string"
+        },
+        "checkpoint_loaded": {
+          "const": true,
+          "default": true,
+          "title": "Checkpoint Loaded",
+          "type": "boolean"
+        },
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "checkpoint_step": {
+          "exclusiveMinimum": 0,
+          "title": "Checkpoint Step",
+          "type": "integer"
+        },
+        "checkpoint_tag": {
+          "anyOf": [
+            {
+              "pattern": "^global_step[0-9]{6}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checkpoint Tag"
+        },
+        "event": {
+          "const": "rank_ready_for_termination",
+          "default": "rank_ready_for_termination",
+          "title": "Event",
+          "type": "string"
+        },
+        "framework": {
+          "enum": [
+            "pytorch-distributed",
+            "deepspeed"
+          ],
+          "title": "Framework",
+          "type": "string"
+        },
+        "implementation": {
+          "enum": [
+            "fully_shard",
+            "zero-stage-2"
+          ],
+          "title": "Implementation",
+          "type": "string"
+        },
+        "rank": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Rank",
+          "type": "integer"
+        },
+        "ready_at": {
+          "format": "date-time",
+          "title": "Ready At",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "flashpilot-multi-rank-fault-ready-v1",
+          "default": "flashpilot-multi-rank-fault-ready-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "strategy": {
+          "enum": [
+            "fsdp",
+            "zero"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        },
+        "world_size": {
+          "const": 2,
+          "default": 2,
+          "title": "World Size",
+          "type": "integer"
+        },
+        "zero_stage": {
+          "anyOf": [
+            {
+              "const": 2,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Zero Stage"
+        }
+      },
+      "required": [
+        "framework",
+        "adapter",
+        "strategy",
+        "implementation",
+        "rank",
+        "worker_pid",
+        "checkpoint_path",
+        "checkpoint_id",
+        "checkpoint_step",
+        "ready_at"
+      ],
+      "title": "MultiRankFaultReadyEvidence",
+      "type": "object"
+    },
+    "MultiRankPeerFailureEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_step": {
+          "exclusiveMinimum": 0,
+          "title": "Checkpoint Step",
+          "type": "integer"
+        },
+        "event": {
+          "const": "peer_collective_failure_observed",
+          "default": "peer_collective_failure_observed",
+          "title": "Event",
+          "type": "string"
+        },
+        "failure_kind": {
+          "const": "gloo_collective_error",
+          "default": "gloo_collective_error",
+          "title": "Failure Kind",
+          "type": "string"
+        },
+        "framework": {
+          "enum": [
+            "pytorch-distributed",
+            "deepspeed"
+          ],
+          "title": "Framework",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "observer_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Observer Pid",
+          "type": "integer"
+        },
+        "observer_rank": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Observer Rank",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "flashpilot-multi-rank-peer-failure-v1",
+          "default": "flashpilot-multi-rank-peer-failure-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "target_rank": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Target Rank",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "framework",
+        "target_rank",
+        "observer_rank",
+        "observer_pid",
+        "checkpoint_step",
+        "observed_at"
+      ],
+      "title": "MultiRankPeerFailureEvidence",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -623,6 +1083,42 @@
       "format": "date-time",
       "title": "Created At",
       "type": "string"
+    },
+    "failure_event": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MultiRankFailureEvent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "fault_scenario": {
+      "default": "checkpoint_restart",
+      "enum": [
+        "checkpoint_restart",
+        "rank_process_termination"
+      ],
+      "title": "Fault Scenario",
+      "type": "string"
+    },
+    "fault_target_rank": {
+      "anyOf": [
+        {
+          "enum": [
+            0,
+            1
+          ],
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fault Target Rank"
     },
     "final_verdict": {
       "enum": [

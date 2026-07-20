@@ -628,7 +628,38 @@ evaluation, ZeRO optimizer partition, scheduler, final progress, and collective
 probe to the uninterrupted control with `atol=0.0`, `rtol=0.0`. Logical bytes
 and the unsigned attestation remain unavailable until every check passes.
 
-This item proves a clean same-world-size checkpoint restart. It does not kill
-a distributed rank, coordinate partial group failure, qualify universal or
-elastic checkpoints, support ZeRO stages 1/3, use CUDA/NCCL, or claim network
-filesystem durability. Those remain separate later milestones.
+This item proves the clean same-world-size checkpoint baseline. The next
+section adds bounded targeted-rank failure without expanding to universal or
+elastic checkpoints, ZeRO stages 1/3, CUDA/NCCL, or network filesystems.
+
+## V1.0 item 3: targeted multi-rank process termination
+
+Both FSDP and DeepSpeed reuse their strict clean checkpoint and exact recovery
+paths. `fault=rank-termination` inserts one additional two-rank group between
+checkpoint validation and final recovery:
+
+```text
+validated committed checkpoint
+-> two fault ranks load the exact checkpoint
+-> each atomically writes typed ready evidence
+-> both repeatedly enter a Gloo monitored collective
+-> parent kills exactly target rank 0 or rank 1 through its Popen handle
+-> peer writes a separate typed collective-failure event
+-> parent confirms/reaps the entire failed group
+-> fresh two-rank recovery group loads the unchanged checkpoint
+-> original exact Recovery Gate + 12 fault checks
+-> verified-only metrics and unsigned attestation
+```
+
+The parent never accepts a requested PID or command from evidence. Paths are
+fixed run-relative values and go through the existing sandbox. The target's
+nonzero exit cannot prove peer impact: `failure-event.json` is constructed
+only after the other rank's independently persisted evidence validates its
+framework, PID, rank roles, checkpoint step, and observation ordering. Every
+control, checkpoint, fault, and recovery PID must be distinct.
+
+The fault occurs only after all ranks have restored the durable checkpoint and
+before another optimizer step, yielding an exact zero-step RPO claim. Recovery
+always uses a newly launched group at the same world size. No attempt is made
+to reinitialize a damaged process group in-process, shrink or grow membership,
+invoke TorchElastic or a scheduler, or qualify multi-node/CUDA/NCCL behavior.

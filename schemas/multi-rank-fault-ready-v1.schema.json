@@ -1,0 +1,139 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "adapter": {
+      "enum": [
+        "pytorch-fsdp",
+        "deepspeed-engine"
+      ],
+      "title": "Adapter",
+      "type": "string"
+    },
+    "backend": {
+      "const": "gloo",
+      "default": "gloo",
+      "title": "Backend",
+      "type": "string"
+    },
+    "checkpoint_id": {
+      "pattern": "^checkpoint-step-[0-9]{6}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "checkpoint_loaded": {
+      "const": true,
+      "default": true,
+      "title": "Checkpoint Loaded",
+      "type": "boolean"
+    },
+    "checkpoint_path": {
+      "title": "Checkpoint Path",
+      "type": "string"
+    },
+    "checkpoint_step": {
+      "exclusiveMinimum": 0,
+      "title": "Checkpoint Step",
+      "type": "integer"
+    },
+    "checkpoint_tag": {
+      "anyOf": [
+        {
+          "pattern": "^global_step[0-9]{6}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checkpoint Tag"
+    },
+    "event": {
+      "const": "rank_ready_for_termination",
+      "default": "rank_ready_for_termination",
+      "title": "Event",
+      "type": "string"
+    },
+    "framework": {
+      "enum": [
+        "pytorch-distributed",
+        "deepspeed"
+      ],
+      "title": "Framework",
+      "type": "string"
+    },
+    "implementation": {
+      "enum": [
+        "fully_shard",
+        "zero-stage-2"
+      ],
+      "title": "Implementation",
+      "type": "string"
+    },
+    "rank": {
+      "enum": [
+        0,
+        1
+      ],
+      "title": "Rank",
+      "type": "integer"
+    },
+    "ready_at": {
+      "format": "date-time",
+      "title": "Ready At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-multi-rank-fault-ready-v1",
+      "default": "flashpilot-multi-rank-fault-ready-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "strategy": {
+      "enum": [
+        "fsdp",
+        "zero"
+      ],
+      "title": "Strategy",
+      "type": "string"
+    },
+    "worker_pid": {
+      "exclusiveMinimum": 0,
+      "title": "Worker Pid",
+      "type": "integer"
+    },
+    "world_size": {
+      "const": 2,
+      "default": 2,
+      "title": "World Size",
+      "type": "integer"
+    },
+    "zero_stage": {
+      "anyOf": [
+        {
+          "const": 2,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Zero Stage"
+    }
+  },
+  "required": [
+    "framework",
+    "adapter",
+    "strategy",
+    "implementation",
+    "rank",
+    "worker_pid",
+    "checkpoint_path",
+    "checkpoint_id",
+    "checkpoint_step",
+    "ready_at"
+  ],
+  "title": "MultiRankFaultReadyEvidence",
+  "type": "object"
+}

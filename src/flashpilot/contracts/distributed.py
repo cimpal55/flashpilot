@@ -63,7 +63,7 @@ def distributed_fsdp_persistence_contract() -> PersistenceContract:
             ),
             warnings=(
                 "Only the deterministic 24-check Gate can verify recovery.",
-                "Multi-rank fault injection and elastic resharding are separate milestones.",
+                "Only checkpoint-boundary target-rank termination is qualified; elastic resharding is not.",
             ),
         )
     )

@@ -219,7 +219,7 @@ def _distributed_evidence(result: DistributedQualificationResult) -> CIRunEviden
         qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
         framework="pytorch-distributed",
         checks=checks,
-        fault="checkpoint_restart",
+        fault=result.fault_scenario,
         rpo_steps=result.gate.achieved_rpo_steps,
         rto_seconds=result.recovery_rto_seconds,
     )
@@ -242,7 +242,7 @@ def _deepspeed_evidence(result: DeepSpeedQualificationResult) -> CIRunEvidence:
         qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
         framework="deepspeed",
         checks=checks,
-        fault="checkpoint_restart",
+        fault=result.fault_scenario,
         rpo_steps=result.gate.achieved_rpo_steps,
         rto_seconds=result.recovery_rto_seconds,
     )

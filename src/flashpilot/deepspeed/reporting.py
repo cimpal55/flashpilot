@@ -17,12 +17,24 @@ def render_deepspeed_markdown(result: DeepSpeedQualificationResult) -> str:
         if result.verified_persisted_bytes is not None
         else "not reported because recovery did not pass"
     )
+    fault = (
+        "- Fault scenario: `checkpoint_restart`\n"
+        if result.failure_event is None
+        else (
+            "- Fault scenario: `rank_process_termination`\n"
+            f"- Terminated rank: `{result.failure_event.target_rank}`\n"
+            f"- Failed-group PIDs: "
+            f"`{tuple(item.worker_pid for item in result.failure_event.rank_processes)}`\n"
+            "- Peer collective failure: `observed`\n"
+        )
+    )
     return (
         "# DeepSpeed ZeRO-2 qualification\n\n"
         f"- Verdict: **{result.final_verdict}**\n"
         f"- Strategy: `{result.strategy}` (`{result.implementation}`)\n"
         f"- Backend: `{result.backend}`\n"
         f"- World size: `{result.world_size}`\n"
+        f"{fault}"
         f"- Control PIDs: `{tuple(item.worker_pid for item in result.control_processes.ranks)}`\n"
         f"- Checkpoint PIDs: "
         f"`{tuple(item.worker_pid for item in result.checkpoint_processes.ranks)}`\n"
@@ -48,6 +60,15 @@ def render_deepspeed_html(result: DeepSpeedQualificationResult) -> str:
         else "not reported because recovery did not pass"
     )
     limitations = "".join(f"<li>{escape(item)}</li>" for item in result.limitations)
+    fault = "<p>Fault scenario: <code>checkpoint_restart</code></p>"
+    if result.failure_event is not None:
+        fault_pids = tuple(item.worker_pid for item in result.failure_event.rank_processes)
+        fault = (
+            "<p>Fault scenario: <code>rank_process_termination</code>; "
+            f"terminated rank: {result.failure_event.target_rank}; "
+            f"failed-group PIDs: <code>{escape(str(fault_pids))}</code>; "
+            "peer collective failure: observed</p>"
+        )
     return (
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
         "<title>FlashPilot DeepSpeed ZeRO-2 qualification</title></head><body>"
@@ -57,6 +78,7 @@ def render_deepspeed_html(result: DeepSpeedQualificationResult) -> str:
         f"(<code>{escape(result.implementation)}</code>)</p>"
         f"<p>Backend: <code>{escape(result.backend)}</code>; "
         f"world size: {result.world_size}</p>"
+        f"{fault}"
         "<p>Exact comparison: <code>atol=0.0, rtol=0.0</code></p>"
         f"<p>Recovery RTO: {result.recovery_rto_seconds:.6f} seconds</p>"
         f"<p>Verified persisted bytes: {escape(storage)}</p>"

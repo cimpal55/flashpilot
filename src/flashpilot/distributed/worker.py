@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from datetime import timedelta
+import os
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import torch.distributed as dist
@@ -16,6 +17,10 @@ from flashpilot.distributed.workload import (
     summarize_distributed_runtime,
     train_distributed_until,
 )
+from flashpilot.multirank.models import (
+    MultiRankFaultReadyEvidence,
+    MultiRankPeerFailureEvidence,
+)
 from flashpilot.orchestration.artifacts import write_json_artifact
 from flashpilot.security.paths import PathSandbox
 from flashpilot.workload.profiles import get_profile
@@ -23,7 +28,9 @@ from flashpilot.workload.profiles import get_profile
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FlashPilot distributed FSDP rank worker")
-    parser.add_argument("--mode", choices=("control", "checkpoint", "recovery"), required=True)
+    parser.add_argument(
+        "--mode", choices=("control", "checkpoint", "fault", "recovery"), required=True
+    )
     parser.add_argument("--rank", type=int, choices=(0, 1), required=True)
     parser.add_argument("--world-size", type=int, choices=(2,), required=True)
     parser.add_argument("--backend", choices=("gloo",), required=True)
@@ -34,6 +41,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", required=True)
     parser.add_argument("--temporary-checkpoint")
     parser.add_argument("--checkpoint")
+    parser.add_argument("--fault-target-rank", type=int, choices=(0, 1))
+    parser.add_argument("--peer-failure-output")
     return parser
 
 
@@ -48,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         init_method=arguments.init_method,
         rank=arguments.rank,
         world_size=arguments.world_size,
-        timeout=timedelta(seconds=60),
+        timeout=timedelta(seconds=10 if arguments.mode == "fault" else 60),
     )
     try:
         runtime = create_distributed_runtime(
@@ -76,9 +85,9 @@ def main(argv: list[str] | None = None) -> int:
                 checkpoint_id=final.name,
             )
             checkpoint_step = arguments.checkpoint_step
-        else:
+        elif arguments.mode in {"fault", "recovery"}:
             if arguments.temporary_checkpoint or not arguments.checkpoint:
-                raise ValueError("recovery worker requires only a final checkpoint path")
+                raise ValueError("restore worker requires only a final checkpoint path")
             checkpoint = sandbox.resolve_relative(arguments.checkpoint, must_exist=True)
             validate_distributed_checkpoint(run_root=sandbox.root, checkpoint_path=checkpoint)
             checkpoint_step = load_distributed_runtime(
@@ -88,7 +97,52 @@ def main(argv: list[str] | None = None) -> int:
             )
             if checkpoint_step != arguments.checkpoint_step:
                 raise ValueError("loaded checkpoint step differs from the fixed qualification step")
+            if arguments.mode == "fault":
+                if arguments.fault_target_rank is None or not arguments.peer_failure_output:
+                    raise ValueError("fault worker requires target-rank and peer-failure outputs")
+                ready = MultiRankFaultReadyEvidence(
+                    framework="pytorch-distributed",
+                    adapter="pytorch-fsdp",
+                    strategy="fsdp",
+                    implementation="fully_shard",
+                    rank=arguments.rank,
+                    worker_pid=os.getpid(),
+                    checkpoint_path=arguments.checkpoint,
+                    checkpoint_id=checkpoint.name,
+                    checkpoint_step=checkpoint_step,
+                    ready_at=datetime.now(UTC),
+                )
+                write_json_artifact(
+                    run_root=sandbox.root,
+                    relative_path=arguments.output,
+                    value=ready,
+                )
+                try:
+                    while True:
+                        dist.monitored_barrier(
+                            timeout=timedelta(seconds=5),
+                            wait_all_ranks=True,
+                        )
+                except RuntimeError:
+                    if arguments.rank == arguments.fault_target_rank:
+                        raise
+                    peer_failure = MultiRankPeerFailureEvidence(
+                        framework="pytorch-distributed",
+                        target_rank=arguments.fault_target_rank,
+                        observer_rank=arguments.rank,
+                        observer_pid=os.getpid(),
+                        checkpoint_step=checkpoint_step,
+                        observed_at=datetime.now(UTC),
+                    )
+                    write_json_artifact(
+                        run_root=sandbox.root,
+                        relative_path=arguments.peer_failure_output,
+                        value=peer_failure,
+                    )
+                    return 17
             train_distributed_until(runtime, profile.steps)
+        else:
+            raise ValueError(f"unsupported distributed worker mode: {arguments.mode}")
         summary = summarize_distributed_runtime(
             runtime=runtime,
             phase=arguments.mode,

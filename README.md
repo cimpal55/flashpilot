@@ -282,10 +282,10 @@ per-rank trajectories, trainable state, evaluation, optimizer, scheduler, and
 collective probe to match the uninterrupted control exactly.
 
 This qualification is CPU-only, Gloo-only, fixed at world size 2, and restores
-at the same world size. It proves a clean checkpoint restart for the included
-workload; it does not inject a multi-rank failure, test elastic resharding,
-or qualify CUDA/NCCL or network filesystems. Verified bytes and the unsigned
-attestation are emitted only after the deterministic Gate passes.
+at the same world size. The command shown proves the clean-restart baseline;
+the bounded rank-termination option is documented below. Neither surface tests
+elastic resharding, CUDA/NCCL, or network filesystems. Verified bytes and the
+unsigned attestation are emitted only after the deterministic Gate passes.
 
 ## V1.0 two-rank DeepSpeed ZeRO-2 restart qualification
 
@@ -314,9 +314,45 @@ checks before bytes or an unsigned attestation are reported.
 The qualified claim is intentionally limited to DeepSpeed 0.19.x, ZeRO stage
 2, CPU, Gloo, world size 2, same-world-size clean restart, and the included
 offline workload. Windows fails closed before workers start because the
-supported qualification runtime is Linux. Multi-rank failure injection,
-elastic or universal checkpoints, ZeRO stages 1/3, CUDA/NCCL, downloaded
-models or datasets, and network filesystems are outside this item.
+supported qualification runtime is Linux. The clean-restart command remains
+the baseline for the bounded rank-termination option below. Elastic or
+universal checkpoints, ZeRO stages 1/3, CUDA/NCCL, downloaded models or
+datasets, and network filesystems remain outside the qualified surface.
+
+## V1.0 multi-rank failure qualification
+
+The third V1.0 item adds one explicit fault to both supported two-rank
+runtimes. Select either rank; run both commands to qualify the complete target
+matrix:
+
+```powershell
+flashpilot qualify distributed-pytorch `
+  --fault rank-termination `
+  --target-rank 0 `
+  --run-dir .\runs\fsdp-fault-rank-0
+
+flashpilot qualify distributed-pytorch `
+  --fault rank-termination `
+  --target-rank 1 `
+  --run-dir .\runs\fsdp-fault-rank-1
+```
+
+The equivalent Linux DeepSpeed commands use `flashpilot qualify deepspeed`
+with the same `--fault` and `--target-rank` options. Both ranks must first load
+the already committed, validated checkpoint and emit separate typed readiness
+records. The parent then calls `kill()` only on its selected child process.
+The peer must emit a separate typed Gloo collective-failure record; a nonzero
+exit by itself is insufficient. The parent reaps the complete failed group,
+launches two distinct recovery ranks from the unchanged checkpoint, and
+requires exact control equivalence.
+
+Rank failure is delivered at the committed checkpoint boundary, so the
+qualified RPO is zero steps. FSDP adds 12 fault checks to its existing Gate
+for 36 total; DeepSpeed adds the same checks for 42 total. The attestation
+binds the target rank, both failed-group PIDs, the peer observer, and the
+SHA-256 of `failure-event.json`. Clean restart remains the default. This does
+not implement elastic membership, in-process process-group reinitialization,
+world-size changes, scheduler retries, multi-node networking, CUDA, or NCCL.
 
 ## What the demo proves
 
@@ -541,9 +577,9 @@ distributed training, CUDA, NeMo, TensorFlow, or JAX. Fixture replay is tied to 
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add multi-rank failure scenarios and broader platform
-validation. Those later roadmap items are not part of the narrow DeepSpeed
-clean-restart path.
+Future work may add elastic membership, multi-node/CUDA fault scenarios,
+typed policy-as-code, and broader platform validation. Those later roadmap
+items are not implied by the bounded two-rank process-termination matrix.
 
 ## Repository and license
 

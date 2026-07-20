@@ -681,3 +681,28 @@ and the complete Ubuntu qualification job. The hosted DeepSpeed command passed
 all 30 checks with six distinct processes, successful POSIX directory fsync,
 a 0.015481656-second checkpoint commit, a 7.122461-second recovery RTO,
 217,120 verified logical bytes, and a verified-only unsigned attestation.
+
+## V1.0 item 3 - multi-rank failure scenarios
+
+Codex implemented only the third V1.0 item:
+
+- extended both existing FSDP and DeepSpeed commands with the explicit
+  `rank-termination` fault and required target rank 0 or 1;
+- required both fault ranks to validate and load the committed checkpoint
+  before parent-owned fault delivery at a zero-step-RPO boundary;
+- added strict, separate rank-ready, peer collective-failure, process-exit,
+  cleanup, and aggregate failure-event evidence;
+- required eight distinct processes per scenario and fresh same-world-size
+  recovery only after failed-group cleanup;
+- appended 12 deterministic checks to the existing exact Gates, producing
+  36-check FSDP and 42-check DeepSpeed verdicts without changing tolerances;
+- bound fault identity and `failure-event.json` SHA-256 into the closed
+  verified-only attestation and CI evidence;
+- added schemas, fail-closed tests, both-rank real integration coverage,
+  active/example workflow scenarios, and English architecture/decision/
+  research documentation.
+
+Codex did not begin typed policy-as-code, elastic membership, TorchElastic,
+in-process group healing, scheduler retries, multi-node or CUDA/NCCL support,
+signing, OIDC, registry publication, organization policy, GPT work, repair, or
+additional adapters. Clean restart remains backward compatible and default.

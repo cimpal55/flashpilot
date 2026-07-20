@@ -21,11 +21,18 @@ from flashpilot.deepspeed.models import (
     DeepSpeedCheckpointEvent,
     DeepSpeedQualificationResult,
     DeepSpeedRankSummary,
+    DeepSpeedRecoveryGateV1,
 )
 from flashpilot.deepspeed.reporting import render_deepspeed_html, render_deepspeed_markdown
 from flashpilot.distributed.models import (
     DistributedPhaseProcessEvidence,
     DistributedRankProcessEvidence,
+)
+from flashpilot.multirank.gate import evaluate_multi_rank_failure_checks
+from flashpilot.multirank.models import MultiRankFailureEvent
+from flashpilot.multirank.orchestration import (
+    MultiRankFailureError,
+    run_targeted_rank_termination,
 )
 from flashpilot.orchestration.artifacts import write_json_artifact, write_text_artifact
 from flashpilot.security.paths import PathSandbox
@@ -252,6 +259,93 @@ def _load_checkpoint_event(run_root: Path) -> DeepSpeedCheckpointEvent:
         raise DeepSpeedQualificationError("invalid DeepSpeed checkpoint event") from error
 
 
+def _launch_fault_phase(
+    *,
+    run_root: Path,
+    workload_profile: str,
+    checkpoint_step: int,
+    checkpoint_tag: str,
+    checkpoint_relative: str,
+    target_rank: int,
+    timeout_seconds: float,
+    torch_extensions_dir: Path,
+) -> MultiRankFailureEvent:
+    rendezvous = run_root / "rendezvous" / f"fault-{uuid.uuid4().hex}.store"
+    rendezvous.parent.mkdir(parents=True, exist_ok=True)
+    init_method = rendezvous.resolve().as_uri()
+    ready_paths = tuple(f"phases/fault/rank-{rank:03d}.ready.json" for rank in range(2))
+    peer_paths = tuple(f"phases/fault/rank-{rank:03d}.peer-failure.json" for rank in range(2))
+    commands = []
+    environments = []
+    for rank in range(2):
+        commands.append(
+            (
+                _python_executable(),
+                "-m",
+                "flashpilot.deepspeed.worker",
+                "--mode",
+                "fault",
+                "--rank",
+                str(rank),
+                "--world-size",
+                "2",
+                "--backend",
+                "gloo",
+                "--zero-stage",
+                "2",
+                "--init-method",
+                init_method,
+                "--run-root",
+                str(run_root),
+                "--workload-profile",
+                workload_profile,
+                "--checkpoint-step",
+                str(checkpoint_step),
+                "--checkpoint-tag",
+                checkpoint_tag,
+                "--checkpoint",
+                checkpoint_relative,
+                "--fault-target-rank",
+                str(target_rank),
+                "--output",
+                ready_paths[rank],
+                "--peer-failure-output",
+                peer_paths[rank],
+            )
+        )
+        environments.append(
+            _environment(
+                seed=get_profile(workload_profile).global_seed,
+                torch_extensions_dir=torch_extensions_dir,
+            )
+        )
+    try:
+        return run_targeted_rank_termination(
+            run_root=run_root,
+            commands=(commands[0], commands[1]),
+            environments=(environments[0], environments[1]),
+            ready_paths=(ready_paths[0], ready_paths[1]),
+            peer_failure_paths=(peer_paths[0], peer_paths[1]),
+            log_stem="fault",
+            framework="deepspeed",
+            adapter="deepspeed-engine",
+            strategy="zero",
+            implementation="zero-stage-2",
+            zero_stage=2,
+            checkpoint_path=checkpoint_relative,
+            checkpoint_id=f"checkpoint-step-{checkpoint_step:06d}",
+            checkpoint_tag=checkpoint_tag,
+            checkpoint_step=checkpoint_step,
+            target_rank=target_rank,
+            timeout_seconds=timeout_seconds,
+        )
+    except MultiRankFailureError as error:
+        raise DeepSpeedQualificationError(str(error)) from error
+    finally:
+        if rendezvous.exists():
+            rendezvous.unlink()
+
+
 def run_deepspeed_qualification(
     *,
     run_root: Path,
@@ -259,13 +353,23 @@ def run_deepspeed_qualification(
     world_size: int = 2,
     zero_stage: int = 2,
     backend: str = "gloo",
+    fault: str = "checkpoint-restart",
+    target_rank: int | None = None,
     timeout_seconds: float = 300.0,
 ) -> DeepSpeedQualificationResult:
-    """Prove exact same-world-size ZeRO-2 restart without injecting failure."""
+    """Prove exact ZeRO-2 restart, optionally after a targeted rank failure."""
 
     if world_size != 2 or zero_stage != 2 or backend != "gloo":
         raise DeepSpeedUnsupportedConfigurationError(
             "supported DeepSpeed contract is zero_stage=2, backend=gloo, world_size=2"
+        )
+    if fault not in {"checkpoint-restart", "rank-termination"}:
+        raise DeepSpeedUnsupportedConfigurationError(
+            "supported DeepSpeed faults are checkpoint-restart and rank-termination"
+        )
+    if (fault == "rank-termination") != (target_rank in (0, 1)):
+        raise DeepSpeedUnsupportedConfigurationError(
+            "rank-termination requires target_rank=0 or target_rank=1; clean restart forbids it"
         )
     _require_deepspeed()
     profile = get_profile(workload_profile)
@@ -311,6 +415,19 @@ def run_deepspeed_qualification(
             run_root=sandbox.root,
             checkpoint_path=checkpoint_path,
         )
+        failure_event = None
+        if fault == "rank-termination":
+            assert target_rank is not None
+            failure_event = _launch_fault_phase(
+                run_root=sandbox.root,
+                workload_profile=workload_profile,
+                checkpoint_step=checkpoint_step,
+                checkpoint_tag=checkpoint_tag,
+                checkpoint_relative=checkpoint_relative,
+                target_rank=target_rank,
+                timeout_seconds=timeout_seconds,
+                torch_extensions_dir=torch_extensions_dir,
+            )
         recovery_processes, recovery = _launch_phase(
             phase="recovery",
             run_root=sandbox.root,
@@ -325,7 +442,7 @@ def run_deepspeed_qualification(
         max(item.completed_at for item in recovery_processes.ranks)
         - min(item.started_at for item in recovery_processes.ranks)
     ).total_seconds()
-    gate = evaluate_deepspeed_recovery_gate(
+    base_gate = evaluate_deepspeed_recovery_gate(
         control_processes=control_processes,
         control=control,
         checkpoint_processes=checkpoint_processes,
@@ -337,10 +454,38 @@ def run_deepspeed_qualification(
         checkpoint_step=checkpoint_step,
         total_steps=profile.steps,
     )
+    gate = base_gate
+    if failure_event is not None:
+        existing_phase_pids = tuple(
+            item.worker_pid
+            for phase in (control_processes, checkpoint_processes, recovery_processes)
+            for item in phase.ranks
+        )
+        fault_checks = evaluate_multi_rank_failure_checks(
+            event=failure_event,
+            expected_framework="deepspeed",
+            expected_target_rank=target_rank,
+            expected_checkpoint_path=checkpoint_relative,
+            expected_checkpoint_step=checkpoint_step,
+            existing_phase_pids=existing_phase_pids,
+            recovery_started_at=min(item.started_at for item in recovery_processes.ranks),
+        )
+        checks = base_gate.checks + fault_checks
+        failed = tuple(check.check_id for check in checks if check.status == "fail")
+        gate = DeepSpeedRecoveryGateV1(
+            passed=not failed,
+            checks=checks,
+            failed_check_ids=failed,
+        )
     result = DeepSpeedQualificationResult(
         run_id=uuid.uuid4().hex,
         created_at=datetime.now(UTC),
         workload_profile=workload_profile,
+        fault_scenario=(
+            "rank_process_termination" if failure_event is not None else "checkpoint_restart"
+        ),
+        fault_target_rank=target_rank,
+        failure_event=failure_event,
         control_processes=control_processes,
         control=control,
         checkpoint_processes=checkpoint_processes,
@@ -358,7 +503,13 @@ def run_deepspeed_qualification(
             "Qualification covers the included deterministic CPU workload at world size 2.",
             "Recovery uses the same world size; universal or elastic checkpoints are not qualified.",
             "Gloo file-store rendezvous is local and does not qualify network filesystems.",
-            "This milestone performs a clean checkpoint restart, not a multi-rank failure.",
+            (
+                "Qualification performs one parent-owned rank termination at a committed "
+                "zero-RPO boundary."
+                if failure_event is not None
+                else "Qualification performs a clean checkpoint restart without fault injection."
+            ),
+            "Elastic or universal recovery, world-size changes, and job-manager retries are not qualified.",
             "DeepSpeed qualification is Linux-only; Windows fails closed before worker launch.",
             "The attestation remains unsigned until the later signing milestone.",
         ),

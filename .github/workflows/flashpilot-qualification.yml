@@ -70,6 +70,28 @@ jobs:
           --profile exact-training-resume
           --run-dir runs/ci-distributed
 
+      - name: Qualify FSDP recovery after rank 0 termination
+        run: >-
+          flashpilot qualify distributed-pytorch
+          --strategy fsdp
+          --backend gloo
+          --world-size 2
+          --profile exact-training-resume
+          --fault rank-termination
+          --target-rank 0
+          --run-dir runs/ci-distributed-fault-rank-0
+
+      - name: Qualify FSDP recovery after rank 1 termination
+        run: >-
+          flashpilot qualify distributed-pytorch
+          --strategy fsdp
+          --backend gloo
+          --world-size 2
+          --profile exact-training-resume
+          --fault rank-termination
+          --target-rank 1
+          --run-dir runs/ci-distributed-fault-rank-1
+
       - name: Qualify real two-rank DeepSpeed ZeRO-2 restart
         run: >-
           flashpilot qualify deepspeed
@@ -78,6 +100,28 @@ jobs:
           --world-size 2
           --profile exact-training-resume
           --run-dir runs/ci-deepspeed
+
+      - name: Qualify DeepSpeed recovery after rank 0 termination
+        run: >-
+          flashpilot qualify deepspeed
+          --zero-stage 2
+          --backend gloo
+          --world-size 2
+          --profile exact-training-resume
+          --fault rank-termination
+          --target-rank 0
+          --run-dir runs/ci-deepspeed-fault-rank-0
+
+      - name: Qualify DeepSpeed recovery after rank 1 termination
+        run: >-
+          flashpilot qualify deepspeed
+          --zero-stage 2
+          --backend gloo
+          --world-size 2
+          --profile exact-training-resume
+          --fault rank-termination
+          --target-rank 1
+          --run-dir runs/ci-deepspeed-fault-rank-1
 
       - name: Certify managed SIGTERM preemption
         run: >-
@@ -105,7 +149,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          for summary in runs/ci-hf/job-summary.md runs/ci-distributed/job-summary.md runs/ci-deepspeed/job-summary.md runs/ci-preemption/job-summary.md; do
+          for summary in runs/ci-*/job-summary.md; do
             if [[ -f "$summary" ]]; then
               cat "$summary" >> "$GITHUB_STEP_SUMMARY"
             fi
@@ -122,6 +166,8 @@ jobs:
             runs/**/job-summary.md
             runs/**/report.md
             runs/**/result.json
+            runs/**/failure-event.json
+            runs/**/phases/fault/*.json
             runs/**/preemption/commit.json
             runs/**/results.sarif
 

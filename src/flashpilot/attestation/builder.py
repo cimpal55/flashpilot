@@ -762,7 +762,7 @@ def emit_distributed_recovery_attestation(
         checkpoint_logical_bytes=checkpoint_fingerprint.logical_bytes,
         persistence_contract_sha256=persistence_contract_sha256(contract),
         evidence_manifest_sha256=evidence_manifest_sha256,
-        fault_scenario="checkpoint_restart",
+        fault_scenario=persisted.fault_scenario,
         distributed_strategy=persisted.strategy,
         distributed_implementation=persisted.implementation,
         distributed_backend=persisted.backend,
@@ -771,6 +771,25 @@ def emit_distributed_recovery_attestation(
         recovery_worker_pid=recovery_pids[0],
         original_worker_pids=original_pids,
         recovery_worker_pids=recovery_pids,
+        distributed_fault_target_rank=persisted.fault_target_rank,
+        distributed_fault_worker_pids=(
+            tuple(item.worker_pid for item in persisted.failure_event.rank_processes)
+            if persisted.failure_event is not None
+            else None
+        ),
+        distributed_peer_failure_observer_rank=(
+            persisted.failure_event.peer_failure.observer_rank
+            if persisted.failure_event is not None
+            else None
+        ),
+        distributed_failure_event_path=(
+            "failure-event.json" if persisted.failure_event is not None else None
+        ),
+        distributed_failure_event_sha256=(
+            sha256_file(root / "failure-event.json")
+            if persisted.failure_event is not None
+            else None
+        ),
         control_digest=persisted.control[0].trainable_state_sha256,
         resumed_digest=persisted.recovery[0].trainable_state_sha256,
         control_evaluation_digest=persisted.control[0].evaluation_sha256,
@@ -894,7 +913,7 @@ def emit_deepspeed_recovery_attestation(
         checkpoint_logical_bytes=checkpoint_fingerprint.logical_bytes,
         persistence_contract_sha256=persistence_contract_sha256(contract),
         evidence_manifest_sha256=evidence_manifest_sha256,
-        fault_scenario="checkpoint_restart",
+        fault_scenario=persisted.fault_scenario,
         distributed_strategy=persisted.strategy,
         distributed_implementation=persisted.implementation,
         distributed_backend=persisted.backend,
@@ -904,6 +923,25 @@ def emit_deepspeed_recovery_attestation(
         recovery_worker_pid=recovery_pids[0],
         original_worker_pids=original_pids,
         recovery_worker_pids=recovery_pids,
+        distributed_fault_target_rank=persisted.fault_target_rank,
+        distributed_fault_worker_pids=(
+            tuple(item.worker_pid for item in persisted.failure_event.rank_processes)
+            if persisted.failure_event is not None
+            else None
+        ),
+        distributed_peer_failure_observer_rank=(
+            persisted.failure_event.peer_failure.observer_rank
+            if persisted.failure_event is not None
+            else None
+        ),
+        distributed_failure_event_path=(
+            "failure-event.json" if persisted.failure_event is not None else None
+        ),
+        distributed_failure_event_sha256=(
+            sha256_file(root / "failure-event.json")
+            if persisted.failure_event is not None
+            else None
+        ),
         control_digest=persisted.control[0].trainable_state_sha256,
         resumed_digest=persisted.recovery[0].trainable_state_sha256,
         control_evaluation_digest=persisted.control[0].evaluation_sha256,

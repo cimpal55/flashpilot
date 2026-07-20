@@ -100,6 +100,12 @@ def test_checked_in_policy_loads_through_safe_closed_schema() -> None:
     assert policy.require_attestation is True
 
 
+def test_policy_accepts_the_exact_multi_rank_fault_identifier() -> None:
+    policy = _policy(required_faults=("rank_process_termination",))
+
+    assert policy.required_faults == ("rank_process_termination",)
+
+
 @pytest.mark.parametrize(
     "update",
     [

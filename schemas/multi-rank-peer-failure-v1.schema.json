@@ -1,0 +1,72 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_step": {
+      "exclusiveMinimum": 0,
+      "title": "Checkpoint Step",
+      "type": "integer"
+    },
+    "event": {
+      "const": "peer_collective_failure_observed",
+      "default": "peer_collective_failure_observed",
+      "title": "Event",
+      "type": "string"
+    },
+    "failure_kind": {
+      "const": "gloo_collective_error",
+      "default": "gloo_collective_error",
+      "title": "Failure Kind",
+      "type": "string"
+    },
+    "framework": {
+      "enum": [
+        "pytorch-distributed",
+        "deepspeed"
+      ],
+      "title": "Framework",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "observer_pid": {
+      "exclusiveMinimum": 0,
+      "title": "Observer Pid",
+      "type": "integer"
+    },
+    "observer_rank": {
+      "enum": [
+        0,
+        1
+      ],
+      "title": "Observer Rank",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "flashpilot-multi-rank-peer-failure-v1",
+      "default": "flashpilot-multi-rank-peer-failure-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "target_rank": {
+      "enum": [
+        0,
+        1
+      ],
+      "title": "Target Rank",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "framework",
+    "target_rank",
+    "observer_rank",
+    "observer_pid",
+    "checkpoint_step",
+    "observed_at"
+  ],
+  "title": "MultiRankPeerFailureEvidence",
+  "type": "object"
+}
