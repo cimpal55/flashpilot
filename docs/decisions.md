@@ -711,3 +711,25 @@ candidate copies, and validation must preserve both source and candidate
 fingerprints. A PASS means all expected corrupt/incomplete states were rejected
 and no incomplete state was accepted; it is not a Recovery Gate verdict and
 cannot produce an attestation or storage-savings metric.
+
+## D-054: Fallback selection and recovery proof are separate mandatory gates
+
+Previous-valid fallback is accepted only when seven deterministic selection
+checks and the existing 24-check Recovery Gate both pass. Selection must first
+prove that the newest committed checkpoint changed, fails for the exact model
+payload checksum, is excluded from discovery, and leaves step 2 as the only
+valid candidate. Recovery cannot run against a silently substituted or
+unrecorded path.
+
+The producer really commits steps 2 and 4 in one process and is parent-terminated
+only after both validate. Its last completed step remains 4 even though recovery
+selects step 2, so the Gate enforces an honest two-step RPO with a two-step hard
+limit. Recovery occurs in a different process and uses exact `atol=0.0`,
+`rtol=0.0` trajectory comparison.
+
+The corruption is injected after producer termination to isolate fallback
+selection from the earlier partial-write milestone. The corrupt newest artifact
+is preserved for diagnostics, the previous checkpoint remains immutable, and
+no repair action is executed. The verified result reports no bytes or storage
+savings and does not emit an attestation; its recovery claim derives solely
+from the deterministic Gate.

@@ -520,3 +520,26 @@ Codex did not begin previous-valid fallback, randomized fault timing, SARIF,
 distributed/CUDA qualification, discovery, or another adapter. The fuzz result
 does not claim recovery verification, report bytes or savings, or emit an
 attestation.
+
+## V0.3 roadmap item 4 - previous-valid checkpoint fallback
+
+Codex implemented only the fourth V0.3 roadmap item:
+
+- added a fixed native producer that commits valid `safe_full` checkpoints at
+  steps 2 and 4 in one process and emits a strict two-checkpoint event;
+- added parent-owned termination after both checkpoints validate, followed by
+  durable corruption of only the newest model payload;
+- required exact checksum rejection, a `(2,)` valid-candidate inventory, and
+  exact selection of the immediate predecessor;
+- reused the existing distinct recovery worker and unchanged 24-check exact
+  Recovery Gate with an honest two-step achieved and maximum RPO;
+- added seven typed selection checks and before/after fingerprints preserving
+  both the previous checkpoint and rejected newest evidence;
+- added `qualify previous-valid-fallback`, strict JSON Schemas, Markdown,
+  JUnit, job-summary output, packaging coverage, and focused process,
+  redaction, containment, schema, and unsupported-mode tests.
+
+Codex did not begin randomized fault timing, SARIF, distributed/CUDA
+qualification, discovery, or another adapter. It did not repair or delete the
+corrupt checkpoint, call GPT, report bytes or storage savings, or emit an
+attestation.

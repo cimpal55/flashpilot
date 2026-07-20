@@ -2971,3 +2971,119 @@ storage-controller persistence, distributed process coordination, or random
 crash timing. Previous-valid fallback, randomized fault timing, SARIF,
 distributed/CUDA qualification, discovery, and additional adapters were not
 started.
+
+## V0.3 roadmap item 4 - previous-valid checkpoint fallback
+
+Date: 2026-07-20
+
+Only roadmap item 4 was implemented. Local validation used Python 3.12.13 and
+Torch 2.13.0+cpu on Windows; Python 3.11 remains the declared compatibility
+target. Existing checkpoint serialization, latest-valid discovery, native
+recovery, and all 24 Recovery Gate checks and exact tolerances were reused
+unchanged.
+
+### Implementation evidence
+
+One producer process trained the deterministic CI workload, atomically
+committed and validated `safe_full` checkpoints at steps 2 and 4, then emitted
+a strict two-checkpoint event and waited. The parent validated the event and
+both artifacts before terminating that exact producer. It then flipped one byte
+in only the step-4 `model.pt`, fsynced the mutation, and required the exact
+validation error `payload checksum mismatch: model.pt`.
+
+Discovery returned valid steps `(2,)` and selected
+`checkpoints/checkpoint-step-000002`. A distinct native recovery process
+resumed that checkpoint through the final step. Seven selection checks passed,
+followed by all 24 unchanged Recovery Gate checks at `atol=0.0`, `rtol=0.0`.
+Because the producer had completed step 4 and recovery selected step 2, achieved
+RPO was honestly recorded as two steps against a two-step hard limit.
+
+The selected previous checkpoint remained at fingerprint:
+
+```text
+85d306c5b4334b92f17f20207a7060406f2e3f0b53bda64e6e0293ea15d12e77
+```
+
+The newest checkpoint fingerprint changed from
+`f1d1994108d56295f13ddbaadd6002c1b7e72009b361452c7f2d3a1c9fd9a89a`
+to `4980333a52a8c965d54e69815da073ae13b1d6c39854d54f46d705248b9101e7`
+when corrupted and remained at the latter value after discovery and recovery.
+
+### Authoritative qualification
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli qualify previous-valid-fallback --profile exact-training-resume --scenario corrupt-newest --run-dir .\runs\v03-previous-valid-fallback-final
+VERIFIED
+Selected step: 2 after rejecting step 4
+Recovery Gate: 24/24
+RPO: 2/2 steps
+Processes: producer=19188, recovery=37612
+Recovery verified: true
+Attestation emitted: false
+Storage savings reported: false
+Result: C:\Programming\business\flashpilot\runs\v03-previous-valid-fallback-final\result.json
+JUnit XML: C:\Programming\business\flashpilot\runs\v03-previous-valid-fallback-final\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\v03-previous-valid-fallback-final\job-summary.md
+```
+
+Producer termination exit code was `1`, and measured recovery-process duration
+was `11.421091` seconds. Control and recovery matched exactly for loss history
+and these state digests:
+
+```text
+trainable  1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997
+evaluation a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a
+optimizer  c03dfc8b66e6645fb552223428ad86a855c97049d133b08984604f6e7d55a050
+scheduler  e07ffd6a89fefb61e80d1ca56025a927222a83180ffced778789606d3a7bec81
+```
+
+No checkpoint byte total or storage-savings figure was calculated. The rejected
+newest checkpoint was preserved rather than repaired or deleted. No GPT call,
+repair action, second corruption, or recovery attestation was performed.
+
+### Focused validation
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_fallback_qualification.py tests\integration\test_previous_valid_fallback.py tests\unit\test_loader.py tests\integration\test_safe_full.py tests\unit\test_packaging.py -q
+............................                                             [100%]
+28 passed in 13.34s
+```
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+160 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 28%]
+........................................................................ [ 56%]
+.......................................................................s [ 84%]
+.........................................                                [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+256 passed, 1 skipped in 195.53s (0:03:15)
+```
+
+The single skip is the unchanged Windows directory-symlink privilege test. The
+default pytest command retained its unique UUID basetemp plugin and disabled
+cache provider.
+
+### Acceptance and unresolved risks
+
+Roadmap item 4 passes: both checkpoints are committed in one real producer;
+termination is parent-owned and verified; the newest artifact is rejected for
+its exact checksum error; only the immediate predecessor remains valid;
+recovery uses a distinct process; the honest rollback stays within its hard
+limit; every selection and Recovery Gate check passes; and both checkpoint
+histories remain preserved after the injected mutation.
+
+Remaining risks are the fixed local native-PyTorch CI workload, one fixed
+post-commit corruption type, Windows-only local validation, unverified Python
+3.11 execution on this host, and best-effort Windows directory fsync. The run
+does not establish remote/object-store consistency or a general retention
+policy. Randomized fault timing, SARIF, distributed/CUDA qualification,
+discovery, and additional adapters were not started.

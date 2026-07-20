@@ -147,6 +147,33 @@ relative artifact paths, JSON, Markdown, JUnit, and a job summary. This is
 commit-integrity evidence, not randomized crash timing or recovery proof, so it
 emits no recovery attestation, byte metric, or storage-savings claim.
 
+## V0.3 previous-valid checkpoint fallback
+
+The fourth V0.3 roadmap item qualifies deterministic fallback after the newest
+committed checkpoint becomes corrupt:
+
+```powershell
+flashpilot qualify previous-valid-fallback `
+  --profile exact-training-resume `
+  --scenario corrupt-newest `
+  --run-dir .\runs\previous-valid-fallback
+```
+
+A dedicated CPU producer commits complete native `safe_full` checkpoints at
+steps 2 and 4, emits typed evidence only after both validate, and is then
+terminated by the parent. The parent corrupts only the newest model payload,
+requires the exact checksum rejection, and invokes the existing latest-valid
+discovery. Step 2 must be the only valid candidate and the selected checkpoint.
+
+Recovery runs in a distinct process. The unchanged 24-check deterministic
+Recovery Gate compares its step, model, optimizer, scheduler, Python/NumPy/Torch
+RNG, loss trajectory, trainable state, and evaluation output to the
+uninterrupted control with `atol=0.0`, `rtol=0.0`. The fixed scenario permits a
+two-step RPO and fails if that limit is exceeded. Both the selected previous
+checkpoint and rejected newest evidence are fingerprinted before and after
+recovery. A verified fallback reports neither storage savings nor checkpoint
+bytes and currently emits no recovery attestation.
+
 ## What the demo proves
 
 1. An uninterrupted seeded CPU control produces stable trajectory evidence.
@@ -367,9 +394,9 @@ DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay is tied to the captured
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add distributed scenarios, previous-valid fallback, randomized
-fault timing, and broader platform validation. Those later roadmap items are
-not part of the completed partial-write fuzz milestone.
+Future work may add distributed scenarios, randomized fault timing, SARIF, and
+broader platform validation. Those later roadmap items are not part of the
+completed previous-valid fallback milestone.
 
 ## Repository and license
 

@@ -387,6 +387,62 @@ def qualify_conversions(
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 
+@qualify_app.command("previous-valid-fallback")
+def qualify_previous_valid_fallback(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty previous-valid fallback evidence directory."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile; only exact-training-resume is supported."),
+    ] = "exact-training-resume",
+    scenario: Annotated[
+        str,
+        typer.Option(help="Fallback scenario; only corrupt-newest is supported."),
+    ] = "corrupt-newest",
+) -> None:
+    """Prove exact recovery from the previous valid native checkpoint."""
+
+    if profile != "exact-training-resume" or scenario != "corrupt-newest":
+        typer.echo("Unsupported previous-valid fallback profile or scenario.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    try:
+        from flashpilot.fallback.qualification import (
+            FallbackQualificationError,
+            run_previous_valid_fallback,
+        )
+
+        result = run_previous_valid_fallback(run_root=run_dir)
+    except (FallbackQualificationError, OSError, RuntimeError, ValueError) as error:
+        typer.echo(f"Previous-valid fallback qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.final_verdict)
+    typer.echo(
+        f"Selected step: {result.selected_checkpoint_step} "
+        f"after rejecting step {result.producer_crash.checkpoint_step}"
+    )
+    typer.echo(
+        f"Recovery Gate: {len(result.gate.checks) - len(result.gate.failed_check_ids)}/"
+        f"{len(result.gate.checks)}"
+    )
+    typer.echo(
+        f"RPO: {result.gate.achieved_rollback_steps}/{result.gate.hard_rollback_limit_steps} steps"
+    )
+    typer.echo(
+        f"Processes: producer={result.checkpoint_set_event.worker_pid}, "
+        f"recovery={result.recovery.worker_pid}"
+    )
+    typer.echo(f"Recovery verified: {str(result.recovery_verified).lower()}")
+    typer.echo("Attestation emitted: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / result.junit_path).resolve()}")
+    typer.echo(f"Job summary: {(run_dir / result.job_summary_path).resolve()}")
+    if not result.recovery_verified:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
 @app.command("compare-checkpoints")
 def compare_checkpoints(
     baseline: Annotated[Path, typer.Argument(help="Source conversion artifact directory.")],

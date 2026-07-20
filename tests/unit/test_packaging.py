@@ -55,6 +55,9 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
         "schemas/conversion-qualification-v1.schema.json" in data_files["share/flashpilot/schemas"]
     )
     assert "schemas/partial-write-fuzz-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    assert (
+        "schemas/previous-valid-fallback-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    )
     assert "schemas/recovery-attestation-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert data_files["share/flashpilot/examples/ci"] == ["examples/ci/policy.yml"]
     assert data_files["share/flashpilot/examples/hf_trainer"] == ["examples/hf_trainer/train.py"]

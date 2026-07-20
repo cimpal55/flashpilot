@@ -113,3 +113,17 @@ byte for byte. It does not model storage-controller persistence, network
 filesystem semantics, distributed process coordination, or probabilistic crash
 timing. Those boundaries prevent a local Windows CPU result from being
 presented as general crash-consistency certification.
+
+## Previous-valid fallback positioning
+
+Selecting the most recent valid checkpoint is established recovery practice,
+not a novel FlashPilot algorithm. The V0.3 qualification contribution is the
+evidence chain around that choice: a newer committed artifact is shown to be
+checksum-invalid, the candidate inventory and exact selected predecessor are
+recorded, and resumed stochastic training is compared with an uninterrupted
+control under the same Recovery Gate used by the native crash workflow.
+
+The fixed test models one post-commit corruption and a two-step rollback on the
+local CPU workload. It does not establish a general retention policy, repair
+corrupt data, assess remote/object-store consistency, or characterize the
+probability and timing of failures.

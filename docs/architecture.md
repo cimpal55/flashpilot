@@ -425,3 +425,36 @@ counts, and before/after directory fingerprints. The aggregate verdict derives
 from the complete six-case-per-iteration matrix and zero premature acceptances.
 It does not select an older checkpoint, resume training, invoke GPT, report
 bytes, or emit a recovery attestation.
+
+## V0.3 previous-valid checkpoint fallback
+
+Fallback qualification reuses the production native `safe_full` writer,
+fail-closed checkpoint validator, latest-valid discovery, recovery subprocess,
+and 24-check Recovery Gate. It adds orchestration and typed evidence but no new
+checkpoint format or alternate recovery verdict.
+
+```text
+producer process trains to step 2
+-> atomic safe_full commit and validation
+-> same producer trains to step 4
+-> second atomic safe_full commit and validation
+-> parent receives the typed two-checkpoint event
+-> parent terminates the producer
+-> parent corrupts only step-4 model.pt and fsyncs the mutation
+-> exact checksum rejection
+-> discovery returns only step 2 and selects it
+-> distinct recovery process resumes step 2 through step 8
+-> unchanged 24-check exact Recovery Gate with RPO 2/2
+```
+
+The event records both checkpoint snapshots and RNG digests before termination.
+For gate evaluation, the selected step-2 event remains bound to the original
+producer PID and its last completed step 4. Therefore achieved rollback is
+computed as `4 - 2 = 2`, rather than being hidden by rewriting the crash point.
+
+Selection adds seven checks for producer termination, corruption, exact
+rejection, valid-candidate inventory, selected path, previous-checkpoint
+immutability, and preservation of the rejected newest artifact. The Gate then
+proves exact continued training. The workflow does not delete or repair the
+corrupt checkpoint, call GPT, select across arbitrary repositories, emit a
+storage metric, or run the later randomized-timing matrix.

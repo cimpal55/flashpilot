@@ -1,0 +1,897 @@
+{
+  "$defs": {
+    "CheckpointCommittedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "checkpoint_snapshot": {
+          "$ref": "#/$defs/RuntimeSnapshot"
+        },
+        "checkpoint_step": {
+          "exclusiveMinimum": 0,
+          "title": "Checkpoint Step",
+          "type": "integer"
+        },
+        "committed_at": {
+          "format": "date-time",
+          "title": "Committed At",
+          "type": "string"
+        },
+        "event": {
+          "const": "checkpoint_committed",
+          "default": "checkpoint_committed",
+          "title": "Event",
+          "type": "string"
+        },
+        "last_completed_step": {
+          "exclusiveMinimum": 0,
+          "title": "Last Completed Step",
+          "type": "integer"
+        },
+        "rng_state": {
+          "$ref": "#/$defs/RngStateDigests"
+        },
+        "schema_version": {
+          "const": "worker-event-v1",
+          "default": "worker-event-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "checkpoint_step",
+        "last_completed_step",
+        "checkpoint_path",
+        "committed_at",
+        "checkpoint_snapshot",
+        "rng_state"
+      ],
+      "title": "CheckpointCommittedEvent",
+      "type": "object"
+    },
+    "ComparisonPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "atol": {
+          "const": 0.0,
+          "default": 0.0,
+          "title": "Atol",
+          "type": "number"
+        },
+        "evaluation_logits": {
+          "const": "sha256_exact",
+          "default": "sha256_exact",
+          "title": "Evaluation Logits",
+          "type": "string"
+        },
+        "evidence": {
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "loss_history": {
+          "const": "sequence_exact",
+          "default": "sequence_exact",
+          "title": "Loss History",
+          "type": "string"
+        },
+        "mode": {
+          "const": "exact",
+          "default": "exact",
+          "title": "Mode",
+          "type": "string"
+        },
+        "optimizer_state": {
+          "const": "sha256_exact",
+          "default": "sha256_exact",
+          "title": "Optimizer State",
+          "type": "string"
+        },
+        "rng_state": {
+          "const": "sha256_exact",
+          "default": "sha256_exact",
+          "title": "Rng State",
+          "type": "string"
+        },
+        "rtol": {
+          "const": 0.0,
+          "default": 0.0,
+          "title": "Rtol",
+          "type": "number"
+        },
+        "scheduler_state": {
+          "const": "sha256_exact",
+          "default": "sha256_exact",
+          "title": "Scheduler State",
+          "type": "string"
+        },
+        "trainable_parameters": {
+          "const": "sha256_exact",
+          "default": "sha256_exact",
+          "title": "Trainable Parameters",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence"
+      ],
+      "title": "ComparisonPolicy",
+      "type": "object"
+    },
+    "CrashMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "checkpoint_step": {
+          "exclusiveMinimum": 0,
+          "title": "Checkpoint Step",
+          "type": "integer"
+        },
+        "event_received_at": {
+          "format": "date-time",
+          "title": "Event Received At",
+          "type": "string"
+        },
+        "last_completed_step": {
+          "exclusiveMinimum": 0,
+          "title": "Last Completed Step",
+          "type": "integer"
+        },
+        "terminated_at": {
+          "format": "date-time",
+          "title": "Terminated At",
+          "type": "string"
+        },
+        "termination_exit_code": {
+          "title": "Termination Exit Code",
+          "type": "integer"
+        },
+        "termination_method": {
+          "minLength": 1,
+          "title": "Termination Method",
+          "type": "string"
+        },
+        "termination_verified": {
+          "title": "Termination Verified",
+          "type": "boolean"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "checkpoint_step",
+        "last_completed_step",
+        "checkpoint_path",
+        "event_received_at",
+        "termination_method",
+        "termination_exit_code",
+        "termination_verified",
+        "terminated_at"
+      ],
+      "title": "CrashMetadata",
+      "type": "object"
+    },
+    "FallbackCheckpointRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "committed_at": {
+          "format": "date-time",
+          "title": "Committed At",
+          "type": "string"
+        },
+        "global_step": {
+          "exclusiveMinimum": 0,
+          "title": "Global Step",
+          "type": "integer"
+        },
+        "rng_state": {
+          "$ref": "#/$defs/RngStateDigests"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/RuntimeSnapshot"
+        }
+      },
+      "required": [
+        "checkpoint_path",
+        "global_step",
+        "committed_at",
+        "snapshot",
+        "rng_state"
+      ],
+      "title": "FallbackCheckpointRecord",
+      "type": "object"
+    },
+    "FallbackCheckpointSetEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoints": {
+          "items": {
+            "$ref": "#/$defs/FallbackCheckpointRecord"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Checkpoints",
+          "type": "array"
+        },
+        "event": {
+          "const": "fallback_checkpoint_set_committed",
+          "default": "fallback_checkpoint_set_committed",
+          "title": "Event",
+          "type": "string"
+        },
+        "last_completed_step": {
+          "const": 4,
+          "default": 4,
+          "title": "Last Completed Step",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "flashpilot-fallback-checkpoint-set-v1",
+          "default": "flashpilot-fallback-checkpoint-set-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "checkpoints"
+      ],
+      "title": "FallbackCheckpointSetEvent",
+      "type": "object"
+    },
+    "FallbackSelectionCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Actual",
+          "type": "string"
+        },
+        "check_id": {
+          "enum": [
+            "process.producer-terminated",
+            "corruption.newest-changed",
+            "corruption.newest-rejected",
+            "discovery.only-previous-valid",
+            "discovery.previous-selected",
+            "immutability.previous-preserved",
+            "immutability.corrupt-newest-preserved"
+          ],
+          "title": "Check Id",
+          "type": "string"
+        },
+        "expected": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Expected",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "status",
+        "summary",
+        "expected",
+        "actual"
+      ],
+      "title": "FallbackSelectionCheck",
+      "type": "object"
+    },
+    "GateCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actual"
+        },
+        "category": {
+          "enum": [
+            "Integrity",
+            "Required training state",
+            "Process recovery",
+            "Trajectory correctness",
+            "Safety and rollback"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "check_id": {
+          "enum": [
+            "integrity.manifest_schema",
+            "integrity.completion_marker",
+            "integrity.checksums",
+            "integrity.base_present",
+            "integrity.base_hash",
+            "state.global_step",
+            "state.model_or_adapter",
+            "state.optimizer",
+            "state.scheduler",
+            "state.python_rng",
+            "state.numpy_rng",
+            "state.torch_rng",
+            "process.next_step",
+            "process.original_pid",
+            "process.expected_termination",
+            "process.new_recovery_pid",
+            "process.recovery_exit",
+            "rollback.hard_limit",
+            "trajectory.checkpoint_evaluation",
+            "trajectory.final_trainable",
+            "trajectory.final_evaluation",
+            "trajectory.loss_history",
+            "safety.path_containment",
+            "contract.no_mandatory_omission"
+          ],
+          "title": "Check Id",
+          "type": "string"
+        },
+        "details": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Details"
+        },
+        "evidence_ids": {
+          "items": {
+            "enum": [
+              "manifest:schema",
+              "integrity:completion-marker",
+              "integrity:sha256",
+              "base:presence",
+              "base:sha256",
+              "manifest:global-step",
+              "restore:model-state",
+              "restore:optimizer-state",
+              "restore:scheduler-state",
+              "restore:python-rng",
+              "restore:numpy-rng",
+              "restore:torch-rng",
+              "process:next-step",
+              "process:original-pid",
+              "process:termination",
+              "process:recovery-pid",
+              "process:recovery-exit",
+              "rollback:achieved",
+              "trajectory:checkpoint-evaluation",
+              "trajectory:final-trainable",
+              "trajectory:final-evaluation",
+              "trajectory:loss-history",
+              "safety:path-containment",
+              "contract:mandatory-state"
+            ],
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "expected": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "category",
+        "label",
+        "status",
+        "evidence_ids"
+      ],
+      "title": "GateCheck",
+      "type": "object"
+    },
+    "RecoveryGateResult": {
+      "additionalProperties": false,
+      "properties": {
+        "achieved_rollback_steps": {
+          "minimum": 0,
+          "title": "Achieved Rollback Steps",
+          "type": "integer"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/GateCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "comparison_policy": {
+          "$ref": "#/$defs/ComparisonPolicy"
+        },
+        "failed_check_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Check Ids",
+          "type": "array"
+        },
+        "hard_rollback_limit_steps": {
+          "minimum": 0,
+          "title": "Hard Rollback Limit Steps",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "schema_version": {
+          "const": "recovery-gate-v1",
+          "default": "recovery-gate-v1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "passed",
+        "checks",
+        "failed_check_ids",
+        "achieved_rollback_steps",
+        "hard_rollback_limit_steps",
+        "comparison_policy"
+      ],
+      "title": "RecoveryGateResult",
+      "type": "object"
+    },
+    "RecoveryProcessMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "exit_code": {
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "exit_verified": {
+          "title": "Exit Verified",
+          "type": "boolean"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "exit_code",
+        "exit_verified",
+        "started_at",
+        "completed_at"
+      ],
+      "title": "RecoveryProcessMetadata",
+      "type": "object"
+    },
+    "RecoveryWorkerResult": {
+      "additionalProperties": false,
+      "properties": {
+        "after_restore": {
+          "$ref": "#/$defs/RuntimeSnapshot"
+        },
+        "after_restore_rng": {
+          "$ref": "#/$defs/RngStateDigests"
+        },
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "final": {
+          "$ref": "#/$defs/RuntimeSnapshot"
+        },
+        "first_completed_step": {
+          "exclusiveMinimum": 0,
+          "title": "First Completed Step",
+          "type": "integer"
+        },
+        "first_resumed_batch_step": {
+          "minimum": 0,
+          "title": "First Resumed Batch Step",
+          "type": "integer"
+        },
+        "restored_global_step": {
+          "minimum": 0,
+          "title": "Restored Global Step",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "recovery-worker-result-v1",
+          "default": "recovery-worker-result-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "strategy": {
+          "enum": [
+            "safe_full",
+            "safe_adapter_aware",
+            "missing_training_state"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "strategy",
+        "checkpoint_path",
+        "restored_global_step",
+        "first_resumed_batch_step",
+        "first_completed_step",
+        "after_restore",
+        "after_restore_rng",
+        "final",
+        "started_at",
+        "completed_at"
+      ],
+      "title": "RecoveryWorkerResult",
+      "type": "object"
+    },
+    "RngStateDigests": {
+      "additionalProperties": false,
+      "properties": {
+        "numpy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Numpy Sha256",
+          "type": "string"
+        },
+        "python_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Python Sha256",
+          "type": "string"
+        },
+        "torch_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Torch Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "python_sha256",
+        "numpy_sha256",
+        "torch_sha256"
+      ],
+      "title": "RngStateDigests",
+      "type": "object"
+    },
+    "RuntimeSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluation_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Evaluation Sha256",
+          "type": "string"
+        },
+        "global_step": {
+          "minimum": 0,
+          "title": "Global Step",
+          "type": "integer"
+        },
+        "loss_history": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Loss History",
+          "type": "array"
+        },
+        "optimizer_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Optimizer Sha256",
+          "type": "string"
+        },
+        "scheduler_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scheduler Sha256",
+          "type": "string"
+        },
+        "trainable_state_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Trainable State Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "global_step",
+        "loss_history",
+        "trainable_state_sha256",
+        "evaluation_sha256",
+        "optimizer_sha256",
+        "scheduler_sha256"
+      ],
+      "title": "RuntimeSnapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "attestation_emitted": {
+      "const": false,
+      "default": false,
+      "title": "Attestation Emitted",
+      "type": "boolean"
+    },
+    "checkpoint_set_event": {
+      "$ref": "#/$defs/FallbackCheckpointSetEvent"
+    },
+    "control": {
+      "$ref": "#/$defs/RuntimeSnapshot"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "final_verdict": {
+      "enum": [
+        "VERIFIED",
+        "FAILED"
+      ],
+      "title": "Final Verdict",
+      "type": "string"
+    },
+    "gate": {
+      "$ref": "#/$defs/RecoveryGateResult"
+    },
+    "job_summary_path": {
+      "const": "job-summary.md",
+      "default": "job-summary.md",
+      "title": "Job Summary Path",
+      "type": "string"
+    },
+    "junit_path": {
+      "const": "junit.xml",
+      "default": "junit.xml",
+      "title": "Junit Path",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "newest_checkpoint_path": {
+      "const": "checkpoints/checkpoint-step-000004",
+      "title": "Newest Checkpoint Path",
+      "type": "string"
+    },
+    "newest_sha256_after_corruption": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Newest Sha256 After Corruption",
+      "type": "string"
+    },
+    "newest_sha256_after_recovery": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Newest Sha256 After Recovery",
+      "type": "string"
+    },
+    "newest_sha256_before_corruption": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Newest Sha256 Before Corruption",
+      "type": "string"
+    },
+    "newest_validation_error": {
+      "const": "payload checksum mismatch: model.pt",
+      "title": "Newest Validation Error",
+      "type": "string"
+    },
+    "previous_sha256_after": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Previous Sha256 After",
+      "type": "string"
+    },
+    "previous_sha256_before": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Previous Sha256 Before",
+      "type": "string"
+    },
+    "producer_crash": {
+      "$ref": "#/$defs/CrashMetadata"
+    },
+    "profile": {
+      "const": "ci",
+      "default": "ci",
+      "title": "Profile",
+      "type": "string"
+    },
+    "recovery": {
+      "$ref": "#/$defs/RecoveryWorkerResult"
+    },
+    "recovery_process": {
+      "$ref": "#/$defs/RecoveryProcessMetadata"
+    },
+    "recovery_verified": {
+      "title": "Recovery Verified",
+      "type": "boolean"
+    },
+    "report_path": {
+      "const": "report.md",
+      "default": "report.md",
+      "title": "Report Path",
+      "type": "string"
+    },
+    "result_path": {
+      "const": "result.json",
+      "default": "result.json",
+      "title": "Result Path",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "scenario": {
+      "const": "corrupt-newest",
+      "default": "corrupt-newest",
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-previous-valid-fallback-v1",
+      "default": "flashpilot-previous-valid-fallback-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_checkpoint_event": {
+      "$ref": "#/$defs/CheckpointCommittedEvent"
+    },
+    "selected_checkpoint_path": {
+      "const": "checkpoints/checkpoint-step-000002",
+      "title": "Selected Checkpoint Path",
+      "type": "string"
+    },
+    "selected_checkpoint_step": {
+      "const": 2,
+      "title": "Selected Checkpoint Step",
+      "type": "integer"
+    },
+    "selection_checks": {
+      "items": {
+        "$ref": "#/$defs/FallbackSelectionCheck"
+      },
+      "maxItems": 7,
+      "minItems": 7,
+      "title": "Selection Checks",
+      "type": "array"
+    },
+    "storage_savings_reported": {
+      "const": false,
+      "default": false,
+      "title": "Storage Savings Reported",
+      "type": "boolean"
+    },
+    "valid_candidate_steps": {
+      "items": {
+        "const": 2,
+        "type": "integer"
+      },
+      "title": "Valid Candidate Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "created_at",
+    "control",
+    "checkpoint_set_event",
+    "selected_checkpoint_event",
+    "producer_crash",
+    "newest_validation_error",
+    "valid_candidate_steps",
+    "selected_checkpoint_step",
+    "selected_checkpoint_path",
+    "newest_checkpoint_path",
+    "previous_sha256_before",
+    "previous_sha256_after",
+    "newest_sha256_before_corruption",
+    "newest_sha256_after_corruption",
+    "newest_sha256_after_recovery",
+    "selection_checks",
+    "recovery_process",
+    "recovery",
+    "gate",
+    "recovery_verified",
+    "final_verdict",
+    "limitations"
+  ],
+  "title": "PreviousValidFallbackResult",
+  "type": "object"
+}
