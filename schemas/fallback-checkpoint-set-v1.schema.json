@@ -1,0 +1,153 @@
+{
+  "$defs": {
+    "FallbackCheckpointRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "committed_at": {
+          "format": "date-time",
+          "title": "Committed At",
+          "type": "string"
+        },
+        "global_step": {
+          "exclusiveMinimum": 0,
+          "title": "Global Step",
+          "type": "integer"
+        },
+        "rng_state": {
+          "$ref": "#/$defs/RngStateDigests"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/RuntimeSnapshot"
+        }
+      },
+      "required": [
+        "checkpoint_path",
+        "global_step",
+        "committed_at",
+        "snapshot",
+        "rng_state"
+      ],
+      "title": "FallbackCheckpointRecord",
+      "type": "object"
+    },
+    "RngStateDigests": {
+      "additionalProperties": false,
+      "properties": {
+        "numpy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Numpy Sha256",
+          "type": "string"
+        },
+        "python_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Python Sha256",
+          "type": "string"
+        },
+        "torch_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Torch Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "python_sha256",
+        "numpy_sha256",
+        "torch_sha256"
+      ],
+      "title": "RngStateDigests",
+      "type": "object"
+    },
+    "RuntimeSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluation_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Evaluation Sha256",
+          "type": "string"
+        },
+        "global_step": {
+          "minimum": 0,
+          "title": "Global Step",
+          "type": "integer"
+        },
+        "loss_history": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Loss History",
+          "type": "array"
+        },
+        "optimizer_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Optimizer Sha256",
+          "type": "string"
+        },
+        "scheduler_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scheduler Sha256",
+          "type": "string"
+        },
+        "trainable_state_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Trainable State Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "global_step",
+        "loss_history",
+        "trainable_state_sha256",
+        "evaluation_sha256",
+        "optimizer_sha256",
+        "scheduler_sha256"
+      ],
+      "title": "RuntimeSnapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoints": {
+      "items": {
+        "$ref": "#/$defs/FallbackCheckpointRecord"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Checkpoints",
+      "type": "array"
+    },
+    "event": {
+      "const": "fallback_checkpoint_set_committed",
+      "default": "fallback_checkpoint_set_committed",
+      "title": "Event",
+      "type": "string"
+    },
+    "last_completed_step": {
+      "const": 4,
+      "default": 4,
+      "title": "Last Completed Step",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "flashpilot-fallback-checkpoint-set-v1",
+      "default": "flashpilot-fallback-checkpoint-set-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "worker_pid": {
+      "exclusiveMinimum": 0,
+      "title": "Worker Pid",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "worker_pid",
+    "checkpoints"
+  ],
+  "title": "FallbackCheckpointSetEvent",
+  "type": "object"
+}

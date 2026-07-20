@@ -15,6 +15,10 @@ from flashpilot.adapters.huggingface import (
     HuggingFaceDependencyError,
     require_huggingface_dependencies,
 )
+from flashpilot.adapters.lightning import (
+    LightningDependencyError,
+    require_lightning_dependencies,
+)
 from flashpilot.adapters.native_pytorch import NativePyTorchAdapter
 from flashpilot.agent.fixture_provider import FixtureFailureProvider
 from flashpilot.agent.guardrails import validate_failure_analysis
@@ -81,6 +85,14 @@ def _default_audit_output_dir() -> Path:
 
 def _default_hf_script() -> Path:
     return Path(__file__).resolve().parent / "hf" / "worker.py"
+
+
+def _default_preemption_run_dir() -> Path:
+    return Path("runs") / f"preemption-{uuid.uuid4().hex}"
+
+
+def _default_lightning_script() -> Path:
+    return Path(__file__).resolve().parent / "lightning" / "worker.py"
 
 
 def _load_repair_loop_result(run_dir: Path) -> RepairLoopResult:
@@ -202,9 +214,91 @@ def qualify_hf_trainer(
     typer.echo(f"HTML report: {(run_dir / result.html_report_path).resolve()}")
     typer.echo(f"JUnit XML: {(run_dir / 'junit.xml').resolve()}")
     typer.echo(f"Job summary: {(run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(run_dir / 'results.sarif').resolve()}")
     if result.final_verdict == "VERIFIED":
         typer.echo(f"Recovery attestation: {(run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
     else:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@app.command(
+    "certify-preemption",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def certify_preemption(
+    context: typer.Context,
+    framework: Annotated[
+        str,
+        typer.Option(help="Framework contract; only the narrow hf adapter is supported."),
+    ] = "hf",
+    signal_name: Annotated[
+        str,
+        typer.Option("--signal", help="Managed preemption signal; only SIGTERM is supported."),
+    ] = "SIGTERM",
+    grace_period: Annotated[
+        int,
+        typer.Option(
+            "--grace-period",
+            min=1,
+            max=3_600,
+            help="Seconds allowed for checkpoint commit and clean worker exit.",
+        ),
+    ] = 300,
+    run_dir: Annotated[
+        Path | None,
+        typer.Option(help="New isolated preemption-certification directory."),
+    ] = None,
+    script: Annotated[
+        Path | None,
+        typer.Option(help="Trainer script; defaults to the installed offline HF worker."),
+    ] = None,
+) -> None:
+    """Certify a real POSIX SIGTERM checkpoint commit and exact new-process resume."""
+
+    if framework != "hf" or signal_name != "SIGTERM":
+        typer.echo("Unsupported preemption framework or signal.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    selected_run_dir = run_dir or _default_preemption_run_dir()
+    try:
+        from flashpilot.hf.qualification import HFUnsupportedConfigurationError
+        from flashpilot.preemption.service import (
+            PreemptionCertificationError,
+            PreemptionUnsupportedError,
+            run_hf_preemption_certification,
+        )
+
+        result = run_hf_preemption_certification(
+            script_path=script or _default_hf_script(),
+            run_root=selected_run_dir,
+            signal_name=signal_name,
+            grace_period_seconds=grace_period,
+            forwarded_arguments=tuple(context.args),
+        )
+    except (PreemptionUnsupportedError, HFUnsupportedConfigurationError, ValueError) as error:
+        typer.echo(f"Preemption certification is unsupported: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    except (PreemptionCertificationError, HuggingFaceDependencyError) as error:
+        typer.echo(f"Preemption certification failed: {error}", err=True)
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED) from error
+    typer.echo(result.final_verdict)
+    typer.echo(f"Signal: {result.signal_name} via {result.signal_delivery}")
+    typer.echo(f"Grace period: {result.grace_period_seconds} seconds")
+    typer.echo(f"Checkpoint commit: {result.checkpoint_commit_seconds:.6f} seconds")
+    typer.echo(f"Graceful exit: {result.graceful_exit_seconds:.6f} seconds")
+    typer.echo(
+        f"RPO: {result.gate.achieved_rpo_steps} steps / {result.gate.achieved_rpo_tokens} tokens"
+    )
+    typer.echo(f"Recovery RTO: {result.recovery_rto_seconds:.6f} seconds")
+    passed_checks = sum(check.status == "pass" for check in result.gate.checks)
+    typer.echo(f"Recovery Gate: {passed_checks}/{len(result.gate.checks)}")
+    typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
+    typer.echo(f"Markdown report: {(selected_run_dir / result.report_path).resolve()}")
+    typer.echo(f"HTML report: {(selected_run_dir / result.html_report_path).resolve()}")
+    typer.echo(f"JUnit XML: {(selected_run_dir / 'junit.xml').resolve()}")
+    typer.echo(f"Job summary: {(selected_run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(selected_run_dir / result.sarif_path).resolve()}")
+    typer.echo(f"Recovery attestation: {(selected_run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
+    if result.final_verdict != "VERIFIED":
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 
@@ -255,11 +349,338 @@ def qualify_native_pytorch(
     typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
     typer.echo(f"JUnit XML: {(selected_run_dir / 'junit.xml').resolve()}")
     typer.echo(f"Job summary: {(selected_run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(selected_run_dir / 'results.sarif').resolve()}")
     if result.final_verdict == "VERIFIED":
         typer.echo(
             f"Recovery attestation: {(selected_run_dir / RECOVERY_ATTESTATION_PATH).resolve()}"
         )
     else:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@qualify_app.command(
+    "lightning",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def qualify_lightning(
+    context: typer.Context,
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty isolated Lightning qualification directory."),
+    ],
+    script: Annotated[
+        Path | None,
+        typer.Option(
+            help=(
+                "Lightning script implementing the documented FlashPilot contract; "
+                "defaults to the installed offline example."
+            )
+        ),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile; only exact-training-resume is supported."),
+    ] = "exact-training-resume",
+    fault: Annotated[
+        str,
+        typer.Option(help="Fault mechanism; only process-kill is supported."),
+    ] = "process-kill",
+    scenario: Annotated[
+        str,
+        typer.Option(help="Checkpoint scenario: complete or weights-only."),
+    ] = "complete",
+) -> None:
+    """Qualify the included CPU PyTorch Lightning contract."""
+
+    if profile != "exact-training-resume" or fault != "process-kill":
+        typer.echo("Unsupported Lightning qualification profile or fault.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    if scenario not in {"complete", "weights-only"}:
+        typer.echo("Unsupported Lightning qualification scenario.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    try:
+        require_lightning_dependencies()
+    except LightningDependencyError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    try:
+        from flashpilot.lightning.qualification import (
+            LightningQualificationError,
+            LightningUnsupportedConfigurationError,
+            run_lightning_qualification,
+        )
+
+        result = run_lightning_qualification(
+            script_path=script or _default_lightning_script(),
+            run_root=run_dir,
+            scenario=cast("Any", scenario),
+            forwarded_arguments=tuple(context.args),
+        )
+    except (LightningUnsupportedConfigurationError, ValueError) as error:
+        typer.echo(f"Lightning qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    except LightningQualificationError as error:
+        typer.echo(f"Lightning qualification failed: {error}", err=True)
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED) from error
+    typer.echo(result.final_verdict)
+    typer.echo(
+        f"Processes: control={result.control_process.worker_pid}, "
+        f"terminated={result.crash_process.worker_pid}, "
+        f"recovery={result.recovery_process.worker_pid}"
+    )
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"Markdown report: {(run_dir / result.report_path).resolve()}")
+    typer.echo(f"HTML report: {(run_dir / result.html_report_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / 'junit.xml').resolve()}")
+    typer.echo(f"Job summary: {(run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(run_dir / 'results.sarif').resolve()}")
+    if result.final_verdict == "VERIFIED":
+        typer.echo(f"Recovery attestation: {(run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
+    else:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@qualify_app.command("conversions")
+def qualify_conversions(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty directory for all four conversion-equivalence cases."),
+    ],
+) -> None:
+    """Qualify every plan-defined V0.3 checkpoint conversion."""
+
+    try:
+        from flashpilot.conversion.service import (
+            ConversionQualificationError,
+            run_conversion_qualification,
+        )
+
+        result = run_conversion_qualification(run_root=run_dir)
+    except (ConversionQualificationError, OSError, ValueError) as error:
+        typer.echo(f"Conversion qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.verdict)
+    for case in result.cases:
+        typer.echo(
+            f"{case.conversion_kind.value}: "
+            f"{'PASS' if case.passed else 'FAILED'} "
+            f"({case.comparison_policy.mode})"
+        )
+    typer.echo("Recovery verified: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / result.junit_path).resolve()}")
+    typer.echo(f"Job summary: {(run_dir / result.job_summary_path).resolve()}")
+    typer.echo(f"SARIF: {(run_dir / result.sarif_path).resolve()}")
+    if not result.passed:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@qualify_app.command("previous-valid-fallback")
+def qualify_previous_valid_fallback(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty previous-valid fallback evidence directory."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile; only exact-training-resume is supported."),
+    ] = "exact-training-resume",
+    scenario: Annotated[
+        str,
+        typer.Option(help="Fallback scenario; only corrupt-newest is supported."),
+    ] = "corrupt-newest",
+) -> None:
+    """Prove exact recovery from the previous valid native checkpoint."""
+
+    if profile != "exact-training-resume" or scenario != "corrupt-newest":
+        typer.echo("Unsupported previous-valid fallback profile or scenario.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    try:
+        from flashpilot.fallback.qualification import (
+            FallbackQualificationError,
+            run_previous_valid_fallback,
+        )
+
+        result = run_previous_valid_fallback(run_root=run_dir)
+    except (FallbackQualificationError, OSError, RuntimeError, ValueError) as error:
+        typer.echo(f"Previous-valid fallback qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.final_verdict)
+    typer.echo(
+        f"Selected step: {result.selected_checkpoint_step} "
+        f"after rejecting step {result.producer_crash.checkpoint_step}"
+    )
+    typer.echo(
+        f"Recovery Gate: {len(result.gate.checks) - len(result.gate.failed_check_ids)}/"
+        f"{len(result.gate.checks)}"
+    )
+    typer.echo(
+        f"RPO: {result.gate.achieved_rollback_steps}/{result.gate.hard_rollback_limit_steps} steps"
+    )
+    typer.echo(
+        f"Processes: producer={result.checkpoint_set_event.worker_pid}, "
+        f"recovery={result.recovery.worker_pid}"
+    )
+    typer.echo(f"Recovery verified: {str(result.recovery_verified).lower()}")
+    typer.echo("Attestation emitted: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / result.junit_path).resolve()}")
+    typer.echo(f"Job summary: {(run_dir / result.job_summary_path).resolve()}")
+    typer.echo(f"SARIF: {(run_dir / result.sarif_path).resolve()}")
+    if not result.recovery_verified:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@qualify_app.command("randomized-fault-timing")
+def qualify_randomized_fault_timing(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty repeated fault-timing evidence directory."),
+    ],
+    iterations: Annotated[
+        int,
+        typer.Option(help="Seeded process-kill trials, from 4 through 32."),
+    ] = 8,
+    seed: Annotated[
+        int,
+        typer.Option(help="Recorded nonnegative 63-bit schedule seed."),
+    ] = 20_260_720,
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile; only exact-training-resume is supported."),
+    ] = "exact-training-resume",
+    fault: Annotated[
+        str,
+        typer.Option(help="Fault mechanism; only process-kill is supported."),
+    ] = "process-kill",
+) -> None:
+    """Run seeded RPO-stratified native process-kill recovery trials."""
+
+    if profile != "exact-training-resume" or fault != "process-kill":
+        typer.echo("Unsupported randomized fault-timing profile or fault.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    if not 4 <= iterations <= 32 or not 0 <= seed <= 9_223_372_036_854_775_807:
+        typer.echo("Unsupported randomized fault-timing iteration count or seed.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    try:
+        from flashpilot.fault_timing.service import (
+            RandomizedFaultTimingError,
+            run_randomized_fault_timing,
+        )
+
+        result = run_randomized_fault_timing(
+            run_root=run_dir,
+            iterations=iterations,
+            seed=seed,
+        )
+    except (RandomizedFaultTimingError, OSError, RuntimeError, ValueError) as error:
+        typer.echo(f"Randomized fault-timing qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.final_verdict)
+    typer.echo(f"Trials: {result.passed_trials}/{result.iterations}")
+    typer.echo(f"Seed: {result.seed}")
+    typer.echo(f"Schedule SHA-256: {result.schedule_sha256}")
+    typer.echo(f"Observed RPO steps: {result.observed_rpo_steps}")
+    typer.echo("Recovery Gate: 24/24 required per trial")
+    typer.echo(f"Recovery verified: {str(result.recovery_verified).lower()}")
+    typer.echo("Attestation emitted: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / result.junit_path).resolve()}")
+    typer.echo(f"Job summary: {(run_dir / result.job_summary_path).resolve()}")
+    typer.echo(f"SARIF: {(run_dir / result.sarif_path).resolve()}")
+    if not result.recovery_verified:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@app.command("compare-checkpoints")
+def compare_checkpoints(
+    baseline: Annotated[Path, typer.Argument(help="Source conversion artifact directory.")],
+    candidate: Annotated[
+        Path,
+        typer.Argument(help="Converted candidate artifact directory."),
+    ],
+    output_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty comparison evidence directory."),
+    ],
+) -> None:
+    """Compare one typed source/candidate conversion pair deterministically."""
+
+    try:
+        from flashpilot.conversion.artifacts import ConversionArtifactError
+        from flashpilot.conversion.service import (
+            ConversionQualificationError,
+            compare_conversion_artifacts,
+        )
+
+        result = compare_conversion_artifacts(
+            source_path=baseline,
+            candidate_path=candidate,
+            output_dir=output_dir,
+        )
+    except (ConversionArtifactError, ConversionQualificationError, OSError, ValueError) as error:
+        typer.echo(f"Checkpoint comparison rejected invalid evidence: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo("PASS" if result.passed else "FAILED")
+    typer.echo(f"Conversion: {result.conversion_kind.value}")
+    typer.echo(f"Equivalence policy: {result.comparison_policy.mode}")
+    typer.echo(f"Source unmodified: {str(result.source_unmodified).lower()}")
+    typer.echo("Recovery verified: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Comparison JSON: {(output_dir / 'comparison.json').resolve()}")
+    typer.echo(f"SARIF: {(output_dir / result.sarif_path).resolve()}")
+    if not result.passed:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@app.command("fuzz-checkpoint")
+def fuzz_checkpoint(
+    scenario: Annotated[
+        str,
+        typer.Option(help="Fuzz scenario; only partial-write is supported."),
+    ] = "partial-write",
+    iterations: Annotated[
+        int,
+        typer.Option(help="Deterministic matrix iterations, from 1 through 1000."),
+    ] = 100,
+    run_dir: Annotated[
+        Path | None,
+        typer.Option(help="New or empty fuzz-evidence directory."),
+    ] = None,
+) -> None:
+    """Qualify fail-closed handling of partial and incomplete checkpoint commits."""
+
+    if scenario != "partial-write" or not 1 <= iterations <= 1000:
+        typer.echo("Unsupported checkpoint fuzz scenario or iteration count.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    selected_run_dir = run_dir or Path("runs") / f"fuzz-{uuid.uuid4().hex}"
+    try:
+        from flashpilot.fuzzing.service import (
+            PartialWriteFuzzError,
+            run_partial_write_fuzz,
+        )
+
+        result = run_partial_write_fuzz(
+            run_root=selected_run_dir,
+            iterations=iterations,
+        )
+    except (PartialWriteFuzzError, OSError, ValueError) as error:
+        typer.echo(f"Checkpoint fuzz qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.verdict)
+    typer.echo(f"Cases: {result.passed_cases}/{result.total_cases} passed")
+    typer.echo(f"Premature acceptances: {result.premature_acceptances}")
+    typer.echo(f"Schedule SHA-256: {result.schedule_sha256}")
+    typer.echo("Recovery verified: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
+    typer.echo(f"JUnit XML: {(selected_run_dir / result.junit_path).resolve()}")
+    typer.echo(f"Job summary: {(selected_run_dir / result.job_summary_path).resolve()}")
+    typer.echo(f"SARIF: {(selected_run_dir / result.sarif_path).resolve()}")
+    if not result.passed:
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 
@@ -328,7 +749,9 @@ def audit_checkpoint(
     ] = "exact-training-resume",
     output_dir: Annotated[
         Path | None,
-        typer.Option(help="New or empty directory for audit.json, report.md, and junit.xml."),
+        typer.Option(
+            help=("New or empty directory for audit.json, report.md, junit.xml, and results.sarif.")
+        ),
     ] = None,
 ) -> None:
     """Inspect checkpoint evidence without executing a training workload."""
@@ -356,6 +779,7 @@ def audit_checkpoint(
     typer.echo(f"Markdown report: {run.report_markdown}")
     typer.echo(f"JUnit XML: {run.junit_xml}")
     typer.echo(f"Job summary: {run.job_summary}")
+    typer.echo(f"SARIF: {run.sarif_json}")
     exit_code = AUDIT_EXIT_CODES[run.result.status]
     if exit_code:
         raise typer.Exit(code=exit_code)
@@ -460,12 +884,13 @@ def crash_demo(
     typer.echo()
     typer.echo(render_recovery_gate(result.gate), nl=False)
     typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
-    junit_path, summary_path = write_qualification_ci_outputs(
+    junit_path, summary_path, sarif_path = write_qualification_ci_outputs(
         run_root=selected_run_dir,
         result=result,
     )
     typer.echo(f"JUnit XML: {junit_path.resolve()}")
     typer.echo(f"Job summary: {summary_path.resolve()}")
+    typer.echo(f"SARIF: {sarif_path.resolve()}")
     if result.failure_artifact_path is not None:
         typer.echo(
             f"Sanitized failure artifact: "
@@ -535,6 +960,7 @@ def demo(
     typer.echo(f"Attestation JUnit: {(selected_run_dir / ATTESTATION_JUNIT_PATH).resolve()}")
     typer.echo(f"Qualification JUnit: {(selected_run_dir / 'junit.xml').resolve()}")
     typer.echo(f"Job summary: {(selected_run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(selected_run_dir / 'results.sarif').resolve()}")
 
 
 @app.command()
@@ -623,7 +1049,7 @@ def emit_junit(
         typer.Option(help="Optional typed FlashPilot CI policy YAML."),
     ] = None,
 ) -> None:
-    """Emit or verify deterministic JUnit and Markdown CI artifacts."""
+    """Emit or verify deterministic JUnit, Markdown, and SARIF CI artifacts."""
 
     selected_policy = None
     if policy is not None:
@@ -640,11 +1066,34 @@ def emit_junit(
     typer.echo(result.evidence.status.value)
     typer.echo(f"JUnit XML: {result.junit_path.resolve()}")
     typer.echo(f"Job summary: {result.job_summary_path.resolve()}")
+    typer.echo(f"SARIF: {result.sarif_path.resolve()}")
     if result.policy_evaluation is not None:
         typer.echo("Policy: " + ("PASS" if result.policy_evaluation.passed else "FAIL"))
         for check in result.policy_evaluation.checks:
             if check.status.value == "FAIL":
                 typer.echo(f"FAILED REQUIREMENT {check.check_id}: {check.summary}", err=True)
+    if result.exit_code:
+        raise typer.Exit(code=result.exit_code)
+
+
+@app.command("emit-sarif")
+def emit_sarif(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="Completed audit or qualification run directory."),
+    ],
+) -> None:
+    """Emit or verify deterministic SARIF alongside the existing CI artifacts."""
+
+    try:
+        result = emit_ci_outputs(run_root=run_dir)
+    except (CIEvidenceError, OSError, UnicodeError, ValueError) as error:
+        typer.echo(f"INVALID OR TAMPERED CI EVIDENCE: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.evidence.status.value)
+    typer.echo(f"SARIF: {result.sarif_path.resolve()}")
+    typer.echo(f"JUnit XML: {result.junit_path.resolve()}")
+    typer.echo(f"Job summary: {result.job_summary_path.resolve()}")
     if result.exit_code:
         raise typer.Exit(code=result.exit_code)
 

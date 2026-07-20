@@ -24,8 +24,16 @@ def _checkpoint_item(state_id: str, evidence_id: str, reason: str) -> Persistenc
     )
 
 
-def huggingface_trainer_persistence_contract() -> PersistenceContract:
-    """Return the fixed exact-resume contract qualified by the local example."""
+def huggingface_trainer_persistence_contract(
+    profile: QualificationProfile = QualificationProfile.EXACT_TRAINING_RESUME,
+) -> PersistenceContract:
+    """Return the fixed exact-continuation contract qualified by the local example."""
+
+    if profile not in {
+        QualificationProfile.EXACT_TRAINING_RESUME,
+        QualificationProfile.PREEMPTION_SAFE_TRAINING,
+    }:
+        raise ValueError("HF Trainer supports only exact-resume and preemption-safe contracts")
 
     items = (
         _checkpoint_item("batch_position", "trainer_state.json", "Resume the exact next batch."),
@@ -42,7 +50,7 @@ def huggingface_trainer_persistence_contract() -> PersistenceContract:
     )
     return validate_persistence_contract(
         PersistenceContract(
-            qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
+            qualification_profile=profile,
             framework="transformers",
             adapter="huggingface-trainer",
             max_rpo_steps=0,

@@ -167,7 +167,10 @@ def test_emit_ci_outputs_preserves_unknown_review_exit_without_policy(tmp_path: 
     assert emitted.exit_code == EXIT_REVIEW
     assert emitted.junit_path.is_file()
     assert emitted.job_summary_path.is_file()
+    assert emitted.sarif_path.is_file()
     assert "detection.framework" in emitted.junit_path.read_text(encoding="utf-8")
+    sarif = json.loads(emitted.sarif_path.read_text(encoding="utf-8"))
+    assert sarif["runs"][0]["results"][0]["ruleId"] == "detection.framework"
 
 
 def test_emit_junit_cli_turns_unknown_into_policy_failure(tmp_path: Path) -> None:
@@ -187,6 +190,21 @@ def test_emit_junit_cli_turns_unknown_into_policy_failure(tmp_path: Path) -> Non
 
     assert invocation.exit_code == EXIT_QUALIFICATION_FAILED
     assert "FAILED REQUIREMENT policy.unknown-state" in invocation.output
+
+
+def test_emit_sarif_cli_preserves_unknown_review_exit(tmp_path: Path) -> None:
+    result = _unknown_audit()
+    (tmp_path / "audit.json").write_text(result.model_dump_json() + "\n", encoding="utf-8")
+
+    invocation = CliRunner().invoke(
+        app,
+        ["emit-sarif", "--run-dir", str(tmp_path)],
+    )
+
+    assert invocation.exit_code == EXIT_REVIEW
+    assert "UNKNOWN" in invocation.output
+    assert "results.sarif" in invocation.output
+    assert (tmp_path / "results.sarif").is_file()
 
 
 def test_stable_exit_code_contract() -> None:
@@ -225,7 +243,7 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
 
     steps = workflow["jobs"]["qualify-checkpoint"]["steps"]
     diagnostic_upload = next(
-        step for step in steps if step.get("name") == "Upload diagnostic reports and JUnit"
+        step for step in steps if step.get("name") == "Upload diagnostic reports, JUnit, and SARIF"
     )
     attestation_upload = next(
         step for step in steps if step.get("name") == "Upload verified recovery attestation"
@@ -234,10 +252,14 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
     assert diagnostic_upload["if"] == "always()"
     assert attestation_upload["if"] == "success()"
     assert attestation_upload["with"]["path"] == "runs/**/recovery.attestation.json"
+    assert "runs/**/results.sarif" in diagnostic_upload["with"]["path"]
     serialized = active_path.read_text(encoding="utf-8")
     for required in (
         "flashpilot audit-checkpoint",
         "flashpilot qualify hf-trainer",
+        "flashpilot certify-preemption",
+        "--signal SIGTERM",
+        "--grace-period 300",
         "flashpilot emit-junit",
     ):
         assert required in serialized

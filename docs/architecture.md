@@ -326,3 +326,241 @@ packaged default worker, exact 13-check recovery, attestation verification,
 typed CI policy, and CPU static audit. Application workers remain offline; a
 temporary wheelhouse is only a dependency-install transport for the clean
 environment setup.
+
+## V0.3 PyTorch Lightning qualification adapter
+
+The Lightning path is an explicit qualification-only adapter. It is not
+registered with `NativePyTorchAdapter`, exposes no repair actions, performs no
+plugin discovery, and does not claim arbitrary `LightningModule`
+compatibility. `flashpilot qualify lightning` copies one selected Python entry
+point into an isolated run root and launches three CPU subprocesses with
+argument arrays and `shell=False`:
+
+```text
+uninterrupted control
+-> Lightning Trainer.save_checkpoint
+-> parent validates contained, bounded, weights-only-loadable checkpoint
+-> parent kills checkpoint worker
+-> distinct recovery worker
+-> exact 14-check gate
+-> JUnit/job summary
+-> verified-only attestation and persisted-byte count
+```
+
+The included module uses actual dropout. Its full checkpoint contains
+Lightning model, loop, optimizer, and scheduler state plus an explicit
+JSON-safe Python/NumPy/Torch RNG and loss-history bridge. RNG restoration is
+deferred until the first resumed batch boundary so new-process data-loader
+initialization cannot consume the restored dropout stream. The
+`weights-only=True` scenario uses Lightning's real serialization mode: model
+loading succeeds, loop metadata may remain, but optimizer, scheduler, RNG, and
+history are absent. Continued training then diverges naturally and the gate
+fails closed. No verified attestation or storage metric is emitted.
+
+## V0.3 checkpoint conversion equivalence
+
+Conversion qualification is a fixed four-case subsystem, not a format plugin
+or arbitrary checkpoint converter. Each case commits an immutable source and
+candidate directory with a strict typed manifest, closed payload inventory,
+SHA-256 checksums, and a completion marker bound to the manifest hash. Payloads
+are limited to 64 MiB and Torch data is loaded only after integrity validation
+with `weights_only=True`.
+
+```text
+fixed deterministic source
+-> checksummed atomic source commit
+-> fixed conversion
+-> candidate manifest binds source directory SHA-256
+-> checksummed atomic candidate commit
+-> semantic equivalence comparison
+-> source and candidate re-fingerprinting
+-> JSON + Markdown + JUnit evidence
+```
+
+The model cases cover controlled full-to-PEFT rank-2 extraction,
+PEFT-to-merged inference, and sharded-to-consolidated state. Float64 PEFT
+factorization and merge use the declared `1e-12` absolute and relative
+tolerance; consolidation requires exact parameter and output equality. The
+version-upgrade case translates all model, optimizer, scheduler, RNG,
+trajectory, and step state into the v2 layout, then resumes in a distinct
+subprocess and compares exact continuation evidence to a fresh uninterrupted
+control.
+
+The public `compare-checkpoints` command consumes only these typed artifact
+pairs and reuses the same comparator. It does not scan repositories, detect
+frameworks, mutate either input, repair checkpoints, issue a Recovery Gate
+verdict, calculate byte savings, or emit an attestation.
+
+## V0.3 partial-write and incomplete-commit fuzzing
+
+`fuzz-checkpoint --scenario partial-write` owns a fixed two-rank binary fixture
+with no external inputs. Its strict manifest binds iteration, checkpoint ID,
+world size, unique ranks, paths, sizes, and SHA-256 values. A completion marker
+binds the exact manifest hash, while a separate checksum document must agree
+with every manifest shard. Validation also requires a closed five-file
+inventory and refuses symbolic links or payloads above 1 MiB.
+
+Each deterministic iteration first creates a valid source through payload and
+metadata fsync, temporary-directory fsync where supported, same-filesystem
+directory rename, and parent-directory fsync where supported. Windows directory
+fsync remains best-effort. Five isolated copies are then faulted independently:
+
+```text
+truncated shard     -> payload-size-mismatch
+removed shard       -> payload-missing
+changed manifest    -> completion-mismatch
+changed checksums   -> checksum-manifest-mismatch
+duplicate rank      -> manifest-invalid
+```
+
+The sixth case creates a final-named directory prematurely and rotates a fixed
+five-file write order by iteration. Validation observes the directory after
+every write. The four incomplete states must be rejected; the fifth state must
+be accepted only when the full committed inventory is present. This is a
+deterministic commit-state matrix, not the later randomized process-timing
+milestone.
+
+Case evidence stores only relative paths, stable rejection enums, validation
+counts, and before/after directory fingerprints. The aggregate verdict derives
+from the complete six-case-per-iteration matrix and zero premature acceptances.
+It does not select an older checkpoint, resume training, invoke GPT, report
+bytes, or emit a recovery attestation.
+
+## V0.3 previous-valid checkpoint fallback
+
+Fallback qualification reuses the production native `safe_full` writer,
+fail-closed checkpoint validator, latest-valid discovery, recovery subprocess,
+and 24-check Recovery Gate. It adds orchestration and typed evidence but no new
+checkpoint format or alternate recovery verdict.
+
+```text
+producer process trains to step 2
+-> atomic safe_full commit and validation
+-> same producer trains to step 4
+-> second atomic safe_full commit and validation
+-> parent receives the typed two-checkpoint event
+-> parent terminates the producer
+-> parent corrupts only step-4 model.pt and fsyncs the mutation
+-> exact checksum rejection
+-> discovery returns only step 2 and selects it
+-> distinct recovery process resumes step 2 through step 8
+-> unchanged 24-check exact Recovery Gate with RPO 2/2
+```
+
+The event records both checkpoint snapshots and RNG digests before termination.
+For gate evaluation, the selected step-2 event remains bound to the original
+producer PID and its last completed step 4. Therefore achieved rollback is
+computed as `4 - 2 = 2`, rather than being hidden by rewriting the crash point.
+
+Selection adds seven checks for producer termination, corruption, exact
+rejection, valid-candidate inventory, selected path, previous-checkpoint
+immutability, and preservation of the rejected newest artifact. The Gate then
+proves exact continued training. The workflow does not delete or repair the
+corrupt checkpoint, call GPT, select across arbitrary repositories, emit a
+storage metric, or run the later randomized-timing matrix.
+
+## V0.3 repeated randomized fault timing
+
+This qualification layer composes the existing native crash experiment rather
+than introducing a second checkpoint writer, recovery worker, or Gate. A local
+`random.Random` instance produces an RPO-stratified schedule from a recorded
+63-bit seed. Each four-entry block contains one boundary for every allowed RPO
+value, 0 through 3, and chooses a checkpoint step that keeps the completed
+fault boundary within the eight-step CI workload.
+
+```text
+seed + iteration count
+-> deterministic RPO-stratified schedule and SHA-256
+-> N isolated safe_full native experiment directories
+-> parent-owned termination after the scheduled completed step
+-> distinct recovery process per trial
+-> unchanged 24-check exact Recovery Gate per trial
+-> closed aggregate with per-trial result and directory SHA-256
+-> deterministic Markdown + JUnit + job summary
+```
+
+The aggregate verifier regenerates the schedule from the seed, resolves only
+contained relative paths, fingerprints every trial directory, hashes every
+underlying `result.json`, and compares process, timing, RPO, Gate, profile,
+strategy, and exactness evidence to the strict aggregate. It rejects symlinks,
+missing artifacts, mutation, schedule substitution, relaxed tolerances, or an
+unexpected recovery attestation.
+
+Randomization is limited to completed training-step boundaries. The design
+does not claim mid-instruction, filesystem-controller, network-filesystem, or
+distributed timing coverage. It calls no GPT provider, executes no repair,
+emits no attestation, and never computes a storage byte or savings result.
+
+## V0.3 SARIF evidence projection
+
+SARIF output is downstream of the existing typed result models. It cannot
+change a qualification, audit, policy, or Recovery Gate verdict.
+
+```text
+strict typed FlashPilot evidence
+-> deterministic check-to-rule projection
+-> suppress PASS and NOT_APPLICABLE alerts
+-> emit FAIL as error; WARN and UNKNOWN as warning
+-> bind each alert to a relative evidence artifact and stable fingerprint
+-> validate the strict FlashPilot SARIF subset
+-> write results.sarif beside the authoritative evidence
+```
+
+The projection uses SARIF 2.1.0 and the official OASIS Errata 01 schema URI.
+Its strict Pydantic subset closes unknown properties and requires one run,
+unique exact rule IDs, correct rule-index references, relative evidence
+locations, and one deterministic partial fingerprint per non-passing result.
+The checked JSON Schema is packaged with the application.
+
+Core native, Hugging Face, and Lightning evidence uses the same CI-normalized
+renderer as static audit. Conversion, fuzz, fallback, and randomized-timing
+results use narrow typed adapters over their existing checks; no generic
+scanner, plugin, policy planner, or numeric severity model is introduced.
+When a verified attestation already closes a run inventory, re-emission may
+verify the existing SARIF bytes but may not add a missing file.
+
+The GitHub Actions workflow retains `contents: read` and uploads
+`results.sarif` as an ordinary always-on diagnostic artifact. Publishing to a
+repository's Code Scanning service is deliberately left to an explicitly
+authorized workflow with the appropriate repository permissions.
+
+## V0.4 managed-preemption certification
+
+The V0.4 path is an explicit extension of the narrow Hugging Face adapter, not
+a scheduler integration or a generic signal framework.
+
+```text
+full uninterrupted CPU control
+-> preemption worker reaches fixed completed step and emits ready evidence
+-> parent delivers external POSIX SIGTERM and starts grace deadline
+-> minimal Python handler records only in-memory receipt state
+-> Trainer callback writes preemption/INCOMPLETE and requests a full save
+-> Trainer completes model + trainer + optimizer + scheduler + RNG state
+-> callback persists lifecycle metadata, removes marker, fsyncs directory
+-> worker emits commit evidence and exits 0 before grace deadline
+-> parent validates streamed/persisted evidence and closed checkpoint inventory
+-> distinct recovery process resumes to the fixed final step
+-> 22-check zero-tolerance Gate measures step/token RPO and exact trajectory
+-> result-derived reports, CI/SARIF, and verified-only unsigned attestation
+```
+
+The in-progress marker is intentionally outside the checkpoint directory at
+`preemption/INCOMPLETE`. A forced kill during the callback path leaves it for
+fail-closed diagnosis; a verified run requires it to be absent after worker
+exit. Marker absence alone is insufficient: full state presence, a directly
+loadable checkpoint, new-process resume, exact loss/state/evaluation digests,
+commit-before-exit ordering, clean exit, and the grace deadline are separate
+Gate checks.
+
+The parent, not the worker, owns signal delivery and measures elapsed grace
+time with a monotonic clock. Evidence timestamps additionally bind ready,
+send, receipt, commit, and exit order. RPO is the difference between the
+recorded completed step and committed checkpoint step; the included workload
+also reports tokens as `batch_size * sequence_length * RPO steps`. Recovery RTO
+retains the existing definition: recovery-process start through completion.
+
+Windows fails closed before creating a run directory. Its process termination
+API cannot substitute for a catchable POSIX `SIGTERM`. The Ubuntu workflow and
+POSIX-only integration test are configured to exercise the real signal path.
+This local harness models the process-level contract used by interruptible environments but does
+not invoke Kubernetes, Slurm, RunPod, Vast, or another provider control plane.

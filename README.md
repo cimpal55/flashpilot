@@ -64,6 +64,200 @@ same documented contract explicitly. Omitting `--script` selects the installed
 package's offline worker entry. A base installation without the HF extra exits
 `5` with actionable `pip install 'flashpilot[hf]'` guidance.
 
+## V0.3 PyTorch Lightning qualification
+
+The V0.3 roadmap adds one explicit, optional PyTorch Lightning
+qualification adapter. It does not join the frozen native repair adapter and
+does not use plugin discovery or framework auto-detection:
+
+```powershell
+python -m pip install "flashpilot[lightning]"
+flashpilot qualify lightning `
+  --profile exact-training-resume `
+  --fault process-kill `
+  --scenario complete `
+  --run-dir .\runs\lightning-complete
+```
+
+The installed worker uses a tiny CPU-only `LightningModule`, deterministic
+synthetic data, and real dropout. A parent process terminates the checkpoint
+worker only after `Trainer.save_checkpoint` has returned and the resulting
+file passes a bounded `torch.load(..., weights_only=True)` inspection. Recovery
+runs in a distinct process. The `complete` scenario must pass the exact gate
+before bytes or an attestation are emitted. The real Lightning
+`weights_only=True` scenario remains loadable but fails exact resume because it
+omits optimizer, scheduler, RNG-bridge, and loss-history state.
+
+## V0.3 checkpoint conversion equivalence
+
+The second V0.3 roadmap item qualifies four fixed, local CPU conversion
+contracts together:
+
+```powershell
+flashpilot qualify conversions `
+  --run-dir .\runs\conversion-equivalence
+```
+
+The cases are full model to PEFT-style base plus rank-2 adapter, PEFT-style
+state to a merged model, two shards to one consolidated model, and legacy-v1
+training state to upgraded-v2 followed by continuation in a distinct process.
+Full-to-PEFT extraction and PEFT-to-merged inference use an explicit float64
+`atol=1e-12`, `rtol=1e-12` policy. Shard consolidation is bit-exact, while the
+version upgrade must reproduce the uninterrupted control's loss history,
+trainable state, evaluation, optimizer, scheduler, and final step exactly.
+
+Every artifact has a closed inventory, payload checksums, a manifest-bound
+completion marker, source provenance, bounded safe loading, and an atomic
+same-filesystem commit. A standalone comparison reuses the same typed core:
+
+```powershell
+flashpilot compare-checkpoints `
+  .\runs\conversion-equivalence\cases\peft-to-merged\source `
+  .\runs\conversion-equivalence\cases\peft-to-merged\candidate `
+  --output-dir .\runs\conversion-comparison
+```
+
+A passing conversion result is equivalence evidence, not crash-recovery
+verification. It emits neither a recovery attestation nor storage-savings
+claims.
+
+## V0.3 partial-write fuzz qualification
+
+The third V0.3 roadmap item runs a deterministic six-case matrix for every
+requested iteration:
+
+```powershell
+flashpilot fuzz-checkpoint `
+  --scenario partial-write `
+  --iterations 100 `
+  --run-dir .\runs\partial-write-fuzz
+```
+
+Each iteration exercises truncated payload, missing shard, stale manifest,
+checksum mismatch, duplicate rank, and reordered-write exposure. The first
+five cases must fail validation for their exact typed reason. The reordered
+case exposes a final-named directory after each of five differently ordered
+writes; every incomplete observation must be rejected, and only the complete
+closed inventory may pass.
+
+The source checkpoint uses the same-filesystem temporary-directory and atomic
+rename protocol. All source and candidate artifacts are fingerprinted before
+and after validation. Results are deterministic for the fixed seed and contain
+relative artifact paths, JSON, Markdown, JUnit, and a job summary. This is
+commit-integrity evidence, not randomized crash timing or recovery proof, so it
+emits no recovery attestation, byte metric, or storage-savings claim.
+
+## V0.3 previous-valid checkpoint fallback
+
+The fourth V0.3 roadmap item qualifies deterministic fallback after the newest
+committed checkpoint becomes corrupt:
+
+```powershell
+flashpilot qualify previous-valid-fallback `
+  --profile exact-training-resume `
+  --scenario corrupt-newest `
+  --run-dir .\runs\previous-valid-fallback
+```
+
+A dedicated CPU producer commits complete native `safe_full` checkpoints at
+steps 2 and 4, emits typed evidence only after both validate, and is then
+terminated by the parent. The parent corrupts only the newest model payload,
+requires the exact checksum rejection, and invokes the existing latest-valid
+discovery. Step 2 must be the only valid candidate and the selected checkpoint.
+
+Recovery runs in a distinct process. The unchanged 24-check deterministic
+Recovery Gate compares its step, model, optimizer, scheduler, Python/NumPy/Torch
+RNG, loss trajectory, trainable state, and evaluation output to the
+uninterrupted control with `atol=0.0`, `rtol=0.0`. The fixed scenario permits a
+two-step RPO and fails if that limit is exceeded. Both the selected previous
+checkpoint and rejected newest evidence are fingerprinted before and after
+recovery. A verified fallback reports neither storage savings nor checkpoint
+bytes and currently emits no recovery attestation.
+
+## V0.3 repeated randomized fault timing
+
+The fifth V0.3 roadmap item repeats the unchanged native `safe_full` crash and
+recovery experiment at a reproducible, seeded set of completed-step boundaries:
+
+```powershell
+flashpilot qualify randomized-fault-timing `
+  --profile exact-training-resume `
+  --fault process-kill `
+  --iterations 8 `
+  --seed 20260720 `
+  --run-dir .\runs\randomized-fault-timing
+```
+
+Every four-trial schedule block covers an achieved RPO of 0, 1, 2, and 3
+completed steps in randomized order. Each trial uses a real parent-owned
+process termination and a distinct recovery process. All 24 exact Recovery
+Gate checks must pass with `atol=0.0`, `rtol=0.0`, and the achieved RPO must
+remain within the fixed three-step limit. The aggregate binds its seeded
+schedule and each complete trial directory by SHA-256, then revalidates the
+underlying experiment evidence before reporting `VERIFIED`.
+
+The result includes relative paths, JSON, Markdown, JUnit, and a job summary.
+It does not call GPT, execute repair, emit an attestation, or calculate or
+report checkpoint bytes or storage savings.
+
+## V0.3 SARIF dashboard output
+
+FlashPilot now writes `results.sarif` beside its typed JSON, Markdown, and
+JUnit evidence for static audits; native, Hugging Face, and Lightning
+qualification; conversion equivalence; partial-write fuzzing; previous-valid
+fallback; and randomized fault timing. Existing completed audit and core
+qualification runs can be projected again without rerunning training:
+
+```powershell
+flashpilot emit-sarif --run-dir .\runs\ci-hf
+```
+
+The SARIF 2.1.0 document is a deterministic view of existing evidence, not a
+second verdict engine or a source-code scanner. Exact FlashPilot check IDs are
+stable rules. `FAIL` becomes an error, `WARN` and `UNKNOWN` become warnings,
+and `PASS` or `NOT_APPLICABLE` produces no dashboard alert. Every emitted
+result points to the relative authoritative evidence file and carries a stable
+partial fingerprint; absolute local paths are not invented.
+
+The included GitHub Actions workflow uploads SARIF as an ordinary diagnostic
+artifact under its existing `contents: read` permission. It does not request
+`security-events: write` or automatically publish Code Scanning results.
+
+## V0.4 managed-preemption certification
+
+V0.4 adds one narrow POSIX certification path for the included offline CPU
+Hugging Face Trainer workload:
+
+```bash
+flashpilot certify-preemption \
+  --framework hf \
+  --signal SIGTERM \
+  --grace-period 300 \
+  --script examples/hf_trainer/train.py \
+  --run-dir runs/preemption
+```
+
+The parent waits until the worker reaches a recorded completed-step boundary,
+delivers a real external `SIGTERM` with `os.kill`, and enforces the declared
+grace-period deadline. The Python signal handler only records in-memory signal
+state. Normal Trainer callback code creates an explicit `INCOMPLETE` marker,
+requests a complete checkpoint, persists lifecycle metadata, removes and
+directory-fsyncs the marker after the save, and emits commit evidence before
+the worker exits cleanly.
+
+Certification then loads that checkpoint in a distinct process and requires
+all 22 deterministic checks to pass at `atol=0.0`, `rtol=0.0`. Evidence
+includes checkpoint-commit and graceful-exit durations, RPO in completed steps
+and synthetic-workload tokens, recovery RTO, exact trajectory digests, SARIF,
+JUnit, reports, and a closed unsigned attestation. Storage bytes are emitted
+only after the Gate passes.
+
+This command requires a POSIX host. Windows execution fails closed because
+Windows `TerminateProcess` is not equivalent to catchable POSIX `SIGTERM`.
+The hosted Ubuntu workflow is configured to execute the real signal path. A
+local or hosted run certifies only the included process/workload contract; it does not claim
+that Kubernetes, Slurm, or a cloud provider control plane was exercised.
+
 ## What the demo proves
 
 1. An uninterrupted seeded CPU control produces stable trajectory evidence.
@@ -235,11 +429,13 @@ field. Exit codes are stable: `0=verified/pass`, `2=warning or unknown review`,
 `3=qualification or enforced-policy failure`, `4=invalid/tampered evidence`,
 and `5=unsupported configuration`.
 
-[examples/github-actions/flashpilot-qualification.yml](examples/github-actions/flashpilot-qualification.yml)
-is an opt-in workflow example outside `.github/workflows`, so the repository
-does not impose a hosted CI service. It publishes diagnostics on failure and
-uploads `recovery.attestation.json` only after the qualification and typed policy
-both succeed.
+[.github/workflows/flashpilot-qualification.yml](.github/workflows/flashpilot-qualification.yml)
+is the active pull-request and manual hosted workflow, sourced from
+[examples/github-actions/flashpilot-qualification.yml](examples/github-actions/flashpilot-qualification.yml).
+It publishes diagnostics on failure and uploads `recovery.attestation.json`
+only after qualification and typed policy both succeed. Its quality matrix runs
+Python 3.11 and 3.12; the development extra now installs Lightning so the full
+suite exercises the optional adapter on both interpreters.
 
 ## Security model
 
@@ -272,19 +468,20 @@ execute repair code and did not declare recovery successful.
 
 ## Limitations and roadmap
 
-The verified scope is the controlled CPU-only native workload plus the included
-local Hugging Face Trainer example on Windows 11 with Python 3.12.13. Python 3.11
-compatibility is targeted but not locally verified. Windows directory fsync is
+The locally verified scope is the controlled CPU-only native workload plus the
+included local Hugging Face Trainer and PyTorch Lightning examples on Windows
+11 with Python 3.12.13. Python 3.11 compatibility is targeted but not locally
+verified. Managed-preemption certification requires POSIX `SIGTERM` and cannot
+be certified by this Windows host.
+Windows directory fsync is
 unavailable through Python and is best-effort. The project does not qualify
-arbitrary repositories or Trainer scripts, distributed training, CUDA,
+arbitrary repositories, Trainer scripts, or LightningModules, distributed training, CUDA,
 DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay is tied to the captured
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add separately qualified adapters, distributed and partial-write
-scenarios, previous-valid fallback, and broader platform validation. The
-checked-in CI file is an opt-in example, not a mandatory hosted service. Those
-roadmap items are not part of the v0.2 proof.
+Future work may add distributed scenarios and broader platform validation.
+Those later roadmap items are not part of the narrow V0.4 preemption path.
 
 ## Repository and license
 

@@ -1,0 +1,409 @@
+{
+  "$defs": {
+    "SarifArtifactLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "uri": {
+          "enum": [
+            "audit.json",
+            "result.json",
+            "comparison.json"
+          ],
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "uri"
+      ],
+      "title": "SarifArtifactLocation",
+      "type": "object"
+    },
+    "SarifLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "message": {
+          "$ref": "#/$defs/SarifMessage"
+        },
+        "physicalLocation": {
+          "$ref": "#/$defs/SarifPhysicalLocation"
+        }
+      },
+      "required": [
+        "physicalLocation",
+        "message"
+      ],
+      "title": "SarifLocation",
+      "type": "object"
+    },
+    "SarifMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "SarifMessage",
+      "type": "object"
+    },
+    "SarifPhysicalLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "artifactLocation": {
+          "$ref": "#/$defs/SarifArtifactLocation"
+        },
+        "region": {
+          "$ref": "#/$defs/SarifRegion"
+        }
+      },
+      "required": [
+        "artifactLocation"
+      ],
+      "title": "SarifPhysicalLocation",
+      "type": "object"
+    },
+    "SarifRegion": {
+      "additionalProperties": false,
+      "properties": {
+        "startColumn": {
+          "const": 1,
+          "default": 1,
+          "title": "Startcolumn",
+          "type": "integer"
+        },
+        "startLine": {
+          "const": 1,
+          "default": 1,
+          "title": "Startline",
+          "type": "integer"
+        }
+      },
+      "title": "SarifRegion",
+      "type": "object"
+    },
+    "SarifReportingConfiguration": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "const": "error",
+          "default": "error",
+          "title": "Level",
+          "type": "string"
+        }
+      },
+      "title": "SarifReportingConfiguration",
+      "type": "object"
+    },
+    "SarifReportingDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "defaultConfiguration": {
+          "$ref": "#/$defs/SarifReportingConfiguration"
+        },
+        "fullDescription": {
+          "$ref": "#/$defs/SarifMessage"
+        },
+        "help": {
+          "$ref": "#/$defs/SarifMessage"
+        },
+        "id": {
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "properties": {
+          "$ref": "#/$defs/SarifRuleProperties"
+        },
+        "shortDescription": {
+          "$ref": "#/$defs/SarifMessage"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "shortDescription",
+        "fullDescription",
+        "defaultConfiguration",
+        "help",
+        "properties"
+      ],
+      "title": "SarifReportingDescriptor",
+      "type": "object"
+    },
+    "SarifResult": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            "error",
+            "warning"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/SarifLocation"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Locations",
+          "type": "array"
+        },
+        "message": {
+          "$ref": "#/$defs/SarifMessage"
+        },
+        "partialFingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Partialfingerprints",
+          "type": "object"
+        },
+        "properties": {
+          "$ref": "#/$defs/SarifResultProperties"
+        },
+        "ruleId": {
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Ruleid",
+          "type": "string"
+        },
+        "ruleIndex": {
+          "minimum": 0,
+          "title": "Ruleindex",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ruleId",
+        "ruleIndex",
+        "level",
+        "message",
+        "locations",
+        "partialFingerprints",
+        "properties"
+      ],
+      "title": "SarifResult",
+      "type": "object"
+    },
+    "SarifResultProperties": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actual"
+        },
+        "evidenceKind": {
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Evidencekind",
+          "type": "string"
+        },
+        "expected": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected"
+        },
+        "flashpilotStatus": {
+          "enum": [
+            "FAIL",
+            "WARN",
+            "UNKNOWN"
+          ],
+          "title": "Flashpilotstatus",
+          "type": "string"
+        },
+        "framework": {
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Framework",
+          "type": "string"
+        }
+      },
+      "required": [
+        "flashpilotStatus",
+        "evidenceKind",
+        "framework"
+      ],
+      "title": "SarifResultProperties",
+      "type": "object"
+    },
+    "SarifRuleProperties": {
+      "additionalProperties": false,
+      "properties": {
+        "precision": {
+          "const": "very-high",
+          "default": "very-high",
+          "title": "Precision",
+          "type": "string"
+        },
+        "problem.severity": {
+          "const": "error",
+          "default": "error",
+          "title": "Problem.Severity",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 2,
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tags"
+      ],
+      "title": "SarifRuleProperties",
+      "type": "object"
+    },
+    "SarifRun": {
+      "additionalProperties": false,
+      "properties": {
+        "automationDetails": {
+          "$ref": "#/$defs/SarifRunAutomationDetails"
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/SarifResult"
+          },
+          "title": "Results",
+          "type": "array"
+        },
+        "tool": {
+          "$ref": "#/$defs/SarifTool"
+        }
+      },
+      "required": [
+        "tool",
+        "automationDetails",
+        "results"
+      ],
+      "title": "SarifRun",
+      "type": "object"
+    },
+    "SarifRunAutomationDetails": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^flashpilot/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "SarifRunAutomationDetails",
+      "type": "object"
+    },
+    "SarifTool": {
+      "additionalProperties": false,
+      "properties": {
+        "driver": {
+          "$ref": "#/$defs/SarifToolComponent"
+        }
+      },
+      "required": [
+        "driver"
+      ],
+      "title": "SarifTool",
+      "type": "object"
+    },
+    "SarifToolComponent": {
+      "additionalProperties": false,
+      "properties": {
+        "informationUri": {
+          "const": "https://github.com/cimpal55/flashpilot",
+          "default": "https://github.com/cimpal55/flashpilot",
+          "title": "Informationuri",
+          "type": "string"
+        },
+        "name": {
+          "const": "FlashPilot",
+          "default": "FlashPilot",
+          "title": "Name",
+          "type": "string"
+        },
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/SarifReportingDescriptor"
+          },
+          "title": "Rules",
+          "type": "array"
+        },
+        "semanticVersion": {
+          "default": "0.2.0",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Semanticversion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rules"
+      ],
+      "title": "SarifToolComponent",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+      "default": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+      "title": "$Schema",
+      "type": "string"
+    },
+    "runs": {
+      "items": {
+        "$ref": "#/$defs/SarifRun"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Runs",
+      "type": "array"
+    },
+    "version": {
+      "const": "2.1.0",
+      "default": "2.1.0",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "runs"
+  ],
+  "title": "FlashPilotSarifLog",
+  "type": "object"
+}

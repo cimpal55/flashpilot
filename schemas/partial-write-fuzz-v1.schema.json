@@ -1,0 +1,281 @@
+{
+  "$defs": {
+    "FuzzCaseResult": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_path": {
+          "title": "Artifact Path",
+          "type": "string"
+        },
+        "candidate_sha256_after_validation": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Sha256 After Validation",
+          "type": "string"
+        },
+        "candidate_sha256_before_validation": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Sha256 Before Validation",
+          "type": "string"
+        },
+        "candidate_unmodified_by_validation": {
+          "title": "Candidate Unmodified By Validation",
+          "type": "boolean"
+        },
+        "expected_rejection_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FuzzRejectionReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "final_valid": {
+          "title": "Final Valid",
+          "type": "boolean"
+        },
+        "iteration": {
+          "exclusiveMinimum": 0,
+          "maximum": 1000,
+          "title": "Iteration",
+          "type": "integer"
+        },
+        "observed_rejection_reasons": {
+          "items": {
+            "$ref": "#/$defs/FuzzRejectionReason"
+          },
+          "title": "Observed Rejection Reasons",
+          "type": "array"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "premature_acceptances": {
+          "minimum": 0,
+          "title": "Premature Acceptances",
+          "type": "integer"
+        },
+        "scenario": {
+          "$ref": "#/$defs/FuzzScenario"
+        },
+        "schema_version": {
+          "const": "flashpilot-fuzz-case-v1",
+          "default": "flashpilot-fuzz-case-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source_sha256_after": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256 After",
+          "type": "string"
+        },
+        "source_sha256_before": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256 Before",
+          "type": "string"
+        },
+        "source_unmodified": {
+          "title": "Source Unmodified",
+          "type": "boolean"
+        },
+        "validation_attempts": {
+          "exclusiveMinimum": 0,
+          "title": "Validation Attempts",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "iteration",
+        "scenario",
+        "artifact_path",
+        "expected_rejection_reason",
+        "observed_rejection_reasons",
+        "validation_attempts",
+        "premature_acceptances",
+        "final_valid",
+        "source_sha256_before",
+        "source_sha256_after",
+        "source_unmodified",
+        "candidate_sha256_before_validation",
+        "candidate_sha256_after_validation",
+        "candidate_unmodified_by_validation",
+        "passed"
+      ],
+      "title": "FuzzCaseResult",
+      "type": "object"
+    },
+    "FuzzRejectionReason": {
+      "enum": [
+        "missing-completion",
+        "missing-metadata",
+        "manifest-invalid",
+        "completion-mismatch",
+        "checksum-manifest-mismatch",
+        "inventory-mismatch",
+        "payload-missing",
+        "payload-size-mismatch",
+        "payload-checksum-mismatch",
+        "payload-invalid",
+        "unsafe-path"
+      ],
+      "title": "FuzzRejectionReason",
+      "type": "string"
+    },
+    "FuzzScenario": {
+      "enum": [
+        "truncated-payload",
+        "missing-shard",
+        "stale-manifest",
+        "checksum-mismatch",
+        "duplicate-rank",
+        "reordered-writes"
+      ],
+      "title": "FuzzScenario",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "attestation_emitted": {
+      "const": false,
+      "default": false,
+      "title": "Attestation Emitted",
+      "type": "boolean"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/FuzzCaseResult"
+      },
+      "minItems": 6,
+      "title": "Cases",
+      "type": "array"
+    },
+    "failed_cases": {
+      "minimum": 0,
+      "title": "Failed Cases",
+      "type": "integer"
+    },
+    "iterations": {
+      "exclusiveMinimum": 0,
+      "maximum": 1000,
+      "title": "Iterations",
+      "type": "integer"
+    },
+    "job_summary_path": {
+      "const": "job-summary.md",
+      "default": "job-summary.md",
+      "title": "Job Summary Path",
+      "type": "string"
+    },
+    "junit_path": {
+      "const": "junit.xml",
+      "default": "junit.xml",
+      "title": "Junit Path",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "passed": {
+      "title": "Passed",
+      "type": "boolean"
+    },
+    "passed_cases": {
+      "minimum": 0,
+      "title": "Passed Cases",
+      "type": "integer"
+    },
+    "premature_acceptances": {
+      "minimum": 0,
+      "title": "Premature Acceptances",
+      "type": "integer"
+    },
+    "recovery_verified": {
+      "const": false,
+      "default": false,
+      "title": "Recovery Verified",
+      "type": "boolean"
+    },
+    "report_path": {
+      "const": "report.md",
+      "default": "report.md",
+      "title": "Report Path",
+      "type": "string"
+    },
+    "result_path": {
+      "const": "result.json",
+      "default": "result.json",
+      "title": "Result Path",
+      "type": "string"
+    },
+    "sarif_path": {
+      "const": "results.sarif",
+      "default": "results.sarif",
+      "title": "Sarif Path",
+      "type": "string"
+    },
+    "scenario": {
+      "const": "partial-write",
+      "default": "partial-write",
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schedule_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-partial-write-fuzz-v1",
+      "default": "flashpilot-partial-write-fuzz-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "const": 20260720,
+      "default": 20260720,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "storage_savings_reported": {
+      "const": false,
+      "default": false,
+      "title": "Storage Savings Reported",
+      "type": "boolean"
+    },
+    "total_cases": {
+      "exclusiveMinimum": 0,
+      "title": "Total Cases",
+      "type": "integer"
+    },
+    "verdict": {
+      "enum": [
+        "PASS",
+        "FAILED"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "iterations",
+    "cases",
+    "total_cases",
+    "passed_cases",
+    "failed_cases",
+    "premature_acceptances",
+    "schedule_sha256",
+    "passed",
+    "verdict",
+    "limitations"
+  ],
+  "title": "PartialWriteFuzzResult",
+  "type": "object"
+}

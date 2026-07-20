@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 from xml.etree import ElementTree
@@ -71,6 +72,9 @@ def test_complete_hf_checkpoint_survives_real_kill_with_exact_trajectory(
     assert "Exact failed requirements\n\n- None" in (root / "job-summary.md").read_text(
         encoding="utf-8"
     )
+    sarif = json.loads((root / "results.sarif").read_text(encoding="utf-8"))
+    assert len(sarif["runs"][0]["tool"]["driver"]["rules"]) == 13
+    assert sarif["runs"][0]["results"] == []
 
 
 def test_complete_hf_run_emits_verifiable_unsigned_attestation(
@@ -157,6 +161,10 @@ def test_model_only_checkpoint_loads_but_fails_exact_trajectory(
     for check_id in result.gate.failed_check_ids:
         assert check_id in junit
         assert f"`{check_id}`" in summary
+    sarif = json.loads((root / "results.sarif").read_text(encoding="utf-8"))
+    assert {finding["ruleId"] for finding in sarif["runs"][0]["results"]} == set(
+        result.gate.failed_check_ids
+    )
 
 
 def test_hf_ci_policy_passes_verified_and_fails_model_only(

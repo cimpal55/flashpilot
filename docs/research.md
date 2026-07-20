@@ -65,3 +65,137 @@ The measured recurring-byte difference is a structural result for this one
 controlled model and serialization format. The immutable base is counted
 separately and included in first-write cost. No general compression, physical
 device savings, SSD lifetime improvement, or recovery verdict is inferred.
+
+## PyTorch Lightning checkpoint contract
+
+The V0.3 adapter follows Lightning's documented native behavior rather than
+claiming a new checkpoint format. Full checkpoints are documented to include
+model, optimizer, scheduler, callback/data-module, hyperparameter, and loop
+state, and training resumes through `Trainer.fit(..., ckpt_path=...)`.
+Lightning also documents `save_weights_only=True` as a weights-only mode. The
+FlashPilot qualification adds a small workload-owned, JSON-safe RNG/history
+bridge because exact stochastic continuation is stricter than merely loading
+model weights. Sources: [Lightning checkpoint contents and resume](https://lightning.ai/docs/pytorch/stable/common/checkpointing_basic.html),
+[Lightning checkpoint saving options](https://lightning.ai/docs/pytorch/stable/common/checkpointing_intermediate.html).
+
+## Checkpoint conversion equivalence positioning
+
+Hugging Face PEFT documents that an adapter checkpoint contains adapter
+parameters and configuration rather than the base model, and that merging
+folds adapter weights into the base model. FlashPilot's V0.3 fixture follows
+that structural idea with a controlled local rank-2 linear delta, but it does
+not claim to emit or consume arbitrary Hugging Face PEFT repositories. Sources:
+[PEFT checkpoint format](https://huggingface.co/docs/peft/main/developer_guides/checkpoint),
+[PEFT tuner merge API](https://huggingface.co/docs/peft/en/package_reference/tuners).
+
+PyTorch Distributed Checkpoint documents state-dict loading across different
+cluster topologies and notes that distributed loading requires an initialized
+process group. FlashPilot's sharded fixture is intentionally smaller: two
+local, checksummed CPU tensor files plus a strict index are consolidated and
+compared exactly. It is not an implementation or qualification of PyTorch DCP.
+Source: [PyTorch Distributed Checkpoint](https://docs.pytorch.org/docs/stable/distributed.checkpoint.html).
+
+The version-upgrade fixture tests a FlashPilot-owned schema transition. Its
+strong claim is continuation equivalence for the deterministic CI workload in
+a separate process, not universal forward/backward compatibility for external
+checkpoint formats.
+
+## Partial-write fuzzing positioning
+
+FlashPilot does not claim atomic writes, checksums, completion markers, or chaos
+testing as novel. The V0.3 contribution is a reproducible qualification surface
+that binds these mechanisms into one typed verdict: five independently faulted
+artifacts must produce exact rejection categories, and a prematurely visible
+reordered-write sequence must never validate before its full inventory exists.
+
+The matrix is deliberately deterministic so two invocations can be compared
+byte for byte. It does not model storage-controller persistence, network
+filesystem semantics, distributed process coordination, or probabilistic crash
+timing. Those boundaries prevent a local Windows CPU result from being
+presented as general crash-consistency certification.
+
+## Previous-valid fallback positioning
+
+Selecting the most recent valid checkpoint is established recovery practice,
+not a novel FlashPilot algorithm. The V0.3 qualification contribution is the
+evidence chain around that choice: a newer committed artifact is shown to be
+checksum-invalid, the candidate inventory and exact selected predecessor are
+recorded, and resumed stochastic training is compared with an uninterrupted
+control under the same Recovery Gate used by the native crash workflow.
+
+The fixed test models one post-commit corruption and a two-step rollback on the
+local CPU workload. It does not establish a general retention policy, repair
+corrupt data, assess remote/object-store consistency, or characterize the
+probability and timing of failures.
+
+## Repeated randomized fault-timing positioning
+
+Randomized fault injection and repeated recovery trials are established chaos
+and resilience-testing practices, not a novel FlashPilot algorithm. The V0.3
+contribution is the narrow evidence contract around the existing deterministic
+native experiment: a recorded seed creates a reproducible completed-step
+schedule, RPO 0 through 3 is covered by construction, and every real
+termination must independently pass the same exact Recovery Gate.
+
+The qualification binds every complete trial directory and its underlying
+result to the aggregate, so schedule reproducibility cannot stand in for
+recovery proof. It measures recovery-process duration and achieved completed-
+step rollback for this fixed local CPU workload. It does not characterize a
+failure probability distribution, mid-instruction crashes, distributed
+coordination, network filesystems, physical persistence, or general recovery
+time objectives.
+
+## SARIF positioning
+
+SARIF is an OASIS standard interchange format for static-analysis results;
+FlashPilot does not claim the format, rule/result model, or dashboard
+integration mechanism as novel. The V0.3 contribution is a deliberately small
+and deterministic projection from already-authoritative checkpoint evidence:
+exact check IDs become rules, only non-passing checks become results, and
+relative evidence locations plus stable partial fingerprints make repeated
+runs useful to dashboard consumers. Source: [OASIS SARIF 2.1.0 Plus Errata
+01](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html).
+
+GitHub documents support for a SARIF 2.1.0 subset and recommends partial
+fingerprints so results can be tracked across runs. FlashPilot emits those
+portable fields but intentionally does not auto-upload to Code Scanning: the
+included minimum-permission workflow keeps the file as a normal diagnostic
+artifact. Source: [GitHub SARIF
+support](https://docs.github.com/en/enterprise-cloud%40latest/code-security/reference/code-scanning/sarif-files/sarif-support).
+
+This is reliability and checkpoint-recovery evidence, not a source-security
+scan or a numeric vulnerability-severity claim. Dashboard rendering does not
+replace typed JSON, policy enforcement, or the deterministic Recovery Gate.
+
+## Managed-preemption positioning
+
+Kubernetes documents graceful Pod termination as delivery of `SIGTERM`
+followed by a bounded grace period and eventual `SIGKILL` for processes that
+remain. FlashPilot's V0.4 harness reproduces only that process-level contract:
+a parent delivers `SIGTERM`, measures the deadline, and proves checkpoint
+commit plus clean exit before exact new-process recovery. It does not create or
+delete a Pod and therefore is not a Kubernetes conformance test. Source:
+[Kubernetes Pod termination
+flow](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination-flow).
+
+Slurm exposes advance signals through `sbatch --signal` and documents separate
+preemption/requeue configuration. FlashPilot does not submit, requeue, or
+cancel Slurm jobs; the local SIGTERM result is evidence that the workload's
+handler contract is viable when a scheduler provides a compatible notice, not
+proof of cluster policy. Source: [Slurm `sbatch --signal`
+documentation](https://slurm.schedmd.com/sbatch.html#OPT_signal).
+
+The contribution is the closed evidence chain around established graceful-
+shutdown behavior: exact ready/send/receipt/commit/exit ordering, an explicit
+in-progress marker, full state inspection, measured step/token RPO, distinct-
+process continuation, exact stochastic trajectory, and verified-only
+attestation. It makes no claim of inventing signals, grace periods,
+checkpoint-on-preemption, or scheduler integration.
+
+The process contract was exercised on GitHub-hosted Ubuntu 24.04 in workflow
+run 29752537631. External `os.kill(SIGTERM)` produced a 0.025689-second
+checkpoint commit, a 0.695438-second graceful exit, zero step/token RPO, and a
+4.799384-second recovery RTO; the exact Recovery Gate passed 22/22. These are
+measurements for the fixed offline CPU workload on that runner, not general
+latency or durability claims for Kubernetes, Slurm, cloud GPU providers, or
+network storage.

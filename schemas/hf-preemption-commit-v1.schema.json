@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "HFCheckpointLifecycleEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "event": {
+          "const": "checkpoint_committed",
+          "default": "checkpoint_committed",
+          "title": "Event",
+          "type": "string"
+        },
+        "global_step": {
+          "exclusiveMinimum": 0,
+          "title": "Global Step",
+          "type": "integer"
+        },
+        "model_present": {
+          "title": "Model Present",
+          "type": "boolean"
+        },
+        "optimizer_present": {
+          "title": "Optimizer Present",
+          "type": "boolean"
+        },
+        "rng_state_present": {
+          "title": "Rng State Present",
+          "type": "boolean"
+        },
+        "scenario": {
+          "enum": [
+            "complete",
+            "model-only"
+          ],
+          "title": "Scenario",
+          "type": "string"
+        },
+        "scheduler_present": {
+          "title": "Scheduler Present",
+          "type": "boolean"
+        },
+        "schema_version": {
+          "const": "flashpilot-hf-checkpoint-event-v1",
+          "default": "flashpilot-hf-checkpoint-event-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "trainer_state_present": {
+          "title": "Trainer State Present",
+          "type": "boolean"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "global_step",
+        "checkpoint_path",
+        "scenario",
+        "model_present",
+        "trainer_state_present",
+        "optimizer_present",
+        "scheduler_present",
+        "rng_state_present",
+        "emitted_at"
+      ],
+      "title": "HFCheckpointLifecycleEvidence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint": {
+      "$ref": "#/$defs/HFCheckpointLifecycleEvidence"
+    },
+    "checkpoint_committed_at": {
+      "format": "date-time",
+      "title": "Checkpoint Committed At",
+      "type": "string"
+    },
+    "event": {
+      "const": "preemption_checkpoint_committed",
+      "default": "preemption_checkpoint_committed",
+      "title": "Event",
+      "type": "string"
+    },
+    "incomplete_marker_path": {
+      "const": "preemption/INCOMPLETE",
+      "default": "preemption/INCOMPLETE",
+      "title": "Incomplete Marker Path",
+      "type": "string"
+    },
+    "incomplete_marker_present": {
+      "const": false,
+      "default": false,
+      "title": "Incomplete Marker Present",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "flashpilot-hf-preemption-commit-v1",
+      "default": "flashpilot-hf-preemption-commit-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "signal_name": {
+      "const": "SIGTERM",
+      "default": "SIGTERM",
+      "title": "Signal Name",
+      "type": "string"
+    },
+    "signal_received_at": {
+      "format": "date-time",
+      "title": "Signal Received At",
+      "type": "string"
+    },
+    "worker_pid": {
+      "exclusiveMinimum": 0,
+      "title": "Worker Pid",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "worker_pid",
+    "signal_received_at",
+    "checkpoint_committed_at",
+    "checkpoint"
+  ],
+  "title": "HFPreemptionCommitEvidence",
+  "type": "object"
+}

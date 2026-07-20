@@ -27,15 +27,19 @@ class CICheckStatus(StrEnum):
     WARN = "WARN"
     UNKNOWN = "UNKNOWN"
     FAIL = "FAIL"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
 
 
 class CIPolicyV1(StrictCIModel):
     schema_version: Literal["flashpilot-ci-policy-v1"] = "flashpilot-ci-policy-v1"
-    qualification_profile: Literal[QualificationProfile.EXACT_TRAINING_RESUME] = (
-        QualificationProfile.EXACT_TRAINING_RESUME
-    )
+    qualification_profile: Literal[
+        QualificationProfile.EXACT_TRAINING_RESUME,
+        QualificationProfile.PREEMPTION_SAFE_TRAINING,
+    ] = QualificationProfile.EXACT_TRAINING_RESUME
     unknown_state: Literal["fail"] = "fail"
-    required_faults: tuple[Literal["process_termination"], ...] = Field(min_length=1)
+    required_faults: tuple[Literal["process_termination", "managed_preemption"], ...] = Field(
+        min_length=1
+    )
     max_rpo_steps: int = Field(ge=0)
     max_rto_seconds: float = Field(gt=0.0)
     require_attestation: bool
@@ -43,8 +47,8 @@ class CIPolicyV1(StrictCIModel):
     @field_validator("required_faults")
     @classmethod
     def unique_faults(
-        cls, values: tuple[Literal["process_termination"], ...]
-    ) -> tuple[Literal["process_termination"], ...]:
+        cls, values: tuple[Literal["process_termination", "managed_preemption"], ...]
+    ) -> tuple[Literal["process_termination", "managed_preemption"], ...]:
         if len(values) != len(set(values)):
             raise ValueError("required fault identifiers must be unique")
         return tuple(sorted(values))
@@ -60,12 +64,23 @@ class CICheck(StrictCIModel):
 
 class CIRunEvidence(StrictCIModel):
     schema_version: Literal["flashpilot-ci-run-evidence-v1"] = "flashpilot-ci-run-evidence-v1"
-    kind: Literal["static-audit", "native-qualification", "hf-qualification"]
+    kind: Literal[
+        "static-audit",
+        "native-qualification",
+        "hf-qualification",
+        "hf-preemption-certification",
+        "lightning-qualification",
+    ]
     status: CIStatus
     qualification_profile: QualificationProfile
-    framework: Literal["native-pytorch", "huggingface-trainer", "unknown"]
+    framework: Literal[
+        "native-pytorch",
+        "huggingface-trainer",
+        "pytorch-lightning",
+        "unknown",
+    ]
     checks: tuple[CICheck, ...] = Field(min_length=1)
-    fault: Literal["process_termination"] | None = None
+    fault: Literal["process_termination", "managed_preemption"] | None = None
     rpo_steps: int | None = Field(default=None, ge=0)
     rto_seconds: float | None = Field(default=None, gt=0.0)
 
@@ -81,8 +96,9 @@ class CIRunEvidence(StrictCIModel):
                 raise ValueError("static audit can never become VERIFIED")
         elif self.fault is None or self.rpo_steps is None or self.rto_seconds is None:
             raise ValueError("qualification evidence requires fault, RPO, and RTO")
+        passing_statuses = {CICheckStatus.PASS, CICheckStatus.NOT_APPLICABLE}
         if self.status in {CIStatus.VERIFIED, CIStatus.PASS} and any(
-            check.status is not CICheckStatus.PASS for check in self.checks
+            check.status not in passing_statuses for check in self.checks
         ):
             raise ValueError("passing CI evidence cannot contain non-passing checks")
         return self

@@ -30,11 +30,14 @@ from flashpilot.ci.reporters import (
     render_job_summary,
     render_qualification_junit,
 )
+from flashpilot.ci.sarif import SARIF_PATH, render_sarif
 from flashpilot.contracts.models import QualificationProfile
 from flashpilot.domain.recovery import CrashExperimentResult
 from flashpilot.domain.repair import RepairLoopResult
 from flashpilot.hf.models import HFQualificationResult
+from flashpilot.lightning.models import LightningQualificationResult
 from flashpilot.orchestration.artifacts import write_text_artifact
+from flashpilot.preemption.models import HFPreemptionCertificationResult
 from flashpilot.security.paths import PathSandbox
 
 
@@ -47,6 +50,7 @@ class CIArtifactResult:
     evidence: CIRunEvidence
     junit_path: Path
     job_summary_path: Path
+    sarif_path: Path
     policy_evaluation: CIPolicyEvaluation | None
     exit_code: int
 
@@ -61,6 +65,8 @@ def _status(value: object) -> CICheckStatus:
         return CICheckStatus.WARN
     if normalized == "UNKNOWN":
         return CICheckStatus.UNKNOWN
+    if normalized == "NOT_APPLICABLE":
+        return CICheckStatus.NOT_APPLICABLE
     raise CIEvidenceError(f"unsupported check status: {value}")
 
 
@@ -145,6 +151,55 @@ def _hf_evidence(result: HFQualificationResult) -> CIRunEvidence:
     )
 
 
+def _lightning_evidence(result: LightningQualificationResult) -> CIRunEvidence:
+    checks = tuple(
+        CICheck(
+            check_id=check.check_id,
+            status=_status(check.status),
+            summary=check.label,
+            expected=check.expected,
+            actual=check.actual,
+        )
+        for check in result.gate.checks
+    )
+    rto = (
+        result.recovery_process.completed_at - result.recovery_process.started_at
+    ).total_seconds()
+    return CIRunEvidence(
+        kind="lightning-qualification",
+        status=CIStatus.VERIFIED if result.gate.passed else CIStatus.FAILED,
+        qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
+        framework="pytorch-lightning",
+        checks=checks,
+        fault="process_termination",
+        rpo_steps=result.gate.achieved_rpo_steps,
+        rto_seconds=rto,
+    )
+
+
+def _preemption_evidence(result: HFPreemptionCertificationResult) -> CIRunEvidence:
+    checks = tuple(
+        CICheck(
+            check_id=check.check_id,
+            status=_status(check.status),
+            summary=check.label,
+            expected=check.expected,
+            actual=check.actual,
+        )
+        for check in result.gate.checks
+    )
+    return CIRunEvidence(
+        kind="hf-preemption-certification",
+        status=CIStatus.VERIFIED if result.gate.passed else CIStatus.FAILED,
+        qualification_profile=QualificationProfile.PREEMPTION_SAFE_TRAINING,
+        framework="huggingface-trainer",
+        checks=checks,
+        fault="managed_preemption",
+        rpo_steps=result.gate.achieved_rpo_steps,
+        rto_seconds=result.recovery_rto_seconds,
+    )
+
+
 def normalize_run_evidence(result: object) -> CIRunEvidence:
     if isinstance(result, StaticAuditResult):
         return _audit_evidence(result)
@@ -154,6 +209,10 @@ def normalize_run_evidence(result: object) -> CIRunEvidence:
         return _native_gate_evidence(result)
     if isinstance(result, HFQualificationResult):
         return _hf_evidence(result)
+    if isinstance(result, LightningQualificationResult):
+        return _lightning_evidence(result)
+    if isinstance(result, HFPreemptionCertificationResult):
+        return _preemption_evidence(result)
     raise CIEvidenceError("unsupported run evidence type")
 
 
@@ -169,6 +228,8 @@ def _read_run_result(run_root: Path) -> object:
             "repair-loop-result-v1": RepairLoopResult,
             "crash-experiment-v1": CrashExperimentResult,
             "flashpilot-hf-qualification-v1": HFQualificationResult,
+            "flashpilot-hf-preemption-certification-v1": HFPreemptionCertificationResult,
+            "flashpilot-lightning-qualification-v1": LightningQualificationResult,
             "flashpilot-static-audit-v1": StaticAuditResult,
         }.get(schema)
         if model is None:
@@ -210,8 +271,14 @@ def _write_or_verify_text(
 def write_qualification_ci_outputs(
     *,
     run_root: Path,
-    result: RepairLoopResult | CrashExperimentResult | HFQualificationResult,
-) -> tuple[Path, Path]:
+    result: (
+        RepairLoopResult
+        | CrashExperimentResult
+        | HFQualificationResult
+        | HFPreemptionCertificationResult
+        | LightningQualificationResult
+    ),
+) -> tuple[Path, Path, Path]:
     evidence = normalize_run_evidence(result)
     junit = _write_or_verify_text(
         root=run_root,
@@ -223,20 +290,31 @@ def write_qualification_ci_outputs(
         relative_path=JOB_SUMMARY_PATH,
         expected=render_job_summary(evidence),
     )
-    return junit, summary
+    sarif = _write_or_verify_text(
+        root=run_root,
+        relative_path=SARIF_PATH,
+        expected=render_sarif(evidence),
+    )
+    return junit, summary, sarif
 
 
-def write_static_audit_job_summary(
+def write_static_audit_ci_outputs(
     *,
     run_root: Path,
     result: StaticAuditResult,
-) -> Path:
+) -> tuple[Path, Path]:
     evidence = normalize_run_evidence(result)
-    return _write_or_verify_text(
+    summary = _write_or_verify_text(
         root=run_root,
         relative_path=JOB_SUMMARY_PATH,
         expected=render_job_summary(evidence),
     )
+    sarif = _write_or_verify_text(
+        root=run_root,
+        relative_path=SARIF_PATH,
+        expected=render_sarif(evidence),
+    )
+    return summary, sarif
 
 
 def emit_ci_outputs(
@@ -264,6 +342,12 @@ def emit_ci_outputs(
         root=root,
         relative_path=JOB_SUMMARY_PATH,
         expected=summary_text,
+        allow_create=not attestation_exists,
+    )
+    sarif = _write_or_verify_text(
+        root=root,
+        relative_path=SARIF_PATH,
+        expected=render_sarif(evidence),
         allow_create=not attestation_exists,
     )
     if attestation_exists:
@@ -295,6 +379,7 @@ def emit_ci_outputs(
         evidence=evidence,
         junit_path=junit,
         job_summary_path=summary,
+        sarif_path=sarif,
         policy_evaluation=evaluation,
         exit_code=exit_code,
     )

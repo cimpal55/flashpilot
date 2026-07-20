@@ -118,6 +118,7 @@ def test_complete_native_checkpoint_passes_static_exact_audit(
     assert run.audit_json.is_file()
     assert run.report_markdown.is_file()
     assert run.junit_xml.is_file()
+    assert run.sarif_json.is_file()
     assert "VERIFIED" not in run.audit_json.read_text(encoding="utf-8")
     assert "never means VERIFIED recovery" in run.report_markdown.read_text(encoding="utf-8")
     required_state = {

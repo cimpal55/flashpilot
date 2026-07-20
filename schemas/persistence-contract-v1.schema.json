@@ -53,7 +53,9 @@
     "QualificationProfile": {
       "enum": [
         "exact-training-resume",
-        "model-only-inference"
+        "model-only-inference",
+        "checkpoint-conversion-equivalence",
+        "preemption-safe-training"
       ],
       "title": "QualificationProfile",
       "type": "string"

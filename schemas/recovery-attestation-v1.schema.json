@@ -5,7 +5,8 @@
       "default": "native-pytorch",
       "enum": [
         "native-pytorch",
-        "huggingface-trainer"
+        "huggingface-trainer",
+        "pytorch-lightning"
       ],
       "title": "Adapter",
       "type": "string"
@@ -15,6 +16,19 @@
       "default": 0.0,
       "title": "Atol",
       "type": "number"
+    },
+    "checkpoint_commit_seconds": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checkpoint Commit Seconds"
     },
     "checkpoint_file_count": {
       "exclusiveMinimum": 0,
@@ -86,7 +100,8 @@
       "default": "process_termination",
       "enum": [
         "process_termination",
-        "process-kill"
+        "process-kill",
+        "managed_preemption"
       ],
       "title": "Fault Scenario",
       "type": "string"
@@ -95,7 +110,8 @@
       "default": "native-pytorch",
       "enum": [
         "native-pytorch",
-        "transformers"
+        "transformers",
+        "lightning"
       ],
       "title": "Framework",
       "type": "string"
@@ -105,6 +121,33 @@
       "minLength": 1,
       "title": "Framework Version",
       "type": "string"
+    },
+    "grace_period_seconds": {
+      "anyOf": [
+        {
+          "maximum": 3600,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Grace Period Seconds"
+    },
+    "graceful_exit_seconds": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Graceful Exit Seconds"
     },
     "html_report_path": {
       "const": "report.html",
@@ -146,9 +189,25 @@
       "title": "Persistence Contract Sha256",
       "type": "string"
     },
+    "preemption_signal": {
+      "anyOf": [
+        {
+          "const": "SIGTERM",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Preemption Signal"
+    },
     "qualification_profile": {
-      "const": "exact-training-resume",
       "default": "exact-training-resume",
+      "enum": [
+        "exact-training-resume",
+        "preemption-safe-training"
+      ],
       "title": "Qualification Profile",
       "type": "string"
     },
@@ -183,6 +242,19 @@
       "minimum": 0,
       "title": "Rpo Steps",
       "type": "integer"
+    },
+    "rpo_tokens": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rpo Tokens"
     },
     "rto_seconds": {
       "exclusiveMinimum": 0.0,

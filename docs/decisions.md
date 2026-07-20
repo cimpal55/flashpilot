@@ -647,3 +647,170 @@ hashes, and a release checklist are prepared locally. No tag, signing key,
 registry upload, package-index publication, or hosted workflow activation is
 performed by this milestone. The v0.1 tag remains frozen at its original
 commit, and all human release actions remain explicit checklist items.
+
+## D-051: Lightning is an explicit qualification adapter, not a repair adapter
+
+V0.3 adds `PyTorchLightningAdapter` only for the included local CPU workload.
+It has fixed capabilities, an optional `lightning>=2.6,<3` dependency, no
+registry, no discovery, no external adapter loading, and an explicit
+`repair_capability=false`. The frozen P0 repair surface remains solely
+`NativePyTorchAdapter` with its six actions.
+
+The complete contract uses Lightning's public checkpoint API and requires
+model, loop, optimizer, scheduler, global-step, loss-history, and Python,
+NumPy, and Torch RNG evidence. The JSON-safe RNG bridge is restored at the
+first resumed batch boundary because creating a new data-loader iterator may
+consume global Torch RNG after `on_load_checkpoint`. This preserves the exact
+dropout stream without relaxing `atol=0.0` or `rtol=0.0`.
+
+The negative scenario is Lightning's real `weights_only=True` output. It is
+accepted as a valid and safely loadable model checkpoint, but never as an exact
+training-resume checkpoint. Missing optimizer, scheduler, RNG, and trajectory
+history remain separate deterministic gate failures; output is not normalized
+or repaired. Only a complete run passing every gate check receives an
+attestation or a persisted-byte measurement.
+
+## D-052: Conversion equivalence is four fixed contracts
+
+V0.3 implements exactly full-to-PEFT, PEFT-to-merged,
+sharded-to-consolidated, and version-upgrade-resume. This is not a converter
+registry, format discovery mechanism, or claim of compatibility with arbitrary
+framework checkpoints. The controlled full-model fixture carries an explicit
+reference-base identity; deterministic SVD must show its delta fits rank 2 or
+the conversion fails closed.
+
+PEFT extraction and merge are evaluated under an explicit float64
+`atol=1e-12`, `rtol=1e-12` policy. Consolidation and training continuation are
+exact. Version upgrade copies every required continuation component and proves
+resume equivalence in a distinct process. Integrity-valid but semantically
+wrong candidates remain failures; malformed state is never normalized.
+
+Source and candidate directories use closed inventories, bounded safe loading,
+SHA-256 provenance, completion markers, atomic same-filesystem commits, and
+before/after fingerprints. Windows directory fsync remains explicitly
+best-effort. A conversion PASS is not crash recovery: no Recovery Gate ran, so
+no recovery attestation or storage-savings figure is allowed.
+
+## D-053: Partial-write fuzzing is deterministic commit-state qualification
+
+The V0.3 fuzz command implements one fixed `partial-write` scenario with six
+cases per iteration. Truncation, missing shard, stale manifest, checksum
+mismatch, and duplicate rank each have one exact typed rejection reason.
+Reordered writes are a temporal positive/negative sequence: every incomplete
+observation must fail closed and the final complete inventory must validate.
+
+This milestone intentionally does not use randomized process timing; that is a
+separate later roadmap item. It also does not discover or select a previous
+valid checkpoint, run training recovery, call GPT, or alter the frozen repair
+surface. The two-rank fixture exists to qualify commit integrity and makes no
+claim about a particular distributed framework or network filesystem.
+
+Source artifacts use atomic same-filesystem rename and file fsync. Windows
+directory fsync remains best-effort. Faults are applied only to isolated
+candidate copies, and validation must preserve both source and candidate
+fingerprints. A PASS means all expected corrupt/incomplete states were rejected
+and no incomplete state was accepted; it is not a Recovery Gate verdict and
+cannot produce an attestation or storage-savings metric.
+
+## D-054: Fallback selection and recovery proof are separate mandatory gates
+
+Previous-valid fallback is accepted only when seven deterministic selection
+checks and the existing 24-check Recovery Gate both pass. Selection must first
+prove that the newest committed checkpoint changed, fails for the exact model
+payload checksum, is excluded from discovery, and leaves step 2 as the only
+valid candidate. Recovery cannot run against a silently substituted or
+unrecorded path.
+
+The producer really commits steps 2 and 4 in one process and is parent-terminated
+only after both validate. Its last completed step remains 4 even though recovery
+selects step 2, so the Gate enforces an honest two-step RPO with a two-step hard
+limit. Recovery occurs in a different process and uses exact `atol=0.0`,
+`rtol=0.0` trajectory comparison.
+
+The corruption is injected after producer termination to isolate fallback
+selection from the earlier partial-write milestone. The corrupt newest artifact
+is preserved for diagnostics, the previous checkpoint remains immutable, and
+no repair action is executed. The verified result reports no bytes or storage
+savings and does not emit an attestation; its recovery claim derives solely
+from the deterministic Gate.
+
+## D-055: Randomized timing is seeded, RPO-stratified, and fully reverified
+
+Repeated fault timing uses a local recorded seed and a closed schedule schema,
+not wall-clock sleeps or nondeterministic thread races. Each consecutive block
+of four trials covers RPO values 0, 1, 2, and 3 exactly once in randomized
+order. Checkpoint steps are selected only where the scheduled completed fault
+boundary remains inside the fixed CI workload. The maximum accepted RPO is a
+fixed three completed steps.
+
+Every entry invokes the existing native `safe_full` experiment: the parent
+terminates a real producer, recovery occurs in a distinct process, and the
+unchanged 24-check Gate requires exact continuation at `atol=0.0`, `rtol=0.0`.
+Aggregate success requires every trial to pass. A seeded schedule hash, the
+full SHA-256 fingerprint of each closed trial directory, and each underlying
+result hash prevent the summary from substituting, omitting, or rewriting
+trial evidence.
+
+This milestone randomizes completed-step boundaries only. It does not simulate
+mid-instruction interruption, add a scheduler or policy engine, call GPT,
+execute repair, or issue a recovery attestation. No checkpoint bytes or
+storage savings are computed or reported.
+
+## D-056: SARIF is a deterministic evidence projection, not a verdict
+
+V0.3 maps existing strict FlashPilot checks to SARIF 2.1.0 after the audit,
+qualification, policy, or Recovery Gate logic has produced its authoritative
+result. One exact check ID becomes one stable rule. `FAIL` emits an error,
+`WARN` and fail-closed `UNKNOWN` emit warnings, and `PASS` or
+`NOT_APPLICABLE` emits no result. This preserves the underlying status instead
+of manufacturing a second severity score or rewriting evidence.
+
+Every result retains expected and actual values, refers only to the relative
+typed evidence artifact, and receives a stable SHA-256-based partial
+fingerprint derived from the evidence kind, framework, check ID, and source
+URI. Rules exist even in passing runs so dashboard identifiers stay stable.
+The format is constrained by strict Pydantic models, a checked package schema,
+and validation against the official OASIS schema during implementation.
+
+SARIF output does not prove recovery, audit arbitrary repositories, inspect
+source code, call GPT, execute repair, or issue an attestation. The active
+workflow uploads it as a normal diagnostic artifact and keeps minimum
+`contents: read` permissions. Automatic Code Scanning publication is excluded
+because it would require an additional repository-side authorization and is
+not necessary to make the portable SARIF artifact available.
+
+## D-057: Preemption certification requires real catchable POSIX SIGTERM
+
+V0.4 supports exactly `framework=hf`, `signal=SIGTERM`, and the included
+offline CPU Trainer contract. The parent sends the external signal with
+`os.kill`; the worker's Python handler only records in-memory receipt state.
+Checkpoint I/O occurs later in ordinary Trainer callback execution, where an
+explicit in-progress marker brackets the save. Verification requires commit
+evidence before clean exit and completion within the caller's bounded grace
+period.
+
+Windows `TerminateProcess` is an abrupt termination mechanism and cannot prove
+the managed `SIGTERM` behavior targeted by Kubernetes and Slurm. The command
+therefore returns the unsupported exit code before creating artifacts on
+Windows. No event, pipe, polling file, `SIGBREAK`, or internal `raise_signal`
+fallback is relabeled as external `SIGTERM`.
+
+The preemption-safe profile reuses the complete exact Hugging Face persistence
+minimum and still requires zero-tolerance new-process trajectory equivalence.
+RPO is recorded in both completed steps and workload tokens. Checkpoint bytes
+and the unsigned attestation are emitted only after all 22 Gate checks pass.
+The attestation binds signal, grace period, commit duration, exit duration,
+step/token RPO, recovery RTO, checkpoint identity, and the closed evidence
+inventory.
+
+This is process-contract certification, not proof that a particular cluster or
+cloud control plane delivered its notice correctly. Provider-managed tests,
+additional signals, arbitrary Trainer scripts, Lightning preemption,
+distributed/CUDA training, and scheduler discovery remain out of scope.
+
+The authoritative acceptance run is GitHub Actions run 29752537631 on Ubuntu
+24.04. It delivered external `SIGTERM` with `os.kill`, committed before clean
+exit, measured zero step/token RPO, resumed in a distinct process, passed all
+22 deterministic checks, and emitted the verified-only attestation. This
+closes the process-contract milestone without expanding the claim to hosted
+scheduler or provider-control-plane conformance.

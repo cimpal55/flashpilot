@@ -14,8 +14,12 @@ def test_hf_adapter_is_explicit_and_narrow() -> None:
     capabilities = HuggingFaceTrainerAdapter().capabilities()
 
     assert capabilities.adapter_name == "huggingface-trainer"
-    assert capabilities.supported_profiles == ("exact-training-resume",)
-    assert capabilities.supported_faults == ("process-kill",)
+    assert capabilities.supported_profiles == (
+        "exact-training-resume",
+        "preemption-safe-training",
+    )
+    assert capabilities.supported_faults == ("process-kill", "SIGTERM")
+    assert capabilities.supported_preemption_signals == ("SIGTERM",)
     assert capabilities.supported_scenarios == ("complete", "model-only")
     assert capabilities.callback_can_declare_verdict is False
     assert capabilities.arbitrary_script_compatibility is False
@@ -39,6 +43,24 @@ def test_hf_adapter_builds_argument_vector_without_shell_text(tmp_path: Path) ->
     assert isinstance(command, tuple)
     assert command[0] == sys.executable
     assert command[-3:] == ("--", "--trusted-option", "value with spaces")
+
+
+def test_hf_adapter_builds_bounded_preemption_worker_vector(tmp_path: Path) -> None:
+    command = HuggingFaceTrainerAdapter().worker_command(
+        python_executable=sys.executable,
+        script_path=tmp_path / "train.py",
+        mode="preempt",
+        run_root=tmp_path,
+        scenario="complete",
+        checkpoint_step=4,
+        total_steps=8,
+        seed=7,
+        result_path="preemption/unused.json",
+        grace_period_seconds=300,
+    )
+
+    assert "--flashpilot-grace-period-seconds" in command
+    assert command[command.index("--flashpilot-grace-period-seconds") + 1] == "300"
 
 
 @pytest.mark.parametrize(

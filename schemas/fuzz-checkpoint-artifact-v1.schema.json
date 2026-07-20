@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "FuzzShardV1": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "rank": {
+          "minimum": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rank",
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "FuzzShardV1",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^checkpoint-[0-9]{4}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "global_step": {
+      "exclusiveMinimum": 0,
+      "title": "Global Step",
+      "type": "integer"
+    },
+    "iteration": {
+      "exclusiveMinimum": 0,
+      "maximum": 1000,
+      "title": "Iteration",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "flashpilot-fuzz-checkpoint-v1",
+      "default": "flashpilot-fuzz-checkpoint-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "shards": {
+      "items": {
+        "$ref": "#/$defs/FuzzShardV1"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Shards",
+      "type": "array"
+    },
+    "world_size": {
+      "const": 2,
+      "default": 2,
+      "title": "World Size",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "iteration",
+    "global_step",
+    "shards"
+  ],
+  "title": "FuzzCheckpointManifestV1",
+  "type": "object"
+}

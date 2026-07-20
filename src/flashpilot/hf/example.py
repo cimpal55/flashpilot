@@ -118,6 +118,7 @@ def create_training_arguments(
     seed: int,
     save_checkpoint: bool,
     save_only_model: bool,
+    save_interval_steps: int | None = None,
 ) -> TrainingArguments:
     return TrainingArguments(
         output_dir=str(output_dir),
@@ -134,7 +135,7 @@ def create_training_arguments(
         disable_tqdm=True,
         report_to="none",
         save_strategy="steps" if save_checkpoint else "no",
-        save_steps=checkpoint_step,
+        save_steps=save_interval_steps or checkpoint_step,
         save_total_limit=1,
         save_only_model=save_only_model,
         use_cpu=True,
@@ -158,6 +159,7 @@ def create_trainer(
     seed: int,
     save_checkpoint: bool,
     save_only_model: bool,
+    save_interval_steps: int | None = None,
     callbacks: list[TrainerCallback] | None = None,
 ) -> Trainer:
     arguments = create_training_arguments(
@@ -167,6 +169,7 @@ def create_trainer(
         seed=seed,
         save_checkpoint=save_checkpoint,
         save_only_model=save_only_model,
+        save_interval_steps=save_interval_steps,
     )
     return Trainer(
         model=model,

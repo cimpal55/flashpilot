@@ -450,3 +450,173 @@ qualification branch:
 Codex did not publish a package, create a tag or commit, enable a hosted
 workflow, add signing, begin a V0.3 roadmap item, broaden Trainer compatibility,
 add an adapter, or change the frozen native repair surface.
+
+## V0.3 roadmap item 1 - PyTorch Lightning adapter
+
+Codex implemented only the first V0.3 roadmap item:
+
+- added an explicit optional `PyTorchLightningAdapter` with fixed capabilities,
+  bounded safe checkpoint inspection, and no repair or discovery surface;
+- added an installed CPU-only Lightning worker and source example using
+  deterministic synthetic inputs and real dropout;
+- added parent-controlled process termination after a committed, safely
+  loadable checkpoint and recovery in a distinct process;
+- added a strict 14-check exact-resume gate covering checkpoint state,
+  termination, process identity, progress, loss history, model/evaluation,
+  optimizer, and scheduler digests;
+- demonstrated that a complete checkpoint resumes exactly and that a real
+  `weights_only=True` checkpoint loads but diverges without artificial output
+  manipulation;
+- extended the existing JUnit, job-summary, persistence-contract, attestation,
+  and offline verification surfaces to verified Lightning evidence;
+- added focused adapter, dependency, CLI, full qualification, negative-path,
+  CI, and attestation tests.
+
+Codex did not begin conversion equivalence, partial-write fuzzing,
+previous-valid fallback, randomized fault timing, SARIF, distributed training,
+CUDA, plugin discovery, or another framework adapter.
+
+## V0.3 roadmap item 2 - checkpoint conversion equivalence
+
+Codex implemented only the second V0.3 roadmap item:
+
+- added four explicit typed conversion contracts: full-to-PEFT,
+  PEFT-to-merged, sharded-to-consolidated, and version-upgrade-resume;
+- added checksummed, closed-inventory, bounded, atomically committed source and
+  candidate artifacts whose provenance binds the exact source directory hash;
+- added deterministic dense-to-rank-2 extraction, PEFT merge, shard
+  consolidation, and complete training-state schema upgrade paths;
+- added exact or explicitly tolerance-bounded parameter/output comparisons,
+  plus distinct-process exact continuation checks for upgraded training state;
+- added `flashpilot qualify conversions` and a narrow
+  `flashpilot compare-checkpoints` command backed by the same typed comparator;
+- added JSON Schemas, Markdown/JUnit output, tamper/provenance/semantic-failure
+  tests, and before/after immutability evidence.
+
+Codex did not claim recovery verification or storage savings and did not emit a
+recovery attestation. Partial-write fuzzing, previous-valid fallback,
+randomized fault timing, SARIF, distributed/CUDA training, discovery, and
+additional adapters were not started.
+
+## V0.3 roadmap item 3 - partial-write fuzz matrix
+
+Codex implemented only the third V0.3 roadmap item:
+
+- added the candidate `flashpilot fuzz-checkpoint --scenario partial-write
+  --iterations 100` interface with bounded deterministic iterations;
+- added a strict two-rank fuzz artifact, manifest-bound completion marker,
+  checksum cross-check, closed inventory, containment, size limit, and atomic
+  source commit;
+- added six cases per iteration for truncation, missing shard, stale manifest,
+  checksum mismatch, duplicate rank, and prematurely exposed reordered writes;
+- required exact typed rejection reasons for corrupt cases and zero acceptance
+  across every incomplete reordered-write observation;
+- added source/candidate immutability hashes, deterministic schedule hashing,
+  JSON Schemas, Markdown, JUnit, and job-summary evidence;
+- added focused schema, validator, repeatability, redaction, CLI, bounded-input,
+  and full-matrix tests.
+
+Codex did not begin previous-valid fallback, randomized fault timing, SARIF,
+distributed/CUDA qualification, discovery, or another adapter. The fuzz result
+does not claim recovery verification, report bytes or savings, or emit an
+attestation.
+
+## V0.3 roadmap item 4 - previous-valid checkpoint fallback
+
+Codex implemented only the fourth V0.3 roadmap item:
+
+- added a fixed native producer that commits valid `safe_full` checkpoints at
+  steps 2 and 4 in one process and emits a strict two-checkpoint event;
+- added parent-owned termination after both checkpoints validate, followed by
+  durable corruption of only the newest model payload;
+- required exact checksum rejection, a `(2,)` valid-candidate inventory, and
+  exact selection of the immediate predecessor;
+- reused the existing distinct recovery worker and unchanged 24-check exact
+  Recovery Gate with an honest two-step achieved and maximum RPO;
+- added seven typed selection checks and before/after fingerprints preserving
+  both the previous checkpoint and rejected newest evidence;
+- added `qualify previous-valid-fallback`, strict JSON Schemas, Markdown,
+  JUnit, job-summary output, packaging coverage, and focused process,
+  redaction, containment, schema, and unsupported-mode tests.
+
+Codex did not begin randomized fault timing, SARIF, distributed/CUDA
+qualification, discovery, or another adapter. It did not repair or delete the
+corrupt checkpoint, call GPT, report bytes or storage savings, or emit an
+attestation.
+
+## V0.3 roadmap item 5 - repeated randomized fault timing
+
+Codex implemented only the fifth V0.3 roadmap item:
+
+- added a strict seeded schedule whose four-trial blocks each cover RPO 0, 1,
+  2, and 3 at valid completed-step boundaries;
+- composed the existing real native `safe_full` process-kill experiment and
+  unchanged 24-check exact Recovery Gate for every isolated trial;
+- required a distinct recovery process, verified producer termination, exact
+  continuation, and the fixed three-step maximum RPO in every trial;
+- bound the aggregate to its regenerated schedule, every complete trial
+  directory fingerprint, and every underlying experiment-result SHA-256;
+- added `qualify randomized-fault-timing`, strict JSON Schemas, Markdown,
+  per-trial JUnit, job-summary output, packaging coverage, and focused
+  reproducibility, boundary, containment, redaction, process, and tamper tests;
+- performed an authoritative eight-trial local run covering eight unique
+  checkpoint/RPO timing pairs with all trials verified.
+
+Codex did not begin SARIF, distributed/CUDA qualification, discovery, or
+another adapter. The implementation made no GPT call, executed no repair,
+reported no checkpoint bytes or storage savings, and emitted no attestation.
+
+## V0.3 roadmap item 6 - SARIF dashboard output
+
+Codex implemented only the sixth V0.3 roadmap item:
+
+- added a strict, schema-versioned SARIF 2.1.0 subset and deterministic
+  renderer over existing typed FlashPilot evidence;
+- preserved exact check IDs as stable rules, emitted `FAIL` as error and
+  `WARN`/`UNKNOWN` as warning, and suppressed `PASS`/`NOT_APPLICABLE` alerts;
+- bound non-passing results to relative authoritative evidence locations and
+  deterministic partial fingerprints without exposing absolute host paths;
+- emitted `results.sarif` for static audit, native/Hugging Face/Lightning
+  qualification, conversions, partial-write fuzzing, previous-valid fallback,
+  and randomized fault timing;
+- added read-only `emit-sarif` projection for completed core CI evidence and
+  protected closed attested inventories from missing-file mutation;
+- packaged the checked JSON Schema, uploaded SARIF as an ordinary diagnostic
+  workflow artifact, and retained workflow `contents: read` permissions;
+- added focused schema, mapping, status, fingerprint, integration, redaction,
+  packaging, and attested-run tamper tests.
+
+Codex did not begin V0.4 preemption certification, distributed/CUDA
+qualification, discovery, or another adapter. SARIF does not change a verdict,
+prove recovery, scan source code, call GPT, execute repair, report checkpoint
+bytes or storage savings, or emit an attestation.
+
+## V0.4 - managed-preemption certification
+
+Codex implemented the narrow V0.4 process-level certification path:
+
+- added `flashpilot certify-preemption --framework hf --signal SIGTERM
+  --grace-period SECONDS` for the included offline CPU Trainer workload;
+- required real external POSIX `os.kill(..., SIGTERM)` and made Windows fail
+  closed rather than treating `TerminateProcess` as equivalent;
+- added typed ready and commit events with exact signal receipt, checkpoint
+  commit, process exit, and grace-period ordering;
+- kept the signal handler I/O-free and bracketed normal callback checkpointing
+  with an explicit durable `preemption/INCOMPLETE` marker;
+- required a full model/trainer/optimizer/scheduler/RNG checkpoint, clean exit,
+  distinct-process recovery, zero step/token RPO, and exact continued
+  trajectory through a 22-check Gate;
+- extended the preemption-safe Persistence Contract, CI evidence, SARIF,
+  JUnit, Markdown/HTML reporting, checked schemas, and closed unsigned
+  attestation with signal and timing metrics;
+- added deterministic unit coverage, a POSIX-only real signal integration
+  test, and an explicit Ubuntu hosted-workflow certification step.
+
+The current Windows host cannot execute a truthful POSIX SIGTERM integration,
+so the Windows command remains verified to return unsupported without creating
+a run. The configured Ubuntu workflow subsequently executed the real path and
+passed all 22 checks: checkpoint commit 0.025689 seconds, graceful exit
+0.695438 seconds, RPO 0 steps/0 tokens, and recovery RTO 4.799384 seconds. It
+uploaded both diagnostic evidence and the verified-only attestation.
+Distributed/CUDA training, Kubernetes/Slurm/provider API integration,
+additional signals, discovery, and new adapters were not started.

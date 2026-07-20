@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from flashpilot.domain.manifests import SHA256_PATTERN, ManagedRelativePath
 
 HFScenario = Literal["complete", "model-only"]
-HFWorkerMode = Literal["control", "train-crash", "recover"]
+HFWorkerMode = Literal["control", "train-crash", "preempt", "recover"]
 
 
 class StrictHFModel(BaseModel):
@@ -22,8 +22,15 @@ class HFAdapterCapabilities(StrictHFModel):
     adapter_name: Literal["huggingface-trainer"] = "huggingface-trainer"
     framework: Literal["transformers"] = "transformers"
     cpu_only: Literal[True] = True
-    supported_profiles: tuple[Literal["exact-training-resume"], ...] = ("exact-training-resume",)
-    supported_faults: tuple[Literal["process-kill"], ...] = ("process-kill",)
+    supported_profiles: tuple[Literal["exact-training-resume", "preemption-safe-training"], ...] = (
+        "exact-training-resume",
+        "preemption-safe-training",
+    )
+    supported_faults: tuple[Literal["process-kill", "SIGTERM"], ...] = (
+        "process-kill",
+        "SIGTERM",
+    )
+    supported_preemption_signals: tuple[Literal["SIGTERM"], ...] = ("SIGTERM",)
     supported_scenarios: tuple[HFScenario, ...] = ("complete", "model-only")
     callback_can_declare_verdict: Literal[False] = False
     arbitrary_script_compatibility: Literal[False] = False

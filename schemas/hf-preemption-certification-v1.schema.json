@@ -1,0 +1,680 @@
+{
+  "$defs": {
+    "HFCheckpointLifecycleEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "event": {
+          "const": "checkpoint_committed",
+          "default": "checkpoint_committed",
+          "title": "Event",
+          "type": "string"
+        },
+        "global_step": {
+          "exclusiveMinimum": 0,
+          "title": "Global Step",
+          "type": "integer"
+        },
+        "model_present": {
+          "title": "Model Present",
+          "type": "boolean"
+        },
+        "optimizer_present": {
+          "title": "Optimizer Present",
+          "type": "boolean"
+        },
+        "rng_state_present": {
+          "title": "Rng State Present",
+          "type": "boolean"
+        },
+        "scenario": {
+          "enum": [
+            "complete",
+            "model-only"
+          ],
+          "title": "Scenario",
+          "type": "string"
+        },
+        "scheduler_present": {
+          "title": "Scheduler Present",
+          "type": "boolean"
+        },
+        "schema_version": {
+          "const": "flashpilot-hf-checkpoint-event-v1",
+          "default": "flashpilot-hf-checkpoint-event-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "trainer_state_present": {
+          "title": "Trainer State Present",
+          "type": "boolean"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "global_step",
+        "checkpoint_path",
+        "scenario",
+        "model_present",
+        "trainer_state_present",
+        "optimizer_present",
+        "scheduler_present",
+        "rng_state_present",
+        "emitted_at"
+      ],
+      "title": "HFCheckpointLifecycleEvidence",
+      "type": "object"
+    },
+    "HFPreemptionCommitEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint": {
+          "$ref": "#/$defs/HFCheckpointLifecycleEvidence"
+        },
+        "checkpoint_committed_at": {
+          "format": "date-time",
+          "title": "Checkpoint Committed At",
+          "type": "string"
+        },
+        "event": {
+          "const": "preemption_checkpoint_committed",
+          "default": "preemption_checkpoint_committed",
+          "title": "Event",
+          "type": "string"
+        },
+        "incomplete_marker_path": {
+          "const": "preemption/INCOMPLETE",
+          "default": "preemption/INCOMPLETE",
+          "title": "Incomplete Marker Path",
+          "type": "string"
+        },
+        "incomplete_marker_present": {
+          "const": false,
+          "default": false,
+          "title": "Incomplete Marker Present",
+          "type": "boolean"
+        },
+        "schema_version": {
+          "const": "flashpilot-hf-preemption-commit-v1",
+          "default": "flashpilot-hf-preemption-commit-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "signal_name": {
+          "const": "SIGTERM",
+          "default": "SIGTERM",
+          "title": "Signal Name",
+          "type": "string"
+        },
+        "signal_received_at": {
+          "format": "date-time",
+          "title": "Signal Received At",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "signal_received_at",
+        "checkpoint_committed_at",
+        "checkpoint"
+      ],
+      "title": "HFPreemptionCommitEvidence",
+      "type": "object"
+    },
+    "HFPreemptionGateV1": {
+      "additionalProperties": false,
+      "properties": {
+        "achieved_rpo_steps": {
+          "minimum": 0,
+          "title": "Achieved Rpo Steps",
+          "type": "integer"
+        },
+        "achieved_rpo_tokens": {
+          "minimum": 0,
+          "title": "Achieved Rpo Tokens",
+          "type": "integer"
+        },
+        "atol": {
+          "const": 0.0,
+          "default": 0.0,
+          "title": "Atol",
+          "type": "number"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/HFQualificationCheck"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "failed_check_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Check Ids",
+          "type": "array"
+        },
+        "max_rpo_steps": {
+          "const": 0,
+          "default": 0,
+          "title": "Max Rpo Steps",
+          "type": "integer"
+        },
+        "max_rpo_tokens": {
+          "const": 0,
+          "default": 0,
+          "title": "Max Rpo Tokens",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "rtol": {
+          "const": 0.0,
+          "default": 0.0,
+          "title": "Rtol",
+          "type": "number"
+        },
+        "schema_version": {
+          "const": "flashpilot-hf-preemption-gate-v1",
+          "default": "flashpilot-hf-preemption-gate-v1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "passed",
+        "checks",
+        "failed_check_ids",
+        "achieved_rpo_steps",
+        "achieved_rpo_tokens"
+      ],
+      "title": "HFPreemptionGateV1",
+      "type": "object"
+    },
+    "HFPreemptionReadyEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "completed_step": {
+          "exclusiveMinimum": 0,
+          "title": "Completed Step",
+          "type": "integer"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "event": {
+          "const": "preemption_ready",
+          "default": "preemption_ready",
+          "title": "Event",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "flashpilot-hf-preemption-ready-v1",
+          "default": "flashpilot-hf-preemption-ready-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "signal_name": {
+          "const": "SIGTERM",
+          "default": "SIGTERM",
+          "title": "Signal Name",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "completed_step",
+        "emitted_at"
+      ],
+      "title": "HFPreemptionReadyEvidence",
+      "type": "object"
+    },
+    "HFProcessEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "exit_code": {
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "exit_verified": {
+          "title": "Exit Verified",
+          "type": "boolean"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worker_pid",
+        "started_at",
+        "completed_at",
+        "exit_code",
+        "exit_verified"
+      ],
+      "title": "HFProcessEvidence",
+      "type": "object"
+    },
+    "HFQualificationCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "minLength": 1,
+          "title": "Actual",
+          "type": "string"
+        },
+        "category": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Category",
+          "type": "string"
+        },
+        "check_id": {
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Check Id",
+          "type": "string"
+        },
+        "expected": {
+          "minLength": 1,
+          "title": "Expected",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "category",
+        "label",
+        "status",
+        "expected",
+        "actual"
+      ],
+      "title": "HFQualificationCheck",
+      "type": "object"
+    },
+    "HFRunSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_step": {
+          "minimum": 0,
+          "title": "Checkpoint Step",
+          "type": "integer"
+        },
+        "evaluation_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Evaluation Sha256",
+          "type": "string"
+        },
+        "loss_history": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Loss History",
+          "type": "array"
+        },
+        "mode": {
+          "enum": [
+            "control",
+            "recover"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "model_loaded_from_checkpoint": {
+          "title": "Model Loaded From Checkpoint",
+          "type": "boolean"
+        },
+        "offline_environment": {
+          "const": true,
+          "default": true,
+          "title": "Offline Environment",
+          "type": "boolean"
+        },
+        "optimizer_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Optimizer Sha256",
+          "type": "string"
+        },
+        "scenario": {
+          "enum": [
+            "complete",
+            "model-only"
+          ],
+          "title": "Scenario",
+          "type": "string"
+        },
+        "scheduler_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scheduler Sha256",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "flashpilot-hf-run-summary-v1",
+          "default": "flashpilot-hf-run-summary-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "semantic_global_step": {
+          "exclusiveMinimum": 0,
+          "title": "Semantic Global Step",
+          "type": "integer"
+        },
+        "torch_version": {
+          "minLength": 1,
+          "title": "Torch Version",
+          "type": "string"
+        },
+        "trainable_state_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Trainable State Sha256",
+          "type": "string"
+        },
+        "trainer_global_step": {
+          "minimum": 0,
+          "title": "Trainer Global Step",
+          "type": "integer"
+        },
+        "transformers_version": {
+          "minLength": 1,
+          "title": "Transformers Version",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mode",
+        "scenario",
+        "worker_pid",
+        "trainer_global_step",
+        "semantic_global_step",
+        "checkpoint_step",
+        "model_loaded_from_checkpoint",
+        "loss_history",
+        "trainable_state_sha256",
+        "evaluation_sha256",
+        "optimizer_sha256",
+        "scheduler_sha256",
+        "transformers_version",
+        "torch_version"
+      ],
+      "title": "HFRunSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter": {
+      "const": "huggingface-trainer",
+      "default": "huggingface-trainer",
+      "title": "Adapter",
+      "type": "string"
+    },
+    "checkpoint_commit_seconds": {
+      "minimum": 0.0,
+      "title": "Checkpoint Commit Seconds",
+      "type": "number"
+    },
+    "checkpoint_inventory": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Checkpoint Inventory",
+      "type": "array"
+    },
+    "commit_event": {
+      "$ref": "#/$defs/HFPreemptionCommitEvidence"
+    },
+    "control": {
+      "$ref": "#/$defs/HFRunSummary"
+    },
+    "control_process": {
+      "$ref": "#/$defs/HFProcessEvidence"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "fault_scenario": {
+      "const": "managed-preemption",
+      "default": "managed-preemption",
+      "title": "Fault Scenario",
+      "type": "string"
+    },
+    "final_verdict": {
+      "enum": [
+        "VERIFIED",
+        "FAILED"
+      ],
+      "title": "Final Verdict",
+      "type": "string"
+    },
+    "forwarded_arguments": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Forwarded Arguments",
+      "type": "array"
+    },
+    "framework": {
+      "const": "transformers",
+      "default": "transformers",
+      "title": "Framework",
+      "type": "string"
+    },
+    "gate": {
+      "$ref": "#/$defs/HFPreemptionGateV1"
+    },
+    "grace_period_seconds": {
+      "maximum": 3600,
+      "minimum": 1,
+      "title": "Grace Period Seconds",
+      "type": "integer"
+    },
+    "graceful_exit_seconds": {
+      "minimum": 0.0,
+      "title": "Graceful Exit Seconds",
+      "type": "number"
+    },
+    "html_report_path": {
+      "const": "report.html",
+      "default": "report.html",
+      "title": "Html Report Path",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "preemption_process": {
+      "$ref": "#/$defs/HFProcessEvidence"
+    },
+    "preemption_step": {
+      "exclusiveMinimum": 0,
+      "title": "Preemption Step",
+      "type": "integer"
+    },
+    "qualification_profile": {
+      "const": "preemption-safe-training",
+      "default": "preemption-safe-training",
+      "title": "Qualification Profile",
+      "type": "string"
+    },
+    "ready_event": {
+      "$ref": "#/$defs/HFPreemptionReadyEvidence"
+    },
+    "recovery": {
+      "$ref": "#/$defs/HFRunSummary"
+    },
+    "recovery_process": {
+      "$ref": "#/$defs/HFProcessEvidence"
+    },
+    "recovery_rto_seconds": {
+      "exclusiveMinimum": 0.0,
+      "title": "Recovery Rto Seconds",
+      "type": "number"
+    },
+    "report_path": {
+      "const": "report.md",
+      "default": "report.md",
+      "title": "Report Path",
+      "type": "string"
+    },
+    "result_path": {
+      "const": "result.json",
+      "default": "result.json",
+      "title": "Result Path",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "sarif_path": {
+      "const": "results.sarif",
+      "default": "results.sarif",
+      "title": "Sarif Path",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-hf-preemption-certification-v1",
+      "default": "flashpilot-hf-preemption-certification-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "script_path": {
+      "title": "Script Path",
+      "type": "string"
+    },
+    "signal_delivery": {
+      "const": "os.kill",
+      "default": "os.kill",
+      "title": "Signal Delivery",
+      "type": "string"
+    },
+    "signal_name": {
+      "const": "SIGTERM",
+      "default": "SIGTERM",
+      "title": "Signal Name",
+      "type": "string"
+    },
+    "signal_sent_at": {
+      "format": "date-time",
+      "title": "Signal Sent At",
+      "type": "string"
+    },
+    "tokens_per_step": {
+      "exclusiveMinimum": 0,
+      "title": "Tokens Per Step",
+      "type": "integer"
+    },
+    "total_steps": {
+      "exclusiveMinimum": 0,
+      "title": "Total Steps",
+      "type": "integer"
+    },
+    "verified_persisted_bytes": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Verified Persisted Bytes"
+    }
+  },
+  "required": [
+    "run_id",
+    "created_at",
+    "grace_period_seconds",
+    "preemption_step",
+    "total_steps",
+    "tokens_per_step",
+    "script_path",
+    "forwarded_arguments",
+    "control_process",
+    "control",
+    "preemption_process",
+    "ready_event",
+    "signal_sent_at",
+    "commit_event",
+    "checkpoint_inventory",
+    "checkpoint_commit_seconds",
+    "graceful_exit_seconds",
+    "recovery_process",
+    "recovery",
+    "recovery_rto_seconds",
+    "gate",
+    "final_verdict",
+    "limitations"
+  ],
+  "title": "HFPreemptionCertificationResult",
+  "type": "object"
+}

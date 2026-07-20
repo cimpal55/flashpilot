@@ -64,6 +64,7 @@ class HuggingFaceTrainerAdapter:
         seed: int,
         result_path: str,
         checkpoint_path: str | None = None,
+        grace_period_seconds: int | None = None,
         forwarded_arguments: tuple[str, ...] = (),
     ) -> tuple[str, ...]:
         self.dependency_versions()
@@ -88,6 +89,8 @@ class HuggingFaceTrainerAdapter:
         ]
         if checkpoint_path is not None:
             command.extend(("--flashpilot-checkpoint-path", checkpoint_path))
+        if grace_period_seconds is not None:
+            command.extend(("--flashpilot-grace-period-seconds", str(grace_period_seconds)))
         if forwarded:
             command.append("--")
             command.extend(forwarded)

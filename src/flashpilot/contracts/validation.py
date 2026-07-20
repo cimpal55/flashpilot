@@ -30,10 +30,14 @@ def _item_errors(item: PersistenceItem, profile: QualificationProfile) -> list[s
         if item.exactness is RecoveryExactness.NON_EQUIVALENT:
             errors.append(f"{item.state_id}: required state cannot be non-equivalent")
         if (
-            profile is QualificationProfile.EXACT_TRAINING_RESUME
+            profile
+            in {
+                QualificationProfile.EXACT_TRAINING_RESUME,
+                QualificationProfile.PREEMPTION_SAFE_TRAINING,
+            }
             and item.exactness is not RecoveryExactness.EXACT
         ):
-            errors.append(f"{item.state_id}: exact training resume requires exact state")
+            errors.append(f"{item.state_id}: exact training continuation requires exact state")
     if item.requirement is RequirementClass.EPHEMERAL and (
         item.recovery_source is not RecoverySource.NONE
         or item.exactness is not RecoveryExactness.NON_EQUIVALENT

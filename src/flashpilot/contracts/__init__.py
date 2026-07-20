@@ -2,6 +2,7 @@
 
 from flashpilot.contracts.canonical import canonical_contract_json, persistence_contract_sha256
 from flashpilot.contracts.huggingface import huggingface_trainer_persistence_contract
+from flashpilot.contracts.lightning import pytorch_lightning_persistence_contract
 from flashpilot.contracts.models import (
     PersistenceContract,
     PersistenceItem,
@@ -34,5 +35,6 @@ __all__ = [
     "migrate_native_checkpoint_contract",
     "native_minimum_persistence_contract",
     "persistence_contract_sha256",
+    "pytorch_lightning_persistence_contract",
     "validate_persistence_contract",
 ]

@@ -37,6 +37,7 @@ class StaticAuditRun:
     report_markdown: Path
     junit_xml: Path
     job_summary: Path
+    sarif_json: Path
 
 
 def _detection_check(framework: AuditFramework) -> AuditCheck:
@@ -124,9 +125,12 @@ def run_static_audit(
         )
     try:
         audit_json, report_markdown, junit_xml = write_audit_outputs(result, safe_output)
-        from flashpilot.ci.service import write_static_audit_job_summary
+        from flashpilot.ci.service import write_static_audit_ci_outputs
 
-        job_summary = write_static_audit_job_summary(run_root=safe_output, result=result)
+        job_summary, sarif_json = write_static_audit_ci_outputs(
+            run_root=safe_output,
+            result=result,
+        )
     except OSError as error:
         raise StaticAuditError("static audit outputs could not be written") from error
     return StaticAuditRun(
@@ -136,4 +140,5 @@ def run_static_audit(
         report_markdown=report_markdown,
         junit_xml=junit_xml,
         job_summary=job_summary,
+        sarif_json=sarif_json,
     )
