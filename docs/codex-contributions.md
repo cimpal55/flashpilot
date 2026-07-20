@@ -497,3 +497,26 @@ Codex did not claim recovery verification or storage savings and did not emit a
 recovery attestation. Partial-write fuzzing, previous-valid fallback,
 randomized fault timing, SARIF, distributed/CUDA training, discovery, and
 additional adapters were not started.
+
+## V0.3 roadmap item 3 - partial-write fuzz matrix
+
+Codex implemented only the third V0.3 roadmap item:
+
+- added the candidate `flashpilot fuzz-checkpoint --scenario partial-write
+  --iterations 100` interface with bounded deterministic iterations;
+- added a strict two-rank fuzz artifact, manifest-bound completion marker,
+  checksum cross-check, closed inventory, containment, size limit, and atomic
+  source commit;
+- added six cases per iteration for truncation, missing shard, stale manifest,
+  checksum mismatch, duplicate rank, and prematurely exposed reordered writes;
+- required exact typed rejection reasons for corrupt cases and zero acceptance
+  across every incomplete reordered-write observation;
+- added source/candidate immutability hashes, deterministic schedule hashing,
+  JSON Schemas, Markdown, JUnit, and job-summary evidence;
+- added focused schema, validator, repeatability, redaction, CLI, bounded-input,
+  and full-matrix tests.
+
+Codex did not begin previous-valid fallback, randomized fault timing, SARIF,
+distributed/CUDA qualification, discovery, or another adapter. The fuzz result
+does not claim recovery verification, report bytes or savings, or emit an
+attestation.

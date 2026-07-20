@@ -690,3 +690,24 @@ SHA-256 provenance, completion markers, atomic same-filesystem commits, and
 before/after fingerprints. Windows directory fsync remains explicitly
 best-effort. A conversion PASS is not crash recovery: no Recovery Gate ran, so
 no recovery attestation or storage-savings figure is allowed.
+
+## D-053: Partial-write fuzzing is deterministic commit-state qualification
+
+The V0.3 fuzz command implements one fixed `partial-write` scenario with six
+cases per iteration. Truncation, missing shard, stale manifest, checksum
+mismatch, and duplicate rank each have one exact typed rejection reason.
+Reordered writes are a temporal positive/negative sequence: every incomplete
+observation must fail closed and the final complete inventory must validate.
+
+This milestone intentionally does not use randomized process timing; that is a
+separate later roadmap item. It also does not discover or select a previous
+valid checkpoint, run training recovery, call GPT, or alter the frozen repair
+surface. The two-rank fixture exists to qualify commit integrity and makes no
+claim about a particular distributed framework or network filesystem.
+
+Source artifacts use atomic same-filesystem rename and file fsync. Windows
+directory fsync remains best-effort. Faults are applied only to isolated
+candidate copies, and validation must preserve both source and candidate
+fingerprints. A PASS means all expected corrupt/incomplete states were rejected
+and no incomplete state was accepted; it is not a Recovery Gate verdict and
+cannot produce an attestation or storage-savings metric.

@@ -390,3 +390,38 @@ The public `compare-checkpoints` command consumes only these typed artifact
 pairs and reuses the same comparator. It does not scan repositories, detect
 frameworks, mutate either input, repair checkpoints, issue a Recovery Gate
 verdict, calculate byte savings, or emit an attestation.
+
+## V0.3 partial-write and incomplete-commit fuzzing
+
+`fuzz-checkpoint --scenario partial-write` owns a fixed two-rank binary fixture
+with no external inputs. Its strict manifest binds iteration, checkpoint ID,
+world size, unique ranks, paths, sizes, and SHA-256 values. A completion marker
+binds the exact manifest hash, while a separate checksum document must agree
+with every manifest shard. Validation also requires a closed five-file
+inventory and refuses symbolic links or payloads above 1 MiB.
+
+Each deterministic iteration first creates a valid source through payload and
+metadata fsync, temporary-directory fsync where supported, same-filesystem
+directory rename, and parent-directory fsync where supported. Windows directory
+fsync remains best-effort. Five isolated copies are then faulted independently:
+
+```text
+truncated shard     -> payload-size-mismatch
+removed shard       -> payload-missing
+changed manifest    -> completion-mismatch
+changed checksums   -> checksum-manifest-mismatch
+duplicate rank      -> manifest-invalid
+```
+
+The sixth case creates a final-named directory prematurely and rotates a fixed
+five-file write order by iteration. Validation observes the directory after
+every write. The four incomplete states must be rejected; the fifth state must
+be accepted only when the full committed inventory is present. This is a
+deterministic commit-state matrix, not the later randomized process-timing
+milestone.
+
+Case evidence stores only relative paths, stable rejection enums, validation
+counts, and before/after directory fingerprints. The aggregate verdict derives
+from the complete six-case-per-iteration matrix and zero premature acceptances.
+It does not select an older checkpoint, resume training, invoke GPT, report
+bytes, or emit a recovery attestation.

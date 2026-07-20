@@ -2847,3 +2847,127 @@ is not an arbitrary Hugging Face PEFT converter; the shard fixture is not
 PyTorch Distributed Checkpoint. Partial-write fuzzing, previous-valid fallback,
 randomized fault timing, SARIF, distributed/CUDA training, discovery, and
 additional adapters were not started.
+
+## V0.3 roadmap item 3 - partial-write and incomplete-commit fuzz matrix
+
+Date: 2026-07-20
+
+Only roadmap item 3 was implemented. Local validation used Python 3.12.13 and
+Torch 2.13.0+cpu on Windows; Python 3.11 remains the declared compatibility
+target. Existing checkpoint, conversion, adapter, repair, and Recovery Gate
+behavior was preserved.
+
+### Implementation evidence
+
+The deterministic `partial-write` matrix contains six cases per iteration:
+truncated payload, missing shard, stale manifest, checksum mismatch, duplicate
+rank, and reordered writes. Valid source artifacts contain two bounded,
+`weights_only=True`-loadable Torch shards. They are committed through file
+fsync, strict checksum and manifest metadata, a manifest-bound completion
+marker, directory fsync where supported, and same-filesystem atomic rename.
+
+Faults are applied only to isolated candidate copies. The first five cases
+require these exact typed rejection reasons:
+
+```text
+truncated-payload  -> payload-size-mismatch
+missing-shard      -> payload-missing
+stale-manifest     -> completion-mismatch
+checksum-mismatch  -> checksum-manifest-mismatch
+duplicate-rank     -> manifest-invalid
+```
+
+For reordered writes, the five-file order rotates deterministically by
+iteration. Validation observes the prematurely exposed final directory after
+each write. Four incomplete observations must reject and the fifth complete
+state must validate. Both source and candidate directories are re-fingerprinted
+to prove that validation did not mutate them.
+
+Focused development also exercised the candidate command without
+`--run-dir` under pytest's long UUID temporary root. An initial redundant
+deep per-case JSON temporary filename exceeded the host's Windows path limit
+and failed closed. The final implementation keeps every case in the aggregate
+typed `result.json` and uses the shorter default `runs/fuzz-<uuid>` root. The
+unchanged candidate command then passed in the long-path test environment.
+
+### Authoritative 100-iteration run
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli fuzz-checkpoint --scenario partial-write --iterations 100 --run-dir .\runs\v03-partial-write-fuzz-final2
+PASS
+Cases: 600/600 passed
+Premature acceptances: 0
+Schedule SHA-256: 90514f4824bc9bd7a2577341669f73ca291a15532ae6e20ac489a2923c117071
+Recovery verified: false
+Storage savings reported: false
+Result: C:\Programming\business\flashpilot\runs\v03-partial-write-fuzz-final2\result.json
+JUnit XML: C:\Programming\business\flashpilot\runs\v03-partial-write-fuzz-final2\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\v03-partial-write-fuzz-final2\job-summary.md
+```
+
+The run performed 1,000 validation observations: 500 single validations across
+the five corrupt cases and 500 write-boundary observations across the reordered
+case. It recorded 900 expected rejections and accepted only the 100 complete
+reordered-write artifacts. The aggregate rejection counts were:
+
+```text
+checksum-manifest-mismatch  100
+completion-mismatch         100
+manifest-invalid            100
+missing-completion          200
+missing-metadata            160
+payload-missing             140
+payload-size-mismatch       100
+```
+
+All 600 source fingerprints and all 600 candidate fingerprints were unchanged
+by validation. Evidence contained no API key, secret sentinel, or absolute
+artifact path. The result emitted no recovery attestation, verified-recovery
+claim, byte metric, or storage-savings claim.
+
+### Focused validation
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_checkpoint_fuzzing.py tests\integration\test_partial_write_fuzz_qualification.py tests\unit\test_packaging.py tests\unit\test_atomic_checkpoint.py tests\unit\test_loader.py -q
+.................................                                        [100%]
+33 passed in 7.68s
+```
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+152 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 28%]
+........................................................................ [ 57%]
+...............................................................s........ [ 86%]
+.................................                                        [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+248 passed, 1 skipped in 221.94s (0:03:41)
+```
+
+The single skip is the unchanged Windows directory-symlink privilege test. The
+default pytest command retained its unique UUID basetemp plugin and disabled
+cache provider.
+
+### Acceptance and unresolved risks
+
+Roadmap item 3 passes: all six cases execute for every iteration; corrupt
+states are rejected for their exact reason; every incomplete reordered-write
+state fails closed; complete reordered artifacts validate; two independent
+small runs produce byte-identical result JSON; and validation mutates neither
+source nor candidate.
+
+Remaining risks are the fixed two-rank local fixture, Windows-only local
+validation, unverified Python 3.11 execution on this host, and best-effort
+Windows directory fsync. The result does not model network filesystems,
+storage-controller persistence, distributed process coordination, or random
+crash timing. Previous-valid fallback, randomized fault timing, SARIF,
+distributed/CUDA qualification, discovery, and additional adapters were not
+started.

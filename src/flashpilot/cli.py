@@ -427,6 +427,53 @@ def compare_checkpoints(
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 
+@app.command("fuzz-checkpoint")
+def fuzz_checkpoint(
+    scenario: Annotated[
+        str,
+        typer.Option(help="Fuzz scenario; only partial-write is supported."),
+    ] = "partial-write",
+    iterations: Annotated[
+        int,
+        typer.Option(help="Deterministic matrix iterations, from 1 through 1000."),
+    ] = 100,
+    run_dir: Annotated[
+        Path | None,
+        typer.Option(help="New or empty fuzz-evidence directory."),
+    ] = None,
+) -> None:
+    """Qualify fail-closed handling of partial and incomplete checkpoint commits."""
+
+    if scenario != "partial-write" or not 1 <= iterations <= 1000:
+        typer.echo("Unsupported checkpoint fuzz scenario or iteration count.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    selected_run_dir = run_dir or Path("runs") / f"fuzz-{uuid.uuid4().hex}"
+    try:
+        from flashpilot.fuzzing.service import (
+            PartialWriteFuzzError,
+            run_partial_write_fuzz,
+        )
+
+        result = run_partial_write_fuzz(
+            run_root=selected_run_dir,
+            iterations=iterations,
+        )
+    except (PartialWriteFuzzError, OSError, ValueError) as error:
+        typer.echo(f"Checkpoint fuzz qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.verdict)
+    typer.echo(f"Cases: {result.passed_cases}/{result.total_cases} passed")
+    typer.echo(f"Premature acceptances: {result.premature_acceptances}")
+    typer.echo(f"Schedule SHA-256: {result.schedule_sha256}")
+    typer.echo("Recovery verified: false")
+    typer.echo("Storage savings reported: false")
+    typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
+    typer.echo(f"JUnit XML: {(selected_run_dir / result.junit_path).resolve()}")
+    typer.echo(f"Job summary: {(selected_run_dir / result.job_summary_path).resolve()}")
+    if not result.passed:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
 @app.command()
 def control(
     profile: Annotated[

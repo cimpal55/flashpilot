@@ -99,3 +99,17 @@ The version-upgrade fixture tests a FlashPilot-owned schema transition. Its
 strong claim is continuation equivalence for the deterministic CI workload in
 a separate process, not universal forward/backward compatibility for external
 checkpoint formats.
+
+## Partial-write fuzzing positioning
+
+FlashPilot does not claim atomic writes, checksums, completion markers, or chaos
+testing as novel. The V0.3 contribution is a reproducible qualification surface
+that binds these mechanisms into one typed verdict: five independently faulted
+artifacts must produce exact rejection categories, and a prematurely visible
+reordered-write sequence must never validate before its full inventory exists.
+
+The matrix is deliberately deterministic so two invocations can be compared
+byte for byte. It does not model storage-controller persistence, network
+filesystem semantics, distributed process coordination, or probabilistic crash
+timing. Those boundaries prevent a local Windows CPU result from being
+presented as general crash-consistency certification.

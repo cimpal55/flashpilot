@@ -121,6 +121,32 @@ A passing conversion result is equivalence evidence, not crash-recovery
 verification. It emits neither a recovery attestation nor storage-savings
 claims.
 
+## V0.3 partial-write fuzz qualification
+
+The third V0.3 roadmap item runs a deterministic six-case matrix for every
+requested iteration:
+
+```powershell
+flashpilot fuzz-checkpoint `
+  --scenario partial-write `
+  --iterations 100 `
+  --run-dir .\runs\partial-write-fuzz
+```
+
+Each iteration exercises truncated payload, missing shard, stale manifest,
+checksum mismatch, duplicate rank, and reordered-write exposure. The first
+five cases must fail validation for their exact typed reason. The reordered
+case exposes a final-named directory after each of five differently ordered
+writes; every incomplete observation must be rejected, and only the complete
+closed inventory may pass.
+
+The source checkpoint uses the same-filesystem temporary-directory and atomic
+rename protocol. All source and candidate artifacts are fingerprinted before
+and after validation. Results are deterministic for the fixed seed and contain
+relative artifact paths, JSON, Markdown, JUnit, and a job summary. This is
+commit-integrity evidence, not randomized crash timing or recovery proof, so it
+emits no recovery attestation, byte metric, or storage-savings claim.
+
 ## What the demo proves
 
 1. An uninterrupted seeded CPU control produces stable trajectory evidence.
@@ -341,9 +367,9 @@ DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay is tied to the captured
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add distributed and partial-write scenarios, previous-valid
-fallback, and broader platform validation. Those later roadmap items are not
-part of the completed conversion-equivalence milestone.
+Future work may add distributed scenarios, previous-valid fallback, randomized
+fault timing, and broader platform validation. Those later roadmap items are
+not part of the completed partial-write fuzz milestone.
 
 ## Repository and license
 
