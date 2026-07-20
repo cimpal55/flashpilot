@@ -613,8 +613,10 @@ Codex implemented the narrow V0.4 process-level certification path:
   test, and an explicit Ubuntu hosted-workflow certification step.
 
 The current Windows host cannot execute a truthful POSIX SIGTERM integration,
-so no local checkpoint-commit, exit, RPO, RTO, byte, or attestation metric is
-claimed. The Windows command was verified to return unsupported without
-creating a run. A real certification result remains subject to the Ubuntu
-hosted workflow. Distributed/CUDA training, Kubernetes/Slurm/provider API
-integration, additional signals, discovery, and new adapters were not started.
+so the Windows command remains verified to return unsupported without creating
+a run. The configured Ubuntu workflow subsequently executed the real path and
+passed all 22 checks: checkpoint commit 0.025689 seconds, graceful exit
+0.695438 seconds, RPO 0 steps/0 tokens, and recovery RTO 4.799384 seconds. It
+uploaded both diagnostic evidence and the verified-only attestation.
+Distributed/CUDA training, Kubernetes/Slurm/provider API integration,
+additional signals, discovery, and new adapters were not started.

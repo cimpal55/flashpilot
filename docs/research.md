@@ -191,3 +191,11 @@ in-progress marker, full state inspection, measured step/token RPO, distinct-
 process continuation, exact stochastic trajectory, and verified-only
 attestation. It makes no claim of inventing signals, grace periods,
 checkpoint-on-preemption, or scheduler integration.
+
+The process contract was exercised on GitHub-hosted Ubuntu 24.04 in workflow
+run 29752537631. External `os.kill(SIGTERM)` produced a 0.025689-second
+checkpoint commit, a 0.695438-second graceful exit, zero step/token RPO, and a
+4.799384-second recovery RTO; the exact Recovery Gate passed 22/22. These are
+measurements for the fixed offline CPU workload on that runner, not general
+latency or durability claims for Kubernetes, Slurm, cloud GPU providers, or
+network storage.

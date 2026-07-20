@@ -3486,18 +3486,64 @@ privilege test.
 | V0.4 requirement | Status | Evidence |
 | --- | --- | --- |
 | Exact HF/SIGTERM/grace CLI | PASS | Help surface, bounded typed command, unsupported-input tests. |
-| Checkpoint commit before termination | NOT RUN ON THIS HOST | POSIX integration and Ubuntu workflow configured; Windows rejects substitution. |
-| No incomplete marker | PASS for deterministic logic; live POSIX pending | Marker-present Gate failure test and strict commit model. |
-| RPO in steps and tokens | PASS for deterministic logic; live POSIX pending | Zero-RPO Gate and result/attestation fields tested. |
-| Recovery RTO | PASS for deterministic logic; live POSIX pending | Bound to recovery-process timestamps and verifier. |
-| New-process exact trajectory | PASS for existing HF regression; live POSIX pending | Existing HF exact run passes; POSIX preemption integration is enabled. |
-| Verified-only attestation | PASS for schema/guardrails; live POSIX pending | Builder/verifier and closed-inventory regression tests pass. |
+| Checkpoint commit before termination | PASS | Hosted Ubuntu run committed in 0.025689 seconds before clean termination. |
+| No incomplete marker | PASS | Hosted 22/22 Gate passed and verified the marker was absent. |
+| RPO in steps and tokens | PASS | Hosted result measured 0 steps and 0 workload tokens. |
+| Recovery RTO | PASS | Hosted result measured 4.799384 seconds. |
+| New-process exact trajectory | PASS | Hosted 22/22 Gate passed exact distinct-process continuation. |
+| Verified-only attestation | PASS | Success-only hosted upload produced the 2,479-byte attestation artifact. |
 | Windows honesty | PASS | Exact command exits unsupported with no run artifacts. |
 | Existing regression suite | PASS | 287 passed; only two explicit platform skips. |
 
-The V0.4 implementation is ready for hosted POSIX execution, but a genuine
-preemption certification result is not yet proven by current-host evidence.
-The next authoritative evidence must come from the configured Ubuntu workflow
-or another real POSIX host. Provider control-plane behavior, Python 3.11,
-network filesystems, distributed/CUDA training, and best-effort Windows
+### Hosted POSIX acceptance
+
+GitHub Actions pull request run 29752537631 executed commit
+`dd3521139cb90a2423b1cc672fe19a8ac73eabe2` on Ubuntu 24.04 with Python
+3.11.15. The exact managed-preemption command completed `VERIFIED`:
+
+```text
+Signal: SIGTERM via os.kill
+Grace period: 300 seconds
+Checkpoint commit: 0.025689 seconds
+Graceful exit: 0.695438 seconds
+RPO: 0 steps / 0 tokens
+Recovery RTO: 4.799384 seconds
+Recovery Gate: 22/22
+```
+
+The qualification job also passed the real Hugging Face qualification, static
+audit, typed policy enforcement, diagnostic upload, and success-only verified
+attestation upload. The diagnostic artifact was 18,274 bytes with SHA-256
+`6948f214edec7f7d94f42b4c4be0c30d6d9e5d071970cb1c1ae774ea4208ae72`.
+The attestation artifact was 2,479 bytes with SHA-256
+`3a88767e44e1cf2f8e044df768fb906e87709aad8a6ea71cd3bab89ce15b470d`.
+
+Hosted quality results were:
+
+```text
+Python 3.11.15: Ruff PASS; format PASS (181 files); pytest 289 passed in 159.77s
+Python 3.12: Ruff PASS; format PASS (181 files); pytest 289 passed in 179.95s
+```
+
+After recording the hosted evidence, the unchanged Windows product suite was
+rerun from the default commands:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+181 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+287 passed, 2 skipped in 228.16s (0:03:48)
+```
+
+The skips remain the real external POSIX integration on Windows and the
+unchanged Windows directory-symlink privilege test. Both ran and passed in the
+hosted Ubuntu suites.
+
+This completes the V0.4 process-contract acceptance. It does not qualify a
+specific Kubernetes, Slurm, RunPod, Vast, or other provider control plane.
+Network filesystems, distributed/CUDA training, and best-effort Windows
 directory fsync remain unverified. No later roadmap milestone was started.

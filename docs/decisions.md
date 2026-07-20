@@ -807,3 +807,10 @@ This is process-contract certification, not proof that a particular cluster or
 cloud control plane delivered its notice correctly. Provider-managed tests,
 additional signals, arbitrary Trainer scripts, Lightning preemption,
 distributed/CUDA training, and scheduler discovery remain out of scope.
+
+The authoritative acceptance run is GitHub Actions run 29752537631 on Ubuntu
+24.04. It delivered external `SIGTERM` with `os.kill`, committed before clean
+exit, measured zero step/token RPO, resumed in a distinct process, passed all
+22 deterministic checks, and emitted the verified-only attestation. This
+closes the process-contract milestone without expanding the claim to hosted
+scheduler or provider-control-plane conformance.
