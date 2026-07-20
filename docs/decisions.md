@@ -951,3 +951,44 @@ the always-on diagnostics. The existing success-only attestation upload is not
 changed. This is repository qualification policy, not general authorization or
 the later organization-level policy milestone. Signing, OIDC, remote policy
 distribution, inheritance, waivers, and a registry remain out of scope.
+
+## D-061: sign exact attestation bytes with detached Ed25519 and explicit trust
+
+The fifth V1.0 production-infrastructure item uses Ed25519 through the
+maintained `cryptography` package. Sigstore keyless signing is intentionally
+deferred because its Fulcio/Rekor flow binds OIDC identity and transparency-log
+provenance, which is the separate next roadmap item. This milestone must not
+quietly make an identity claim that it has not implemented.
+
+The signature is a strict detached JSON sidecar over a fixed domain separator
+and the exact bytes of `recovery.attestation.json`. Exact-byte signing avoids a
+second JSON canonicalization contract. It also makes whitespace or line-ending
+changes detectable. The sidecar fixes the algorithm, scope, artifact path,
+artifact hash, raw-public-key hash, encoding, and signature. It cannot carry an
+embedded trust root, executable command, identity assertion, or alternate
+algorithm.
+
+Signing first runs the unchanged deterministic bundle verifier and refuses an
+invalid run. Verification always revalidates the bundle before checking the
+signature. If a sidecar exists, the caller must supply a trusted SPKI Ed25519
+public key; the sidecar cannot self-authenticate. Wrong or malformed keys,
+hashes, signatures, sidecars, and changed attestation bytes use the existing
+invalid/tampered evidence path. Unsigned legacy bundles remain verifiable unless
+the caller or typed suite policy explicitly requires signing.
+
+The existing attestation schema remains byte-compatible and continues to state
+that it carries no embedded signature. New evidence manifests add the detached
+sidecar to the fixed derived-artifact exclusions, while the verifier accepts
+the legacy unsigned exclusion tuple. The production suite adds one exact
+signature check to each of eight runtime requirements, increasing its current
+total from 145 to 153 without changing any Recovery Gate, tolerance, status, or
+attestation-integrity check.
+
+The provided file-key generator is bounded development and qualification
+infrastructure: it refuses overwrite, creates POSIX private material with mode
+`0600`, and prints only paths and the public fingerprint. Windows ACL protection
+is best-effort and explicitly warned. Hosted CI generates one ephemeral key in
+runner temporary storage, deletes the private file with `if: always()`, and
+uploads only the public key with successful signed attestations. Durable
+publisher identity, OIDC, hardware/KMS custody, rotation, revocation,
+transparency logs, and a registry remain unresolved later work.

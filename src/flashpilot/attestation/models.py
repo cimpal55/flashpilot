@@ -12,14 +12,17 @@ from flashpilot.domain.manifests import SHA256_PATTERN, ManagedRelativePath
 
 EVIDENCE_MANIFEST_PATH = "evidence-manifest.json"
 RECOVERY_ATTESTATION_PATH = "recovery.attestation.json"
+ATTESTATION_SIGNATURE_PATH = "recovery.attestation.signature.json"
+MAX_ATTESTATION_SIGNATURE_BYTES = 16 * 1024
 ATTESTATION_JUNIT_PATH = "attestation.junit.xml"
 PERSISTENCE_CONTRACT_PATH = "persistence-contract.json"
 ENVIRONMENT_PATH = "environment.json"
-STATEMENT_ARTIFACT_PATHS = (
+LEGACY_STATEMENT_ARTIFACT_PATHS = (
     ATTESTATION_JUNIT_PATH,
     EVIDENCE_MANIFEST_PATH,
     RECOVERY_ATTESTATION_PATH,
 )
+STATEMENT_ARTIFACT_PATHS = (*LEGACY_STATEMENT_ARTIFACT_PATHS, ATTESTATION_SIGNATURE_PATH)
 
 
 class StrictAttestationModel(BaseModel):
@@ -48,7 +51,8 @@ class EvidenceManifestV1(StrictAttestationModel):
         paths = [entry.path for entry in self.entries]
         if len(paths) != len(set(paths)):
             raise ValueError("evidence manifest paths must be unique")
-        if tuple(self.excluded_statement_artifacts) != STATEMENT_ARTIFACT_PATHS:
+        exclusions = tuple(self.excluded_statement_artifacts)
+        if exclusions not in {LEGACY_STATEMENT_ARTIFACT_PATHS, STATEMENT_ARTIFACT_PATHS}:
             raise ValueError("evidence manifest statement exclusions are fixed")
         overlap = sorted(set(paths) & set(STATEMENT_ARTIFACT_PATHS))
         if overlap:
@@ -317,6 +321,21 @@ class RecoveryAttestationV1(StrictAttestationModel):
             raise ValueError("rank termination attestation process evidence is invalid")
 
 
+class AttestationSignatureV1(StrictAttestationModel):
+    schema_version: Literal["flashpilot-attestation-signature-v1"] = (
+        "flashpilot-attestation-signature-v1"
+    )
+    algorithm: Literal["ed25519"] = "ed25519"
+    signature_scope: Literal["domain-separated-exact-file-bytes"] = (
+        "domain-separated-exact-file-bytes"
+    )
+    signed_artifact_path: Literal["recovery.attestation.json"] = RECOVERY_ATTESTATION_PATH
+    signed_artifact_sha256: str = Field(pattern=SHA256_PATTERN)
+    public_key_sha256: str = Field(pattern=SHA256_PATTERN)
+    signature_encoding: Literal["base64"] = "base64"
+    signature: str = Field(pattern=r"^[A-Za-z0-9+/]{86}==$", min_length=88, max_length=88)
+
+
 class AttestationVerificationCheck(StrictAttestationModel):
     check_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]*$")
     passed: Literal[True] = True
@@ -330,6 +349,9 @@ class AttestationVerificationResult(StrictAttestationModel):
     valid: Literal[True] = True
     verdict: Literal["VERIFIED"] = "VERIFIED"
     attestation_sha256: str = Field(pattern=SHA256_PATTERN)
+    signature_status: Literal["unsigned", "verified"] = "unsigned"
+    signing_key_sha256: str | None = Field(default=None, pattern=SHA256_PATTERN)
+    signature_artifact_sha256: str | None = Field(default=None, pattern=SHA256_PATTERN)
     checks: tuple[AttestationVerificationCheck, ...] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -337,4 +359,11 @@ class AttestationVerificationResult(StrictAttestationModel):
         check_ids = [check.check_id for check in self.checks]
         if len(check_ids) != len(set(check_ids)):
             raise ValueError("attestation verification check IDs must be unique")
+        signature_values = (self.signing_key_sha256, self.signature_artifact_sha256)
+        if self.signature_status == "verified" and any(value is None for value in signature_values):
+            raise ValueError("verified signature status requires key and artifact hashes")
+        if self.signature_status == "unsigned" and any(
+            value is not None for value in signature_values
+        ):
+            raise ValueError("unsigned verification cannot claim signature hashes")
         return self

@@ -260,11 +260,15 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
 
     assert diagnostic_upload["if"] == "always()"
     assert attestation_upload["if"] == "success()"
-    assert attestation_upload["with"]["path"] == "runs/**/recovery.attestation.json"
+    assert "runs/**/recovery.attestation.json" in attestation_upload["with"]["path"]
+    assert "runs/**/recovery.attestation.signature.json" in attestation_upload["with"]["path"]
+    assert "runs/ci-signing/ed25519-public.pem" in attestation_upload["with"]["path"]
+    assert "ed25519-private.pem" not in attestation_upload["with"]["path"]
     assert "runs/**/results.sarif" in diagnostic_upload["with"]["path"]
     assert "runs/**/audit.json" in diagnostic_upload["with"]["path"]
     assert "runs/**/policy-evaluation.json" in diagnostic_upload["with"]["path"]
     assert "examples/ci/qualification-policy.yml" in diagnostic_upload["with"]["path"]
+    assert "schemas/attestation-signature-v1.schema.json" in diagnostic_upload["with"]["path"]
     assert "schemas/qualification-policy-v1.schema.json" in diagnostic_upload["with"]["path"]
     assert (
         "schemas/qualification-policy-evaluation-v1.schema.json"
@@ -284,8 +288,11 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
         "--signal SIGTERM",
         "--grace-period 300",
         "flashpilot emit-junit",
+        "flashpilot generate-signing-key",
+        "flashpilot sign-attestation",
         "flashpilot enforce-policy",
         "--policy examples/ci/qualification-policy.yml",
+        "--public-key runs/ci-signing/ed25519-public.pem",
         "--run hf-process-termination=runs/ci-hf",
         "--run fsdp-checkpoint-restart=runs/ci-distributed",
         "--run fsdp-rank-termination-0=runs/ci-distributed-fault-rank-0",
@@ -295,6 +302,7 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
         "--run deepspeed-rank-termination-1=runs/ci-deepspeed-fault-rank-1",
         "--run hf-managed-preemption=runs/ci-preemption",
         "--run hf-static-audit=runs/ci-audit",
+        'rm -f -- "${RUNNER_TEMP}/flashpilot-signing-key/ed25519-private.pem"',
     ):
         assert required in serialized
     for forbidden in ("OPENAI_API_KEY", "live-contract", "live-failure", "self-hosted"):

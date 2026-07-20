@@ -11,6 +11,7 @@ dist/*
 !dist/flashpilot-0.2.0-py3-none-any.whl
 !dist/flashpilot-0.2.0.tar.gz
 build/
+**/ed25519-private.pem
 *.egg-info/
 .env
 .env.*

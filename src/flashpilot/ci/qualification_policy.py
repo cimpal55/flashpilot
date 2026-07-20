@@ -11,7 +11,11 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from flashpilot.attestation import RECOVERY_ATTESTATION_PATH, verify_recovery_attestation
+from flashpilot.attestation import (
+    ATTESTATION_SIGNATURE_PATH,
+    RECOVERY_ATTESTATION_PATH,
+    verify_recovery_attestation,
+)
 from flashpilot.attestation.verifier import AttestationVerificationError
 from flashpilot.ci.exits import EXIT_QUALIFICATION_FAILED, EXIT_VERIFIED
 from flashpilot.ci.models import CICheck, CICheckStatus, CIStatus
@@ -132,7 +136,11 @@ def _safe_run_root(path: Path) -> Path:
         raise QualificationPolicyEvidenceError("bound run root cannot be resolved") from error
 
 
-def _load_policy_evidence(path: Path) -> _LoadedPolicyEvidence:
+def _load_policy_evidence(
+    path: Path,
+    *,
+    public_key_path: Path | None,
+) -> _LoadedPolicyEvidence:
     root = _safe_run_root(path)
     sources = tuple(
         candidate for candidate in (root / "result.json", root / "audit.json") if candidate.exists()
@@ -152,20 +160,34 @@ def _load_policy_evidence(path: Path) -> _LoadedPolicyEvidence:
         ) from error
 
     attestation_path = root / RECOVERY_ATTESTATION_PATH
+    signature_path = root / ATTESTATION_SIGNATURE_PATH
     attestation_status: str
+    attestation_signature_status: str
     attestation_sha256: str | None = None
+    signing_key_sha256: str | None = None
+    signature_artifact_sha256: str | None = None
     if evidence.kind == "static-audit":
-        if attestation_path.exists():
+        if attestation_path.exists() or signature_path.exists():
             raise QualificationPolicyEvidenceError(
-                "static audit must not contain a recovery attestation"
+                "static audit must not contain recovery attestation artifacts"
             )
         attestation_status = "not-applicable"
+        attestation_signature_status = "not-applicable"
     elif evidence.status is CIStatus.VERIFIED:
         if not attestation_path.exists():
+            if signature_path.exists():
+                raise QualificationPolicyEvidenceError(
+                    "detached signature cannot exist without a recovery attestation"
+                )
             attestation_status = "missing"
+            attestation_signature_status = "missing"
         else:
             try:
-                verification = verify_recovery_attestation(attestation_path)
+                verification = verify_recovery_attestation(
+                    attestation_path,
+                    public_key_path=public_key_path if signature_path.exists() else None,
+                    require_signed=signature_path.exists(),
+                )
             except (AttestationVerificationError, OSError, UnicodeError, ValueError) as error:
                 raise QualificationPolicyEvidenceError(
                     "bound recovery attestation is invalid or tampered"
@@ -174,12 +196,16 @@ def _load_policy_evidence(path: Path) -> _LoadedPolicyEvidence:
                 raise QualificationPolicyEvidenceError("bound recovery attestation is invalid")
             attestation_status = "verified"
             attestation_sha256 = verification.attestation_sha256
+            attestation_signature_status = verification.signature_status
+            signing_key_sha256 = verification.signing_key_sha256
+            signature_artifact_sha256 = verification.signature_artifact_sha256
     else:
-        if attestation_path.exists():
+        if attestation_path.exists() or signature_path.exists():
             raise QualificationPolicyEvidenceError(
-                "non-verified run must not contain a recovery attestation"
+                "non-verified run must not contain recovery attestation artifacts"
             )
         attestation_status = "missing"
+        attestation_signature_status = "missing"
 
     try:
         source_after = source.read_bytes()
@@ -194,6 +220,9 @@ def _load_policy_evidence(path: Path) -> _LoadedPolicyEvidence:
             source_sha256=hashlib.sha256(source_before).hexdigest(),
             attestation_status=attestation_status,
             attestation_sha256=attestation_sha256,
+            attestation_signature_status=attestation_signature_status,
+            signing_key_sha256=signing_key_sha256,
+            signature_artifact_sha256=signature_artifact_sha256,
             evidence=evidence,
         ),
     )
@@ -375,6 +404,15 @@ def _evaluate_requirement(
                         "verified",
                         evidence.attestation_status,
                     ),
+                    _check(
+                        requirement_id,
+                        "signed-attestation",
+                        not requirement.require_signed_attestation
+                        or evidence.attestation_signature_status == "verified",
+                        "A signed-attestation policy requires the explicitly trusted key.",
+                        "verified" if requirement.require_signed_attestation else "optional",
+                        evidence.attestation_signature_status,
+                    ),
                 )
             )
             if isinstance(requirement, (DistributedPolicyRequirement, DeepSpeedPolicyRequirement)):
@@ -487,6 +525,7 @@ def enforce_qualification_policy(
     policy_path: Path,
     run_bindings: dict[str, Path],
     output_dir: Path,
+    public_key_path: Path | None = None,
 ) -> QualificationPolicyArtifactResult:
     """Load, verify, evaluate, and persist one explicit qualification-suite policy."""
 
@@ -497,8 +536,21 @@ def enforce_qualification_policy(
         raise QualificationPolicyError(
             "unlisted run bindings are forbidden: " + ", ".join(unexpected)
         )
+    signed_requirements = tuple(
+        item.requirement_id
+        for item in loaded_policy.policy.requirements
+        if not isinstance(item, StaticAuditPolicyRequirement) and item.require_signed_attestation
+    )
+    if signed_requirements and public_key_path is None:
+        raise QualificationPolicyError(
+            "signed-attestation requirements need one explicitly trusted --public-key"
+        )
     loaded_evidence = {
-        requirement_id: _load_policy_evidence(path) for requirement_id, path in run_bindings.items()
+        requirement_id: _load_policy_evidence(
+            path,
+            public_key_path=public_key_path,
+        )
+        for requirement_id, path in run_bindings.items()
     }
     evaluation = evaluate_qualification_policy(
         policy=loaded_policy.policy,

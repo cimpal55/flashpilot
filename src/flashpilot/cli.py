@@ -31,8 +31,12 @@ from flashpilot.agent.service import (
 from flashpilot.attestation import (
     ATTESTATION_JUNIT_PATH,
     RECOVERY_ATTESTATION_PATH,
+    AttestationSignatureEmissionError,
+    AttestationSigningError,
     AttestationVerificationError,
     RecoveryAttestationV1,
+    generate_ed25519_signing_key,
+    sign_recovery_attestation,
     verify_recovery_attestation,
 )
 from flashpilot.attestation.reporters import render_attestation_summary
@@ -1192,17 +1196,92 @@ def verify(
     typer.echo("VERIFIED by the persisted deterministic Recovery Gate (atol=0.0, rtol=0.0).")
 
 
+@app.command("generate-signing-key")
+def generate_signing_key(
+    output_dir: Annotated[
+        Path,
+        typer.Argument(help="New directory for one Ed25519 PKCS8/SPKI key pair."),
+    ],
+) -> None:
+    """Generate a new file-backed Ed25519 signing key pair without overwriting."""
+
+    try:
+        generated = generate_ed25519_signing_key(output_dir)
+    except (AttestationSigningError, OSError, ValueError) as error:
+        typer.echo(f"SIGNING KEY ERROR: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    typer.echo("ED25519 KEY GENERATED")
+    typer.echo(f"Private key: {generated.private_key_path.resolve()}")
+    typer.echo(f"Public key: {generated.public_key_path.resolve()}")
+    typer.echo(f"Public key SHA-256: {generated.public_key_sha256}")
+    if generated.private_key_permissions == "windows-best-effort":
+        typer.echo(
+            "WARNING: Windows private-key file permissions are best-effort; protect the "
+            "directory with host ACLs.",
+            err=True,
+        )
+
+
+@app.command("sign-attestation")
+def sign_attestation(
+    file: Annotated[
+        Path,
+        typer.Argument(help="Path to recovery.attestation.json."),
+    ],
+    private_key: Annotated[
+        Path,
+        typer.Option(help="Unencrypted PKCS8 PEM Ed25519 private key."),
+    ],
+) -> None:
+    """Sign an integrity-verified attestation with a detached Ed25519 statement."""
+
+    try:
+        emission = sign_recovery_attestation(
+            attestation_path=file,
+            private_key_path=private_key,
+        )
+    except (
+        AttestationSignatureEmissionError,
+        AttestationSigningError,
+        AttestationVerificationError,
+        OSError,
+        UnicodeError,
+        ValueError,
+    ) as error:
+        typer.echo(f"SIGNING REFUSED: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo("SIGNED")
+    typer.echo(f"Signature: {emission.signature_path.resolve()}")
+    typer.echo(f"Signature artifact SHA-256: {emission.signature_sha256}")
+    typer.echo(f"Trusted-key fingerprint: {emission.signature.public_key_sha256}")
+
+
 @app.command("verify-attestation")
 def verify_attestation(
     file: Annotated[
         Path,
         typer.Argument(help="Path to recovery.attestation.json."),
     ],
+    public_key: Annotated[
+        Path | None,
+        typer.Option(help="Explicitly trusted SubjectPublicKeyInfo PEM Ed25519 key."),
+    ] = None,
+    require_signed: Annotated[
+        bool,
+        typer.Option(help="Reject an otherwise valid unsigned attestation."),
+    ] = False,
 ) -> None:
-    """Verify an unsigned attestation and its closed local evidence bundle."""
+    """Verify the closed bundle and, when present, its trusted detached signature."""
 
+    if require_signed and public_key is None:
+        typer.echo("--require-signed requires --public-key.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
     try:
-        verification = verify_recovery_attestation(file)
+        verification = verify_recovery_attestation(
+            file,
+            public_key_path=public_key,
+            require_signed=require_signed,
+        )
         attestation = _load_recovery_attestation(file)
     except (AttestationVerificationError, OSError, UnicodeError, ValueError) as error:
         typer.echo(f"INVALID OR TAMPERED: {error}", err=True)
@@ -1213,7 +1292,12 @@ def verify_attestation(
         verification=verification,
     )
     typer.echo(f"Attestation SHA-256: {verification.attestation_sha256}")
-    typer.echo("Unsigned integrity verification passed; no publisher signature was checked.")
+    if verification.signature_status == "verified":
+        typer.echo("Detached Ed25519 signature: VERIFIED")
+        typer.echo(f"Trusted public key SHA-256: {verification.signing_key_sha256}")
+        typer.echo(f"Signature artifact SHA-256: {verification.signature_artifact_sha256}")
+    else:
+        typer.echo("Unsigned integrity verification passed; no publisher signature was checked.")
 
 
 @app.command("emit-junit")
@@ -1226,9 +1310,20 @@ def emit_junit(
         Path | None,
         typer.Option(help="Optional typed FlashPilot CI policy YAML."),
     ] = None,
+    public_key: Annotated[
+        Path | None,
+        typer.Option(help="Explicitly trusted Ed25519 key for a detached signature."),
+    ] = None,
+    require_signed: Annotated[
+        bool,
+        typer.Option(help="Reject an otherwise valid unsigned recovery attestation."),
+    ] = False,
 ) -> None:
     """Emit or verify deterministic JUnit, Markdown, and SARIF CI artifacts."""
 
+    if require_signed and public_key is None:
+        typer.echo("--require-signed requires --public-key.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
     selected_policy = None
     if policy is not None:
         try:
@@ -1237,7 +1332,12 @@ def emit_junit(
             typer.echo(f"Unsupported CI policy: {error}", err=True)
             raise typer.Exit(code=EXIT_UNSUPPORTED) from error
     try:
-        result = emit_ci_outputs(run_root=run_dir, policy=selected_policy)
+        result = emit_ci_outputs(
+            run_root=run_dir,
+            policy=selected_policy,
+            public_key_path=public_key,
+            require_signed=require_signed,
+        )
     except (CIEvidenceError, CIPolicyError, OSError, UnicodeError, ValueError) as error:
         typer.echo(f"INVALID OR TAMPERED CI EVIDENCE: {error}", err=True)
         raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
@@ -1271,6 +1371,10 @@ def enforce_policy(
             help="Explicit repeated requirement-id=run-directory evidence binding.",
         ),
     ],
+    public_key: Annotated[
+        Path | None,
+        typer.Option(help="Explicitly trusted Ed25519 public key for signed requirements."),
+    ] = None,
 ) -> None:
     """Enforce one closed policy over an explicitly bound qualification suite."""
 
@@ -1280,6 +1384,7 @@ def enforce_policy(
             policy_path=policy,
             run_bindings=bindings,
             output_dir=output_dir,
+            public_key_path=public_key,
         )
     except QualificationPolicyError as error:
         typer.echo(f"Unsupported qualification policy: {error}", err=True)

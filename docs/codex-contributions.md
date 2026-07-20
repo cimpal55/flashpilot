@@ -748,3 +748,41 @@ work, or repair behavior. The P0 adapter and six-action repair surface remain
 unchanged. Hosted pull-request run 29775471175 passed the complete real matrix,
 both Python quality jobs, the 145-check suite policy, all nine source-hash
 bindings, and all eight success-only attestation-hash bindings.
+
+## V1.0 item 5 - detached Ed25519 signed attestations
+
+Codex implemented only the fifth V1.0 item:
+
+- added a strict detached `AttestationSignatureV1` over domain-separated exact
+  attestation bytes using `cryptography` Ed25519 primitives;
+- required an explicitly supplied trusted SPKI public key and failed closed on
+  missing trust, wrong algorithms or keys, malformed sidecars, hash mismatch,
+  signature mutation, or exact-byte mutation;
+- preserved the existing unsigned attestation payload and legacy evidence
+  manifests while excluding the new derived sidecar from new closed evidence
+  inventories;
+- added bounded non-overwriting PKCS8/SPKI key generation, POSIX `0600`
+  private-file permissions, explicit Windows ACL limitations, and private-key
+  filename protection in Git;
+- extended local verification, JUnit/Rich output, the per-run CI path, and the
+  closed qualification-suite policy with typed signature evidence;
+- required one verified signature for each of eight runtime policy entries,
+  increasing the complete matrix from 145 to 153 checks without changing any
+  deterministic Recovery Gate or tolerance;
+- updated the synchronized hosted workflows to generate one ephemeral run key,
+  sign all eight attestations, enforce trust, delete the private file even on
+  failure, and upload only public verification material on success;
+- added checked schema, packaging, workflow, CLI, integrity, backward-
+  compatibility, wrong-key, wrong-algorithm, and tamper tests.
+
+Codex did not add OIDC identity, Sigstore/Fulcio/Rekor integration, a durable
+publisher identity, KMS/HSM storage, key rotation or revocation, registry
+publication, organization policy, new framework behavior, GPT work, or repair
+behavior. Hosted acceptance is recorded only after the actual workflow runs.
+
+GitHub Actions run 29780077358 subsequently passed both Python quality jobs
+with 385 tests and one expected skip each, the complete real Linux
+qualification job, all eight Ed25519 signing operations, and the 153-check
+suite policy. Downloaded artifact digests matched GitHub. Independent
+verification passed for all eight detached signatures under the one uploaded
+public key, and the success-only artifact contained no private key.

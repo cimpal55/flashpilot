@@ -18,6 +18,7 @@ requirements:
     required_status: VERIFIED
     require_exact_recovery: true
     require_attestation: true
+    require_signed_attestation: true
   - requirement_id: fsdp-checkpoint-restart
     kind: distributed-qualification
     framework: pytorch-distributed
@@ -34,6 +35,7 @@ requirements:
     required_status: VERIFIED
     require_exact_recovery: true
     require_attestation: true
+    require_signed_attestation: true
   - requirement_id: fsdp-rank-termination-0
     kind: distributed-qualification
     framework: pytorch-distributed
@@ -50,6 +52,7 @@ requirements:
     required_status: VERIFIED
     require_exact_recovery: true
     require_attestation: true
+    require_signed_attestation: true
   - requirement_id: fsdp-rank-termination-1
     kind: distributed-qualification
     framework: pytorch-distributed
@@ -66,6 +69,7 @@ requirements:
     required_status: VERIFIED
     require_exact_recovery: true
     require_attestation: true
+    require_signed_attestation: true
   - requirement_id: deepspeed-checkpoint-restart
     kind: deepspeed-qualification
     framework: deepspeed
@@ -83,6 +87,7 @@ requirements:
     required_status: VERIFIED
     require_exact_recovery: true
     require_attestation: true
+    require_signed_attestation: true
   - requirement_id: deepspeed-rank-termination-0
     kind: deepspeed-qualification
     framework: deepspeed
@@ -100,6 +105,7 @@ requirements:
     required_status: VERIFIED
     require_exact_recovery: true
     require_attestation: true
+    require_signed_attestation: true
   - requirement_id: deepspeed-rank-termination-1
     kind: deepspeed-qualification
     framework: deepspeed
@@ -117,6 +123,7 @@ requirements:
     required_status: VERIFIED
     require_exact_recovery: true
     require_attestation: true
+    require_signed_attestation: true
   - requirement_id: hf-managed-preemption
     kind: hf-preemption-certification
     framework: huggingface-trainer
@@ -128,6 +135,7 @@ requirements:
     required_status: VERIFIED
     require_exact_recovery: true
     require_attestation: true
+    require_signed_attestation: true
   - requirement_id: hf-static-audit
     kind: static-audit
     framework: huggingface-trainer

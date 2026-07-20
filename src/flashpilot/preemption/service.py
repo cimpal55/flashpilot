@@ -406,7 +406,10 @@ def run_hf_preemption_certification(
         limitations=(
             "Certification covers one local POSIX SIGTERM and the included CPU Trainer workload.",
             "Kubernetes, Slurm, and cloud-provider control planes are not invoked by this local run.",
-            "The attestation is unsigned and provides integrity, not publisher authentication.",
+            (
+                "The attestation payload has no embedded signature; detached Ed25519 "
+                "verification requires an explicitly trusted public key."
+            ),
         ),
     )
     write_json_artifact(run_root=sandbox.root, relative_path=result.result_path, value=result)

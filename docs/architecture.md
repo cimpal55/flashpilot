@@ -274,8 +274,10 @@ be non-failing, `atol=0.0`, `rtol=0.0`, bounded RPO/RTO, and an integrity-verifi
 local attestation. Static audit requires `PASS` and forbids an attestation.
 UNKNOWN always fails.
 
-The complete checked-in matrix evaluates 145 stable checks. Its aggregate
-`PASS` is derived from all nine per-requirement verdicts. The command writes a
+The fourth V1.0 item introduced 145 stable checks. Detached signing adds one
+exact signature check to each of the eight runtime requirements, so the current
+checked-in matrix evaluates 153 checks. Its aggregate `PASS` is derived from all
+nine per-requirement verdicts. The command writes a
 strict `policy-evaluation.json` plus JUnit, Markdown, and SARIF into a separate
 closed output directory. It hashes each exact source result and the policy
 source, records verified attestation hashes, refuses to write inside a bound
@@ -283,11 +285,53 @@ run, and does not mutate attested evidence. Existing malformed or tampered
 evidence exits through the integrity path before policy evaluation.
 
 The active hosted job runs this suite policy after all qualifications and the
-static audit. Its always-on artifact includes the policy source, both public
-schemas, normalized evaluation, source results, JUnit, Markdown, and SARIF.
-The success-only attestation upload remains unchanged. This milestone does not
-add authorization policy, organization inheritance, remote policy retrieval,
-signatures, OIDC, or a registry.
+static audit. Its always-on artifact includes the policy source, all public
+policy/signature schemas, normalized evaluation, source results, JUnit,
+Markdown, and SARIF. The success-only upload includes eight attestation
+payloads, their detached signatures, and the run public key. It never includes
+the private key. Authorization policy, organization inheritance, remote policy
+retrieval, OIDC, and a registry remain out of scope.
+
+## V1.0 detached Ed25519 attestations
+
+Signing is a separate operation after deterministic bundle verification. It
+does not alter a Recovery Gate, create a recovery verdict, repair evidence, or
+rewrite `recovery.attestation.json`:
+
+```text
+verify closed recovery-attestation bundle
+-> hash exact recovery.attestation.json bytes
+-> sign domain || exact bytes with Ed25519
+-> atomically write recovery.attestation.signature.json
+-> verify with an explicitly supplied trusted public key
+```
+
+The fixed domain is `flashpilot:recovery-attestation:v1` followed by a NUL
+separator. `AttestationSignatureV1` fixes the algorithm, exact-byte scope,
+artifact path, artifact SHA-256, raw-public-key SHA-256, base64 encoding, and
+64-byte Ed25519 signature. It has no command, executable policy, embedded key,
+certificate, identity, or network field. The existing attestation payload
+retains `signature_status=unsigned` to preserve its schema and byte contract;
+the verifier's typed result records whether the optional detached signature
+passed and binds both key and sidecar hashes.
+
+The signature is a derived statement artifact, so new evidence manifests
+exclude it alongside the manifest, attestation, and JUnit statement. Legacy
+three-exclusion unsigned manifests remain valid. The verifier still recomputes
+the full closed evidence inventory before checking a signature. A sidecar with
+no trusted key, a supplied key with no sidecar, a wrong algorithm or key,
+malformed base64, fingerprint mismatch, signature mutation, or any change to
+the exact attestation bytes fails closed.
+
+`generate-signing-key` creates a new unencrypted PKCS8 Ed25519 private key and
+SPKI public key without overwrite. POSIX uses directory mode `0700` and private
+file mode `0600`; Windows ACL protection is best-effort and reported. The
+checked workflow uses one ephemeral run key, signs all eight runtime
+attestations, evaluates the 153-check policy with its public key, deletes the
+private file even on failure, and publishes only the public key on success.
+That proves signature mechanics and same-run key consistency, not durable
+publisher identity. OIDC identity, certificate issuance, transparency logs,
+key management services, and registry publication belong to later milestones.
 
 ## Frozen v0.1 architecture
 

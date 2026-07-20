@@ -3636,6 +3636,137 @@ The attestation artifact contained all three verified attestations and was
 `6395270926548943a0e1c9b9ec665d66681aa358c605593558dfd166546b509d`.
 Hosted values are measurements for this workflow run only.
 
+## V1.0 item 5 - detached Ed25519 signed attestations
+
+Only the fifth V1.0 production-infrastructure item was implemented. Local
+validation used Windows 11, Python 3.12.13, and `cryptography` 49.0.0. No OIDC,
+Sigstore identity flow, registry, organization policy, new qualification
+adapter, GPT call, repair action, or Recovery Gate change was added.
+
+The implementation signs the fixed domain separator plus the exact bytes of a
+fully verified `recovery.attestation.json` and writes the strict detached
+`recovery.attestation.signature.json` sidecar. Verification requires an
+explicitly supplied SPKI Ed25519 public key and records the public-key and
+sidecar SHA-256 values. The sidecar cannot embed a key, identity, command, or
+alternate algorithm. Signing rechecks the complete bundle, binds the pre-sign
+and post-sign attestation hashes, and re-reads the persisted sidecar before
+success. Existing unsigned bundles and legacy three-exclusion evidence
+manifests remain valid unless signing is explicitly required.
+
+The production suite requires signatures for all eight runtime entries and now
+derives its result from 153 checks; the static audit remains non-attesting. The
+active and example workflows parsed locally, had 20 synchronized qualification
+steps, and contained exactly eight `sign-attestation` commands. They generate
+one ephemeral runner key, enforce the suite with its public key, remove the
+exact private-key file with `if: always()`, and upload only signatures plus the
+public key on success.
+
+Focused signing, attestation, policy, workflow, and packaging validation after
+the final race hardening:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check src\flashpilot\attestation tests\integration\test_repair_loop.py tests\unit\test_packaging.py
+All checks passed!
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_repair_loop.py tests\unit\test_ci.py tests\unit\test_packaging.py tests\unit\test_qualification_policy.py -q
+........................................................................ [ 82%]
+...............                                                          [100%]
+87 passed in 28.16s
+```
+
+A local wheel build succeeded and contained
+`flashpilot/attestation/crypto.py`, `flashpilot/attestation/signing.py`, and
+`attestation-signature-v1.schema.json`. Its metadata contained exactly
+`Requires-Dist: cryptography<50,>=46`. The first attempt to place this
+diagnostic wheel under the shared `C:\tmp` root failed with a host ACL
+`PermissionError`; rerunning in the ignored repository `build/` directory
+succeeded. This did not affect product tests or their isolated UUID basetemp.
+
+The first repository-wide format check correctly reported 15 edited files that
+needed formatting, so pytest did not run in that attempt. Ruff formatted only
+those files, then the exact quality commands were rerun from the start:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+218 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+.................sss................s................................... [ 18%]
+........................................................................ [ 37%]
+........................................................................ [ 55%]
+........................................................................ [ 74%]
+...................s.................................................... [ 93%]
+..........................                                               [100%]
+381 passed, 5 skipped in 326.10s (0:05:26)
+```
+
+The five skips are unchanged platform conditions: three Linux-only DeepSpeed
+cases, one POSIX SIGTERM case, and the non-administrator Windows directory-
+symlink case. Windows private-key ACL restriction and directory fsync remain
+best-effort and are explicitly reported. The file-key CLI is qualification
+infrastructure, not a production key-custody system. Public-key distribution,
+publisher identity, rotation, revocation, and hosted Linux acceptance remain
+unproven at this local checkpoint.
+
+### Hosted Linux acceptance
+
+GitHub Actions pull-request run 29780077358 executed commit `e1690df` on the
+real Ubuntu/Python 3.11 and 3.12 matrix. All three jobs passed:
+
+```text
+Quality (Python 3.11): Ruff PASS; format PASS (218 files); 385 passed, 1 skipped in 355.21s
+Quality (Python 3.12): Ruff PASS; format PASS (218 files); 385 passed, 1 skipped in 380.55s
+qualify-checkpoint: PASS
+```
+
+The single hosted skip is the Windows-only DeepSpeed rejection test. The real
+Linux DeepSpeed, POSIX preemption, and symlink-containment tests executed. The
+qualification job passed every HF, FSDP, DeepSpeed, managed-preemption, and
+static-audit producer before generating the key. All eight signing commands
+then returned `SIGNED` under one public-key fingerprint:
+
+```text
+347da621ce0fb1aa1c894e5d2e64de32b62e0f6d5e051d9ba5c1c8717213fe2c
+```
+
+The persisted suite policy returned `POLICY PASS`, 9/9 requirements, and 153
+checks. Independent inspection of the downloaded evaluation confirmed eight
+`signed-attestation` checks at `PASS`, eight verified signature-evidence
+records, and one distinct signing-key hash. The cleanup step succeeded before
+both artifacts were uploaded.
+
+The always-on diagnostic artifact was 116,661 bytes with SHA-256
+`67e69ef56e05aa93d6aff66c3a088b5f47dac4d9d81259e767fdc7bc6ab1c14c`.
+The success-only attestation artifact was 16,947 bytes with SHA-256
+`3db5191e1caffa0bbcbc6d35e3949a58355470366cd59704eb056cb461e124ea`.
+Its closed listing contained exactly eight attestation payloads, eight detached
+signature sidecars, and one public key; it contained zero private-key files.
+Independent local Ed25519 verification of all eight downloaded payload/
+sidecar pairs passed with the uploaded public key and the common fingerprint
+above.
+
+The eight signature-sidecar SHA-256 values, in workflow signing order, were:
+
+```text
+HF process termination:       8d91a177a62f757fa86da345468239f628b668459a2c51e696182a2ff0dc7206
+FSDP clean restart:           9f0ca868f6d5784d67bdf5536f87d0b33b873dfd8bd1e9d3fdc30586a9591c11
+FSDP rank 0 termination:      0c9394d445f68908fca35ed0dce2f98f32620caa287c674e26faf1bc05eb2dda
+FSDP rank 1 termination:      dd92c99da6b58c7205b7a33c0c031a78bf972b328e154923c5439088386fdbf0
+DeepSpeed clean restart:      ee3ad96bc477aac6fefd1c566cd723d9460f800b35caa266153895548b00b92b
+DeepSpeed rank 0 termination: c7e71763fd012eef342ef53b1ef48a0730db67720ec8ae78d2c02a485ee2b3fc
+DeepSpeed rank 1 termination: 24364aec8f90cd319e8538f561756a8678a9636d479d7326926771907c1da07f
+Managed SIGTERM:              fe55796fc7ad908e51ca53a929543885a3a6439ff208740bab40e14ebcbec6bb
+```
+
+These are ephemeral qualification-run identities, not stable publisher
+credentials. The hosted result proves the signing and verification machinery
+on Linux and both supported Python versions. It does not prove OIDC identity,
+certificate or transparency-log provenance, durable key custody, rotation,
+revocation, or registry publication. V1.0 item 6 was not started.
+
 ## V1.0 item 4 - typed qualification policy-as-code
 
 Scope is limited to the fourth V1.0 production-infrastructure item. The

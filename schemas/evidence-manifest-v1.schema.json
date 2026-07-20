@@ -41,7 +41,8 @@
       "default": [
         "attestation.junit.xml",
         "evidence-manifest.json",
-        "recovery.attestation.json"
+        "recovery.attestation.json",
+        "recovery.attestation.signature.json"
       ],
       "items": {
         "type": "string"

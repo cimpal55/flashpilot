@@ -81,6 +81,11 @@
           "title": "Require Exact Recovery",
           "type": "boolean"
         },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
         "required_status": {
           "const": "VERIFIED",
           "default": "VERIFIED",
@@ -208,6 +213,11 @@
           "title": "Require Exact Recovery",
           "type": "boolean"
         },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
         "required_status": {
           "const": "VERIFIED",
           "default": "VERIFIED",
@@ -300,6 +310,11 @@
           "title": "Require Exact Recovery",
           "type": "boolean"
         },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
         "required_status": {
           "const": "VERIFIED",
           "default": "VERIFIED",
@@ -376,6 +391,11 @@
           "const": true,
           "default": true,
           "title": "Require Exact Recovery",
+          "type": "boolean"
+        },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
           "type": "boolean"
         },
         "required_status": {
@@ -456,6 +476,11 @@
           "title": "Require Exact Recovery",
           "type": "boolean"
         },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
         "required_status": {
           "const": "VERIFIED",
           "default": "VERIFIED",
@@ -532,6 +557,11 @@
           "const": true,
           "default": true,
           "title": "Require Exact Recovery",
+          "type": "boolean"
+        },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
           "type": "boolean"
         },
         "required_status": {

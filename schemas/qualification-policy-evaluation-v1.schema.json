@@ -323,6 +323,16 @@
           "default": null,
           "title": "Attestation Sha256"
         },
+        "attestation_signature_status": {
+          "enum": [
+            "verified",
+            "unsigned",
+            "missing",
+            "not-applicable"
+          ],
+          "title": "Attestation Signature Status",
+          "type": "string"
+        },
         "attestation_status": {
           "enum": [
             "verified",
@@ -340,6 +350,32 @@
           "default": "flashpilot-qualification-policy-evidence-v1",
           "title": "Schema Version",
           "type": "string"
+        },
+        "signature_artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signature Artifact Sha256"
+        },
+        "signing_key_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signing Key Sha256"
         },
         "source_artifact": {
           "enum": [
@@ -359,6 +395,7 @@
         "source_artifact",
         "source_sha256",
         "attestation_status",
+        "attestation_signature_status",
         "evidence"
       ],
       "title": "QualificationPolicyEvidence",

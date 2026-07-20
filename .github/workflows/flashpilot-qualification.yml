@@ -145,11 +145,32 @@ jobs:
           --run-dir runs/ci-hf
           --policy examples/ci/policy.yml
 
+      - name: Generate an ephemeral qualification signing key
+        run: >-
+          flashpilot generate-signing-key
+          "${RUNNER_TEMP}/flashpilot-signing-key"
+
+      - name: Sign every verified recovery attestation
+        shell: bash
+        run: |
+          private_key="${RUNNER_TEMP}/flashpilot-signing-key/ed25519-private.pem"
+          flashpilot sign-attestation runs/ci-hf/recovery.attestation.json --private-key "$private_key"
+          flashpilot sign-attestation runs/ci-distributed/recovery.attestation.json --private-key "$private_key"
+          flashpilot sign-attestation runs/ci-distributed-fault-rank-0/recovery.attestation.json --private-key "$private_key"
+          flashpilot sign-attestation runs/ci-distributed-fault-rank-1/recovery.attestation.json --private-key "$private_key"
+          flashpilot sign-attestation runs/ci-deepspeed/recovery.attestation.json --private-key "$private_key"
+          flashpilot sign-attestation runs/ci-deepspeed-fault-rank-0/recovery.attestation.json --private-key "$private_key"
+          flashpilot sign-attestation runs/ci-deepspeed-fault-rank-1/recovery.attestation.json --private-key "$private_key"
+          flashpilot sign-attestation runs/ci-preemption/recovery.attestation.json --private-key "$private_key"
+          mkdir -p runs/ci-signing
+          cp "${RUNNER_TEMP}/flashpilot-signing-key/ed25519-public.pem" runs/ci-signing/ed25519-public.pem
+
       - name: Enforce the complete typed qualification-suite policy
         run: >-
           flashpilot enforce-policy
           --policy examples/ci/qualification-policy.yml
           --output-dir runs/ci-policy
+          --public-key runs/ci-signing/ed25519-public.pem
           --run hf-process-termination=runs/ci-hf
           --run fsdp-checkpoint-restart=runs/ci-distributed
           --run fsdp-rank-termination-0=runs/ci-distributed-fault-rank-0
@@ -159,6 +180,11 @@ jobs:
           --run deepspeed-rank-termination-1=runs/ci-deepspeed-fault-rank-1
           --run hf-managed-preemption=runs/ci-preemption
           --run hf-static-audit=runs/ci-audit
+
+      - name: Remove the ephemeral signing private key
+        if: always()
+        shell: bash
+        run: rm -f -- "${RUNNER_TEMP}/flashpilot-signing-key/ed25519-private.pem"
 
       - name: Publish FlashPilot Markdown job summary
         if: always()
@@ -178,6 +204,7 @@ jobs:
           if-no-files-found: error
           path: |
             examples/ci/qualification-policy.yml
+            schemas/attestation-signature-v1.schema.json
             schemas/qualification-policy-v1.schema.json
             schemas/qualification-policy-evaluation-v1.schema.json
             runs/**/junit.xml
@@ -197,4 +224,7 @@ jobs:
         with:
           name: flashpilot-attestation
           if-no-files-found: error
-          path: runs/**/recovery.attestation.json
+          path: |
+            runs/**/recovery.attestation.json
+            runs/**/recovery.attestation.signature.json
+            runs/ci-signing/ed25519-public.pem

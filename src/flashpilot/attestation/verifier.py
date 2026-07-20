@@ -1,18 +1,26 @@
-"""Deterministic verification for unsigned recovery-attestation bundles."""
+"""Deterministic bundle integrity and optional trusted Ed25519 verification."""
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from flashpilot.adapters.lightning import PyTorchLightningAdapter
+from flashpilot.attestation.crypto import (
+    AttestationSigningError,
+    verify_attestation_signature,
+)
 from flashpilot.attestation.integrity import (
     canonical_model_sha256,
     collect_evidence_entries,
 )
 from flashpilot.attestation.models import (
+    ATTESTATION_SIGNATURE_PATH,
+    MAX_ATTESTATION_SIGNATURE_BYTES,
     RECOVERY_ATTESTATION_PATH,
+    AttestationSignatureV1,
     AttestationVerificationCheck,
     AttestationVerificationResult,
     DependencyEnvironmentV1,
@@ -931,7 +939,9 @@ def _verify_deepspeed_result(
     )
 
 
-def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificationResult:
+def _verify_recovery_attestation_bundle(
+    attestation_path: Path,
+) -> AttestationVerificationResult:
     """Verify schema, closed evidence inventory, hashes, and result consistency."""
 
     lexical = attestation_path.absolute()
@@ -1255,4 +1265,88 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
     return AttestationVerificationResult(
         attestation_sha256=sha256_file(resolved_attestation),
         checks=tuple(checks),
+    )
+
+
+def verify_recovery_attestation(
+    attestation_path: Path,
+    *,
+    public_key_path: Path | None = None,
+    require_signed: bool = False,
+) -> AttestationVerificationResult:
+    """Verify the closed bundle and any detached signature with a trusted key."""
+
+    verification = _verify_recovery_attestation_bundle(attestation_path)
+    root = attestation_path.resolve(strict=True).parent
+    signature_lexical = root / ATTESTATION_SIGNATURE_PATH
+    if not signature_lexical.exists():
+        if public_key_path is not None:
+            raise AttestationVerificationError(
+                "trusted public key was supplied but the attestation signature is missing"
+            )
+        if require_signed:
+            raise AttestationVerificationError("a trusted attestation signature is required")
+        return verification
+    if public_key_path is None:
+        raise AttestationVerificationError(
+            "detached signature is present but no trusted public key was supplied"
+        )
+    try:
+        sandbox = PathSandbox.create(root)
+        signature_path = sandbox.resolve_relative(
+            ATTESTATION_SIGNATURE_PATH,
+            must_exist=True,
+        )
+        if not signature_path.is_file() or signature_path.is_symlink():
+            raise AttestationVerificationError(
+                "attestation signature must be a regular non-symlink file"
+            )
+        signature_size = signature_path.stat().st_size
+        if signature_size <= 0 or signature_size > MAX_ATTESTATION_SIGNATURE_BYTES:
+            raise AttestationVerificationError("attestation signature has an unsupported size")
+        signature_bytes = signature_path.read_bytes()
+        signature = AttestationSignatureV1.model_validate_json(signature_bytes)
+        if verification.attestation_sha256 != signature.signed_artifact_sha256:
+            raise AttestationVerificationError(
+                "attestation changed between bundle and signature verification"
+            )
+        key_sha256 = verify_attestation_signature(
+            attestation_path=attestation_path,
+            signature=signature,
+            public_key_path=public_key_path,
+        )
+        if signature_path.read_bytes() != signature_bytes:
+            raise AttestationVerificationError(
+                "attestation signature changed while it was verified"
+            )
+        if sha256_file(attestation_path.resolve(strict=True)) != signature.signed_artifact_sha256:
+            raise AttestationVerificationError(
+                "attestation changed while its signature was verified"
+            )
+    except AttestationVerificationError:
+        raise
+    except (
+        AttestationSigningError,
+        OSError,
+        UnicodeError,
+        ValidationError,
+        ValueError,
+    ) as error:
+        raise AttestationVerificationError(
+            "detached Ed25519 attestation signature is invalid or tampered"
+        ) from error
+    signature_sha256 = hashlib.sha256(signature_bytes).hexdigest()
+    return verification.model_copy(
+        update={
+            "signature_status": "verified",
+            "signing_key_sha256": key_sha256,
+            "signature_artifact_sha256": signature_sha256,
+            "checks": (
+                *verification.checks,
+                _passed(
+                    "signature.ed25519",
+                    "Detached exact-byte signature passed with the explicitly trusted key.",
+                ),
+            ),
+        }
     )

@@ -390,7 +390,10 @@ def run_hf_qualification(
         limitations=(
             "Qualification covers the included local CPU Trainer contract, not arbitrary scripts.",
             "Offline environment controls prevent library-mediated Hub access; this is not an OS network sandbox.",
-            "The attestation is unsigned and provides integrity, not publisher authentication.",
+            (
+                "The attestation payload has no embedded signature; detached Ed25519 "
+                "verification requires an explicitly trusted public key."
+            ),
         ),
     )
     write_json_artifact(run_root=sandbox.root, relative_path="result.json", value=result)
