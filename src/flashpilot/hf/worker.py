@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import signal
 from pathlib import Path
 
 from flashpilot.hf.callback import FlashPilotTrainerCallback
 from flashpilot.hf.example import create_hf_model, create_trainer, summarize_trainer
 from flashpilot.hf.models import HFScenario
 from flashpilot.orchestration.artifacts import write_json_artifact
+from flashpilot.preemption.callback import FlashPilotPreemptionCallback, PreemptionSignalState
 from flashpilot.security.paths import PathSandbox
 
 
@@ -16,7 +18,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FlashPilot local HF Trainer worker")
     parser.add_argument(
         "--flashpilot-mode",
-        choices=("control", "train-crash", "recover"),
+        choices=("control", "train-crash", "preempt", "recover"),
         required=True,
     )
     parser.add_argument("--flashpilot-run-root", type=Path, required=True)
@@ -30,6 +32,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--flashpilot-seed", type=int, required=True)
     parser.add_argument("--flashpilot-result-path", required=True)
     parser.add_argument("--flashpilot-checkpoint-path")
+    parser.add_argument("--flashpilot-grace-period-seconds", type=int)
     return parser
 
 
@@ -118,6 +121,51 @@ def _run_recovery(args: argparse.Namespace, scenario: HFScenario) -> None:
     )
 
 
+def _run_preemption_training(args: argparse.Namespace, scenario: HFScenario) -> None:
+    if scenario != "complete":
+        raise ValueError("preemption certification requires the complete checkpoint scenario")
+    if args.flashpilot_grace_period_seconds is None:
+        raise ValueError("preemption mode requires --flashpilot-grace-period-seconds")
+    if args.flashpilot_grace_period_seconds < 1:
+        raise ValueError("preemption grace period must be positive")
+    run_root = PathSandbox.create(args.flashpilot_run_root).root
+    signal_state = PreemptionSignalState()
+
+    def receive_sigterm(signum: int, frame: object) -> None:
+        del frame
+        if signum != signal.SIGTERM:
+            raise RuntimeError("preemption worker received an unexpected signal")
+        signal_state.record_sigterm()
+
+    previous_handler = signal.signal(signal.SIGTERM, receive_sigterm)
+    try:
+        model = create_hf_model(seed=args.flashpilot_seed)
+        callback = FlashPilotPreemptionCallback(
+            run_root=run_root,
+            checkpoint_step=args.flashpilot_checkpoint_step,
+            grace_period_seconds=args.flashpilot_grace_period_seconds,
+            signal_state=signal_state,
+        )
+        trainer = create_trainer(
+            model=model,
+            output_dir=run_root / "preemption" / "checkpoints",
+            total_steps=args.flashpilot_total_steps,
+            checkpoint_step=args.flashpilot_checkpoint_step,
+            seed=args.flashpilot_seed,
+            save_checkpoint=True,
+            save_only_model=False,
+            save_interval_steps=args.flashpilot_total_steps + 1,
+            callbacks=[callback],
+        )
+        trainer.train()
+        if trainer.state.global_step != args.flashpilot_checkpoint_step:
+            raise RuntimeError("preemption worker did not stop at its checkpoint boundary")
+        if signal_state.received_at is None:
+            raise RuntimeError("preemption worker exited without receiving SIGTERM")
+    finally:
+        signal.signal(signal.SIGTERM, previous_handler)
+
+
 def main() -> None:
     args, forwarded = _parser().parse_known_args()
     if forwarded and forwarded[0] == "--":
@@ -129,6 +177,8 @@ def main() -> None:
         _run_control(args, scenario)
     elif args.flashpilot_mode == "train-crash":
         _run_crash_training(args, scenario)
+    elif args.flashpilot_mode == "preempt":
+        _run_preemption_training(args, scenario)
     else:
         _run_recovery(args, scenario)
 

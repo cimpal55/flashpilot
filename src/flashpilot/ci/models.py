@@ -32,11 +32,14 @@ class CICheckStatus(StrEnum):
 
 class CIPolicyV1(StrictCIModel):
     schema_version: Literal["flashpilot-ci-policy-v1"] = "flashpilot-ci-policy-v1"
-    qualification_profile: Literal[QualificationProfile.EXACT_TRAINING_RESUME] = (
-        QualificationProfile.EXACT_TRAINING_RESUME
-    )
+    qualification_profile: Literal[
+        QualificationProfile.EXACT_TRAINING_RESUME,
+        QualificationProfile.PREEMPTION_SAFE_TRAINING,
+    ] = QualificationProfile.EXACT_TRAINING_RESUME
     unknown_state: Literal["fail"] = "fail"
-    required_faults: tuple[Literal["process_termination"], ...] = Field(min_length=1)
+    required_faults: tuple[Literal["process_termination", "managed_preemption"], ...] = Field(
+        min_length=1
+    )
     max_rpo_steps: int = Field(ge=0)
     max_rto_seconds: float = Field(gt=0.0)
     require_attestation: bool
@@ -44,8 +47,8 @@ class CIPolicyV1(StrictCIModel):
     @field_validator("required_faults")
     @classmethod
     def unique_faults(
-        cls, values: tuple[Literal["process_termination"], ...]
-    ) -> tuple[Literal["process_termination"], ...]:
+        cls, values: tuple[Literal["process_termination", "managed_preemption"], ...]
+    ) -> tuple[Literal["process_termination", "managed_preemption"], ...]:
         if len(values) != len(set(values)):
             raise ValueError("required fault identifiers must be unique")
         return tuple(sorted(values))
@@ -65,6 +68,7 @@ class CIRunEvidence(StrictCIModel):
         "static-audit",
         "native-qualification",
         "hf-qualification",
+        "hf-preemption-certification",
         "lightning-qualification",
     ]
     status: CIStatus
@@ -76,7 +80,7 @@ class CIRunEvidence(StrictCIModel):
         "unknown",
     ]
     checks: tuple[CICheck, ...] = Field(min_length=1)
-    fault: Literal["process_termination"] | None = None
+    fault: Literal["process_termination", "managed_preemption"] | None = None
     rpo_steps: int | None = Field(default=None, ge=0)
     rto_seconds: float | None = Field(default=None, gt=0.0)
 

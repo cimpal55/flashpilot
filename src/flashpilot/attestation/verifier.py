@@ -27,6 +27,7 @@ from flashpilot.checkpoints.integrity import directory_content_fingerprint, sha2
 from flashpilot.checkpoints.loader import CheckpointValidationError, validate_checkpoint
 from flashpilot.contracts import (
     PersistenceContract,
+    QualificationProfile,
     huggingface_trainer_persistence_contract,
     native_minimum_persistence_contract,
     persistence_contract_sha256,
@@ -39,6 +40,11 @@ from flashpilot.hf.reporting import render_hf_html, render_hf_markdown
 from flashpilot.lightning.models import LightningQualificationResult
 from flashpilot.lightning.reporting import render_lightning_html, render_lightning_markdown
 from flashpilot.orchestration.repair_loop import render_repair_report
+from flashpilot.preemption.models import (
+    PREEMPTION_INCOMPLETE_MARKER,
+    HFPreemptionCertificationResult,
+)
+from flashpilot.preemption.reporting import render_preemption_html, render_preemption_markdown
 from flashpilot.presentation.html_report import render_repair_html
 from flashpilot.security.paths import PathContainmentError, PathSandbox
 
@@ -186,6 +192,173 @@ def _verify_hf_result(
         "HF checkpoint bytes differ from verified bytes",
     )
     checks.append(_passed("integrity.checkpoint", "HF checkpoint hash and state files agree."))
+    return AttestationVerificationResult(
+        attestation_sha256=sha256_file(resolved_attestation),
+        checks=tuple(checks),
+    )
+
+
+def _verify_hf_preemption_result(
+    *,
+    sandbox: PathSandbox,
+    attestation: RecoveryAttestationV1,
+    resolved_attestation: Path,
+    checks: list[AttestationVerificationCheck],
+) -> AttestationVerificationResult:
+    try:
+        result_path = sandbox.resolve_relative(attestation.result_path, must_exist=True)
+    except PathContainmentError as error:
+        raise AttestationVerificationError("preemption result path is missing or unsafe") from error
+    result = _read_model(result_path, HFPreemptionCertificationResult)
+    if result.final_verdict != "VERIFIED" or not result.gate.passed:
+        raise AttestationVerificationError("preemption result lacks a passing exact Gate")
+    comparisons = (
+        (result.run_id, attestation.run_id, "preemption attestation run ID mismatch"),
+        (result.created_at, attestation.issued_at, "preemption timestamp mismatch"),
+        (
+            result.preemption_process.worker_pid,
+            attestation.original_worker_pid,
+            "preemption worker PID mismatch",
+        ),
+        (
+            result.recovery_process.worker_pid,
+            attestation.recovery_worker_pid,
+            "preemption recovery PID mismatch",
+        ),
+        (
+            result.control.trainable_state_sha256,
+            attestation.control_digest,
+            "preemption control digest mismatch",
+        ),
+        (
+            result.recovery.trainable_state_sha256,
+            attestation.resumed_digest,
+            "preemption resumed digest mismatch",
+        ),
+        (
+            result.control.evaluation_sha256,
+            attestation.control_evaluation_digest,
+            "preemption control evaluation mismatch",
+        ),
+        (
+            result.recovery.evaluation_sha256,
+            attestation.resumed_evaluation_digest,
+            "preemption resumed evaluation mismatch",
+        ),
+        (len(result.gate.checks), attestation.checks_total, "preemption Gate total mismatch"),
+        (
+            sum(check.status == "pass" for check in result.gate.checks),
+            attestation.checks_passed,
+            "preemption Gate passed count mismatch",
+        ),
+        (result.gate.atol, attestation.atol, "preemption atol mismatch"),
+        (result.gate.rtol, attestation.rtol, "preemption rtol mismatch"),
+        (result.gate.achieved_rpo_steps, attestation.rpo_steps, "preemption RPO mismatch"),
+        (result.gate.max_rpo_steps, attestation.max_rpo_steps, "preemption max RPO mismatch"),
+        (result.gate.achieved_rpo_tokens, attestation.rpo_tokens, "preemption token RPO mismatch"),
+        (result.signal_name, attestation.preemption_signal, "preemption signal mismatch"),
+        (
+            result.grace_period_seconds,
+            attestation.grace_period_seconds,
+            "preemption grace-period mismatch",
+        ),
+        (
+            result.checkpoint_commit_seconds,
+            attestation.checkpoint_commit_seconds,
+            "preemption checkpoint duration mismatch",
+        ),
+        (
+            result.graceful_exit_seconds,
+            attestation.graceful_exit_seconds,
+            "preemption exit duration mismatch",
+        ),
+        (result.recovery_rto_seconds, attestation.rto_seconds, "preemption RTO mismatch"),
+        (
+            result.verified_persisted_bytes,
+            attestation.verified_persisted_bytes,
+            "preemption verified bytes mismatch",
+        ),
+    )
+    for actual, expected, message in comparisons:
+        _require_equal(actual, expected, message)
+    if result.commit_event.incomplete_marker_present:
+        raise AttestationVerificationError("preemption result claims an incomplete marker")
+    if (sandbox.root / PREEMPTION_INCOMPLETE_MARKER).exists():
+        raise AttestationVerificationError("preemption-incomplete marker remains in bundle")
+    checks.append(
+        _passed(
+            "consistency.result",
+            "Preemption signal, grace period, exact Gate, RPO, RTO, and trajectory agree.",
+        )
+    )
+
+    try:
+        report_path = sandbox.resolve_relative(attestation.report_path, must_exist=True)
+        html_path = sandbox.resolve_relative(attestation.html_report_path, must_exist=True)
+        markdown = report_path.read_text(encoding="utf-8")
+        html = html_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError, PathContainmentError) as error:
+        raise AttestationVerificationError(
+            "preemption report paths are unsafe or unreadable"
+        ) from error
+    _require_equal(
+        markdown,
+        render_preemption_markdown(result),
+        "preemption Markdown report/result mismatch",
+    )
+    _require_equal(
+        html,
+        render_preemption_html(result),
+        "preemption HTML report/result mismatch",
+    )
+    checks.append(_passed("consistency.reports", "Preemption reports derive from the result."))
+
+    try:
+        checkpoint_path = sandbox.resolve_relative(attestation.checkpoint_path, must_exist=True)
+        checkpoint = directory_content_fingerprint(checkpoint_path)
+        from safetensors.torch import load_file
+
+        model_path = checkpoint_path / "model.safetensors"
+        tensors = load_file(model_path, device="cpu")
+        if not tensors:
+            raise AttestationVerificationError("preemption model tensor file is empty")
+        for required in (
+            "trainer_state.json",
+            "optimizer.pt",
+            "scheduler.pt",
+            "rng_state.pth",
+        ):
+            if not (checkpoint_path / required).is_file():
+                raise AttestationVerificationError(f"preemption checkpoint lacks {required}")
+    except (OSError, ValueError, PathContainmentError) as error:
+        raise AttestationVerificationError(
+            "preemption checkpoint is missing, unsafe, or invalid"
+        ) from error
+    for actual, expected, message in (
+        (
+            attestation.checkpoint_path,
+            result.commit_event.checkpoint.checkpoint_path,
+            "preemption checkpoint path differs from result",
+        ),
+        (checkpoint.sha256, attestation.checkpoint_sha256, "preemption hash mismatch"),
+        (
+            checkpoint.file_count,
+            attestation.checkpoint_file_count,
+            "preemption file-count mismatch",
+        ),
+        (
+            checkpoint.logical_bytes,
+            attestation.checkpoint_logical_bytes,
+            "preemption logical-byte mismatch",
+        ),
+        (
+            checkpoint.logical_bytes,
+            attestation.verified_persisted_bytes,
+            "preemption verified-byte mismatch",
+        ),
+    ):
+        _require_equal(actual, expected, message)
+    checks.append(_passed("integrity.checkpoint", "Preemption checkpoint hash and state agree."))
     return AttestationVerificationResult(
         attestation_sha256=sha256_file(resolved_attestation),
         checks=tuple(checks),
@@ -447,7 +620,7 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
         "persistence contract SHA-256 mismatch",
     )
     expected_contract = (
-        huggingface_trainer_persistence_contract()
+        huggingface_trainer_persistence_contract(attestation.qualification_profile)
         if attestation.framework == "transformers"
         else pytorch_lightning_persistence_contract()
         if attestation.framework == "lightning"
@@ -463,6 +636,16 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
     )
     checks.append(_passed("consistency.contract", "Contract hash and deterministic minimum agree."))
 
+    if (
+        attestation.framework == "transformers"
+        and attestation.qualification_profile is QualificationProfile.PREEMPTION_SAFE_TRAINING
+    ):
+        return _verify_hf_preemption_result(
+            sandbox=sandbox,
+            attestation=attestation,
+            resolved_attestation=resolved_attestation,
+            checks=checks,
+        )
     if attestation.framework == "transformers":
         return _verify_hf_result(
             sandbox=sandbox,

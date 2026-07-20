@@ -1,0 +1,45 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "completed_step": {
+      "exclusiveMinimum": 0,
+      "title": "Completed Step",
+      "type": "integer"
+    },
+    "emitted_at": {
+      "format": "date-time",
+      "title": "Emitted At",
+      "type": "string"
+    },
+    "event": {
+      "const": "preemption_ready",
+      "default": "preemption_ready",
+      "title": "Event",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-hf-preemption-ready-v1",
+      "default": "flashpilot-hf-preemption-ready-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "signal_name": {
+      "const": "SIGTERM",
+      "default": "SIGTERM",
+      "title": "Signal Name",
+      "type": "string"
+    },
+    "worker_pid": {
+      "exclusiveMinimum": 0,
+      "title": "Worker Pid",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "worker_pid",
+    "completed_step",
+    "emitted_at"
+  ],
+  "title": "HFPreemptionReadyEvidence",
+  "type": "object"
+}

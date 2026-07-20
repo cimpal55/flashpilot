@@ -2824,7 +2824,7 @@ All checks passed!
 .................................................s...................... [ 91%]
 ...................                                                      [100%]
 =========================== short test summary info ===========================
-SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Клиент не обладает требуемыми правами
 234 passed, 1 skipped in 251.53s (0:04:11)
 ```
 
@@ -3377,3 +3377,127 @@ local validation, unverified Python 3.11 execution on this host, and the
 existing best-effort Windows directory fsync limitation. SARIF is not a source
 scanner or a recovery proof. V0.4 preemption certification, distributed/CUDA
 qualification, discovery, and additional adapters were not started.
+
+## V0.4 managed-preemption certification implementation
+
+Date: 2026-07-20
+
+Only the narrow V0.4 Hugging Face managed-preemption path was implemented.
+Local validation used Python 3.12.13 on Windows. Python 3.11 remains the
+declared compatibility target. No distributed/CUDA work, scheduler/provider
+API integration, discovery, new adapter, GPT call, repair, downloaded model,
+or downloaded dataset was added.
+
+### Implemented contract
+
+The supported command surface is exactly:
+
+```text
+flashpilot certify-preemption --framework hf --signal SIGTERM --grace-period SECONDS
+```
+
+The parent waits for typed ready evidence at completed step 4, sends external
+POSIX `os.kill(pid, SIGTERM)`, and enforces a 1-to-3600-second grace period with
+a monotonic deadline. The worker's Python handler records only in-memory signal
+receipt state. Normal callback code writes `preemption/INCOMPLETE`, requests a
+full Trainer save, persists lifecycle metadata, removes and directory-fsyncs
+the marker, emits typed commit evidence, and exits cleanly.
+
+A distinct recovery process must then pass 22 checks covering POSIX delivery,
+exact SIGTERM identity, send/receipt/commit/exit ordering, grace-period
+compliance, clean exit, marker absence, five checkpoint-state requirements,
+distinct recovery, final progress, exact loss/trainable/evaluation/optimizer/
+scheduler evidence, and zero RPO in both steps and workload tokens. The
+comparison remains `atol=0.0`, `rtol=0.0`. Post-Gate output includes typed JSON,
+Markdown, HTML, JUnit, job summary, SARIF, checked schemas, and a closed unsigned
+attestation containing the signal, grace, commit/exit durations, step/token
+RPO, recovery RTO, checkpoint identity, and evidence inventory.
+
+The active and example Ubuntu workflows are configured to execute the real
+command with a 300-second grace period. They retain `contents: read`, use no
+secrets, and upload diagnostic evidence always plus verified attestations only
+on success. Workflow YAML validation with PyYAML passed.
+
+### Current-host platform boundary
+
+WSL, Docker, and Podman are unavailable on this Windows host. Windows process
+termination cannot truthfully substitute for catchable POSIX SIGTERM. The
+exact plan command was therefore run and failed closed before creating a run:
+
+```text
+.\.venv\Scripts\flashpilot.exe certify-preemption --framework hf --signal SIGTERM --grace-period 300
+Preemption certification is unsupported: SIGTERM preemption certification requires a POSIX host; Windows TerminateProcess is not equivalent
+EXIT=5
+```
+
+No checkpoint-commit duration, graceful-exit duration, RPO, RTO, checkpoint
+byte total, or preemption attestation was produced or claimed locally. The
+single POSIX integration test remains enabled and was skipped for the exact
+platform reason; it is configured to run normally on Ubuntu.
+
+### Focused validation
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_preemption.py tests\unit\test_hf_adapter.py tests\unit\test_persistence_contracts.py tests\unit\test_ci.py tests\unit\test_packaging.py tests\integration\test_preemption_certification.py -q
+.......................................................s                 [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\integration\test_preemption_certification.py:18: real external POSIX SIGTERM is unavailable
+55 passed, 1 skipped in 6.02s
+
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_preemption.py tests\unit\test_hf_adapter.py tests\unit\test_persistence_contracts.py tests\unit\test_ci.py tests\unit\test_packaging.py tests\integration\test_repair_loop.py tests\integration\test_hf_qualification.py -q
+........................................................................ [ 85%]
+............                                                             [100%]
+84 passed in 81.41s (0:01:21)
+```
+
+The focused tests prove strict event ordering, the exact 22-check derivation,
+marker-present failure, zero step/token RPO, exact preemption contract reuse,
+CI policy/SARIF projection, schema drift, bounded adapter commands, unsupported
+surface rejection, and Windows fail-closed behavior. Existing HF qualification
+and all attestation tamper checks remain green.
+
+### Final local quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+181 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+..............................s......................................... [ 24%]
+........................................................................ [ 49%]
+........................................................................ [ 74%]
+.................s...................................................... [ 99%]
+.                                                                        [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\integration\test_preemption_certification.py:18: real external POSIX SIGTERM is unavailable
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+287 passed, 2 skipped in 267.39s (0:04:27)
+```
+
+The default pytest command retained its UUID-isolated basetemp and disabled
+cache provider. The second skip is the unchanged Windows directory-symlink
+privilege test.
+
+### Acceptance status and unresolved risks
+
+| V0.4 requirement | Status | Evidence |
+| --- | --- | --- |
+| Exact HF/SIGTERM/grace CLI | PASS | Help surface, bounded typed command, unsupported-input tests. |
+| Checkpoint commit before termination | NOT RUN ON THIS HOST | POSIX integration and Ubuntu workflow configured; Windows rejects substitution. |
+| No incomplete marker | PASS for deterministic logic; live POSIX pending | Marker-present Gate failure test and strict commit model. |
+| RPO in steps and tokens | PASS for deterministic logic; live POSIX pending | Zero-RPO Gate and result/attestation fields tested. |
+| Recovery RTO | PASS for deterministic logic; live POSIX pending | Bound to recovery-process timestamps and verifier. |
+| New-process exact trajectory | PASS for existing HF regression; live POSIX pending | Existing HF exact run passes; POSIX preemption integration is enabled. |
+| Verified-only attestation | PASS for schema/guardrails; live POSIX pending | Builder/verifier and closed-inventory regression tests pass. |
+| Windows honesty | PASS | Exact command exits unsupported with no run artifacts. |
+| Existing regression suite | PASS | 287 passed; only two explicit platform skips. |
+
+The V0.4 implementation is ready for hosted POSIX execution, but a genuine
+preemption certification result is not yet proven by current-host evidence.
+The next authoritative evidence must come from the configured Ubuntu workflow
+or another real POSIX host. Provider control-plane behavior, Python 3.11,
+network filesystems, distributed/CUDA training, and best-effort Windows
+directory fsync remain unverified. No later roadmap milestone was started.

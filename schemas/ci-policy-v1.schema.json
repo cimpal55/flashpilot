@@ -12,8 +12,11 @@
       "type": "number"
     },
     "qualification_profile": {
-      "const": "exact-training-resume",
       "default": "exact-training-resume",
+      "enum": [
+        "exact-training-resume",
+        "preemption-safe-training"
+      ],
       "title": "Qualification Profile",
       "type": "string"
     },
@@ -23,7 +26,10 @@
     },
     "required_faults": {
       "items": {
-        "const": "process_termination",
+        "enum": [
+          "process_termination",
+          "managed_preemption"
+        ],
         "type": "string"
       },
       "minItems": 1,

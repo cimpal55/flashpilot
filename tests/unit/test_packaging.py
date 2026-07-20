@@ -58,6 +58,12 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
     assert "schemas/fault-timing-trial-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert "schemas/flashpilot-sarif-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert (
+        "schemas/hf-preemption-certification-v1.schema.json"
+        in data_files["share/flashpilot/schemas"]
+    )
+    assert "schemas/hf-preemption-commit-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    assert "schemas/hf-preemption-ready-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    assert (
         "schemas/previous-valid-fallback-v1.schema.json" in data_files["share/flashpilot/schemas"]
     )
     assert "schemas/recovery-attestation-v1.schema.json" in data_files["share/flashpilot/schemas"]

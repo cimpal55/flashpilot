@@ -87,6 +87,10 @@ def _default_hf_script() -> Path:
     return Path(__file__).resolve().parent / "hf" / "worker.py"
 
 
+def _default_preemption_run_dir() -> Path:
+    return Path("runs") / f"preemption-{uuid.uuid4().hex}"
+
+
 def _default_lightning_script() -> Path:
     return Path(__file__).resolve().parent / "lightning" / "worker.py"
 
@@ -214,6 +218,87 @@ def qualify_hf_trainer(
     if result.final_verdict == "VERIFIED":
         typer.echo(f"Recovery attestation: {(run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
     else:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@app.command(
+    "certify-preemption",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def certify_preemption(
+    context: typer.Context,
+    framework: Annotated[
+        str,
+        typer.Option(help="Framework contract; only the narrow hf adapter is supported."),
+    ] = "hf",
+    signal_name: Annotated[
+        str,
+        typer.Option("--signal", help="Managed preemption signal; only SIGTERM is supported."),
+    ] = "SIGTERM",
+    grace_period: Annotated[
+        int,
+        typer.Option(
+            "--grace-period",
+            min=1,
+            max=3_600,
+            help="Seconds allowed for checkpoint commit and clean worker exit.",
+        ),
+    ] = 300,
+    run_dir: Annotated[
+        Path | None,
+        typer.Option(help="New isolated preemption-certification directory."),
+    ] = None,
+    script: Annotated[
+        Path | None,
+        typer.Option(help="Trainer script; defaults to the installed offline HF worker."),
+    ] = None,
+) -> None:
+    """Certify a real POSIX SIGTERM checkpoint commit and exact new-process resume."""
+
+    if framework != "hf" or signal_name != "SIGTERM":
+        typer.echo("Unsupported preemption framework or signal.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    selected_run_dir = run_dir or _default_preemption_run_dir()
+    try:
+        from flashpilot.hf.qualification import HFUnsupportedConfigurationError
+        from flashpilot.preemption.service import (
+            PreemptionCertificationError,
+            PreemptionUnsupportedError,
+            run_hf_preemption_certification,
+        )
+
+        result = run_hf_preemption_certification(
+            script_path=script or _default_hf_script(),
+            run_root=selected_run_dir,
+            signal_name=signal_name,
+            grace_period_seconds=grace_period,
+            forwarded_arguments=tuple(context.args),
+        )
+    except (PreemptionUnsupportedError, HFUnsupportedConfigurationError, ValueError) as error:
+        typer.echo(f"Preemption certification is unsupported: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    except (PreemptionCertificationError, HuggingFaceDependencyError) as error:
+        typer.echo(f"Preemption certification failed: {error}", err=True)
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED) from error
+    typer.echo(result.final_verdict)
+    typer.echo(f"Signal: {result.signal_name} via {result.signal_delivery}")
+    typer.echo(f"Grace period: {result.grace_period_seconds} seconds")
+    typer.echo(f"Checkpoint commit: {result.checkpoint_commit_seconds:.6f} seconds")
+    typer.echo(f"Graceful exit: {result.graceful_exit_seconds:.6f} seconds")
+    typer.echo(
+        f"RPO: {result.gate.achieved_rpo_steps} steps / {result.gate.achieved_rpo_tokens} tokens"
+    )
+    typer.echo(f"Recovery RTO: {result.recovery_rto_seconds:.6f} seconds")
+    passed_checks = sum(check.status == "pass" for check in result.gate.checks)
+    typer.echo(f"Recovery Gate: {passed_checks}/{len(result.gate.checks)}")
+    typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
+    typer.echo(f"Markdown report: {(selected_run_dir / result.report_path).resolve()}")
+    typer.echo(f"HTML report: {(selected_run_dir / result.html_report_path).resolve()}")
+    typer.echo(f"JUnit XML: {(selected_run_dir / 'junit.xml').resolve()}")
+    typer.echo(f"Job summary: {(selected_run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(selected_run_dir / result.sarif_path).resolve()}")
+    typer.echo(f"Recovery attestation: {(selected_run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
+    if result.final_verdict != "VERIFIED":
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 

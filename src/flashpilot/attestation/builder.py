@@ -43,6 +43,8 @@ from flashpilot.lightning.models import LightningQualificationResult
 from flashpilot.lightning.reporting import render_lightning_html, render_lightning_markdown
 from flashpilot.orchestration.artifacts import write_json_artifact, write_text_artifact
 from flashpilot.orchestration.repair_loop import render_repair_report
+from flashpilot.preemption.models import HFPreemptionCertificationResult
+from flashpilot.preemption.reporting import render_preemption_html, render_preemption_markdown
 from flashpilot.presentation.html_report import render_repair_html
 from flashpilot.security.paths import PathSandbox
 
@@ -380,6 +382,139 @@ def emit_hf_recovery_attestation(
         rpo_steps=persisted.gate.achieved_rpo_steps,
         max_rpo_steps=persisted.gate.max_rpo_steps,
         rto_seconds=(recovery_process.completed_at - recovery_process.started_at).total_seconds(),
+        verified_persisted_bytes=persisted.verified_persisted_bytes,
+        limitations=persisted.limitations,
+    )
+    attestation_path = write_json_artifact(
+        run_root=root,
+        relative_path=RECOVERY_ATTESTATION_PATH,
+        value=attestation,
+    )
+    from flashpilot.attestation.verifier import verify_recovery_attestation
+
+    verification = verify_recovery_attestation(attestation_path)
+    junit_path = write_text_artifact(
+        run_root=root,
+        relative_path=ATTESTATION_JUNIT_PATH,
+        text=render_attestation_junit(verification),
+    )
+    return AttestationEmission(
+        attestation=attestation,
+        evidence_manifest=evidence_manifest,
+        verification=verification,
+        attestation_path=attestation_path,
+        evidence_manifest_path=evidence_manifest_path,
+        junit_path=junit_path,
+    )
+
+
+def emit_hf_preemption_attestation(
+    *,
+    run_root: Path,
+    result: HFPreemptionCertificationResult,
+) -> AttestationEmission:
+    """Emit and verify an unsigned attestation for managed SIGTERM certification."""
+
+    if result.final_verdict != "VERIFIED" or not result.gate.passed:
+        raise AttestationEmissionError("preemption attestation requires a passing Gate")
+    if result.verified_persisted_bytes is None:
+        raise AttestationEmissionError("preemption attestation requires post-Gate bytes")
+    root = PathSandbox.create(run_root).root
+    for relative in (
+        EVIDENCE_MANIFEST_PATH,
+        RECOVERY_ATTESTATION_PATH,
+        ATTESTATION_JUNIT_PATH,
+        PERSISTENCE_CONTRACT_PATH,
+        ENVIRONMENT_PATH,
+    ):
+        if (root / relative).exists():
+            raise AttestationEmissionError(f"attestation artifact already exists: {relative}")
+    try:
+        persisted = HFPreemptionCertificationResult.model_validate_json(
+            (root / result.result_path).read_text(encoding="utf-8")
+        )
+        markdown = (root / result.report_path).read_text(encoding="utf-8")
+        html = (root / result.html_report_path).read_text(encoding="utf-8")
+    except (OSError, UnicodeError, ValueError) as error:
+        raise AttestationEmissionError("persisted preemption evidence is invalid") from error
+    if persisted != result:
+        raise AttestationEmissionError("persisted preemption result differs from memory evidence")
+    if markdown != render_preemption_markdown(persisted) or html != render_preemption_html(
+        persisted
+    ):
+        raise AttestationEmissionError("preemption reports differ from the verified result")
+
+    contract = huggingface_trainer_persistence_contract(
+        QualificationProfile.PREEMPTION_SAFE_TRAINING
+    )
+    write_text_artifact(
+        run_root=root,
+        relative_path=PERSISTENCE_CONTRACT_PATH,
+        text=canonical_contract_json(contract) + "\n",
+    )
+    code_commit, source_tree_state = _source_identity()
+    environment = _dependency_environment(
+        code_commit=code_commit,
+        source_tree_state=source_tree_state,
+        extra_dependencies=("accelerate", "transformers"),
+    )
+    write_json_artifact(run_root=root, relative_path=ENVIRONMENT_PATH, value=environment)
+
+    checkpoint = PathSandbox.create(root).resolve_relative(
+        persisted.commit_event.checkpoint.checkpoint_path,
+        must_exist=True,
+    )
+    try:
+        checkpoint_fingerprint = directory_content_fingerprint(checkpoint)
+    except (OSError, ValueError) as error:
+        raise AttestationEmissionError("preemption checkpoint cannot be fingerprinted") from error
+    if checkpoint_fingerprint.logical_bytes != persisted.verified_persisted_bytes:
+        raise AttestationEmissionError("preemption checkpoint bytes disagree with result")
+
+    try:
+        evidence_manifest = EvidenceManifestV1(entries=collect_evidence_entries(root))
+    except (OSError, ValueError) as error:
+        raise AttestationEmissionError("preemption evidence inventory cannot be closed") from error
+    evidence_manifest_path = write_json_artifact(
+        run_root=root,
+        relative_path=EVIDENCE_MANIFEST_PATH,
+        value=evidence_manifest,
+    )
+    evidence_manifest_sha256 = sha256_file(evidence_manifest_path)
+    checks_passed = sum(check.status == "pass" for check in persisted.gate.checks)
+    attestation = RecoveryAttestationV1(
+        qualification_profile=QualificationProfile.PREEMPTION_SAFE_TRAINING,
+        framework="transformers",
+        framework_version=persisted.control.transformers_version,
+        adapter="huggingface-trainer",
+        run_id=persisted.run_id,
+        issued_at=persisted.created_at,
+        code_commit=code_commit,
+        source_tree_state=source_tree_state,
+        dependency_environment_sha256=canonical_model_sha256(environment),
+        checkpoint_path=persisted.commit_event.checkpoint.checkpoint_path,
+        checkpoint_sha256=checkpoint_fingerprint.sha256,
+        checkpoint_file_count=checkpoint_fingerprint.file_count,
+        checkpoint_logical_bytes=checkpoint_fingerprint.logical_bytes,
+        persistence_contract_sha256=persistence_contract_sha256(contract),
+        evidence_manifest_sha256=evidence_manifest_sha256,
+        fault_scenario="managed_preemption",
+        preemption_signal=persisted.signal_name,
+        grace_period_seconds=persisted.grace_period_seconds,
+        checkpoint_commit_seconds=persisted.checkpoint_commit_seconds,
+        graceful_exit_seconds=persisted.graceful_exit_seconds,
+        rpo_tokens=persisted.gate.achieved_rpo_tokens,
+        original_worker_pid=persisted.preemption_process.worker_pid,
+        recovery_worker_pid=persisted.recovery_process.worker_pid,
+        control_digest=persisted.control.trainable_state_sha256,
+        resumed_digest=persisted.recovery.trainable_state_sha256,
+        control_evaluation_digest=persisted.control.evaluation_sha256,
+        resumed_evaluation_digest=persisted.recovery.evaluation_sha256,
+        checks_passed=checks_passed,
+        checks_total=len(persisted.gate.checks),
+        rpo_steps=persisted.gate.achieved_rpo_steps,
+        max_rpo_steps=persisted.gate.max_rpo_steps,
+        rto_seconds=persisted.recovery_rto_seconds,
         verified_persisted_bytes=persisted.verified_persisted_bytes,
         limitations=persisted.limitations,
     )

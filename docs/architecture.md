@@ -523,3 +523,44 @@ The GitHub Actions workflow retains `contents: read` and uploads
 `results.sarif` as an ordinary always-on diagnostic artifact. Publishing to a
 repository's Code Scanning service is deliberately left to an explicitly
 authorized workflow with the appropriate repository permissions.
+
+## V0.4 managed-preemption certification
+
+The V0.4 path is an explicit extension of the narrow Hugging Face adapter, not
+a scheduler integration or a generic signal framework.
+
+```text
+full uninterrupted CPU control
+-> preemption worker reaches fixed completed step and emits ready evidence
+-> parent delivers external POSIX SIGTERM and starts grace deadline
+-> minimal Python handler records only in-memory receipt state
+-> Trainer callback writes preemption/INCOMPLETE and requests a full save
+-> Trainer completes model + trainer + optimizer + scheduler + RNG state
+-> callback persists lifecycle metadata, removes marker, fsyncs directory
+-> worker emits commit evidence and exits 0 before grace deadline
+-> parent validates streamed/persisted evidence and closed checkpoint inventory
+-> distinct recovery process resumes to the fixed final step
+-> 22-check zero-tolerance Gate measures step/token RPO and exact trajectory
+-> result-derived reports, CI/SARIF, and verified-only unsigned attestation
+```
+
+The in-progress marker is intentionally outside the checkpoint directory at
+`preemption/INCOMPLETE`. A forced kill during the callback path leaves it for
+fail-closed diagnosis; a verified run requires it to be absent after worker
+exit. Marker absence alone is insufficient: full state presence, a directly
+loadable checkpoint, new-process resume, exact loss/state/evaluation digests,
+commit-before-exit ordering, clean exit, and the grace deadline are separate
+Gate checks.
+
+The parent, not the worker, owns signal delivery and measures elapsed grace
+time with a monotonic clock. Evidence timestamps additionally bind ready,
+send, receipt, commit, and exit order. RPO is the difference between the
+recorded completed step and committed checkpoint step; the included workload
+also reports tokens as `batch_size * sequence_length * RPO steps`. Recovery RTO
+retains the existing definition: recovery-process start through completion.
+
+Windows fails closed before creating a run directory. Its process termination
+API cannot substitute for a catchable POSIX `SIGTERM`. The Ubuntu workflow and
+POSIX-only integration test are configured to exercise the real signal path.
+This local harness models the process-level contract used by interruptible environments but does
+not invoke Kubernetes, Slurm, RunPod, Vast, or another provider control plane.

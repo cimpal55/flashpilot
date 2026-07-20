@@ -223,6 +223,41 @@ The included GitHub Actions workflow uploads SARIF as an ordinary diagnostic
 artifact under its existing `contents: read` permission. It does not request
 `security-events: write` or automatically publish Code Scanning results.
 
+## V0.4 managed-preemption certification
+
+V0.4 adds one narrow POSIX certification path for the included offline CPU
+Hugging Face Trainer workload:
+
+```bash
+flashpilot certify-preemption \
+  --framework hf \
+  --signal SIGTERM \
+  --grace-period 300 \
+  --script examples/hf_trainer/train.py \
+  --run-dir runs/preemption
+```
+
+The parent waits until the worker reaches a recorded completed-step boundary,
+delivers a real external `SIGTERM` with `os.kill`, and enforces the declared
+grace-period deadline. The Python signal handler only records in-memory signal
+state. Normal Trainer callback code creates an explicit `INCOMPLETE` marker,
+requests a complete checkpoint, persists lifecycle metadata, removes and
+directory-fsyncs the marker after the save, and emits commit evidence before
+the worker exits cleanly.
+
+Certification then loads that checkpoint in a distinct process and requires
+all 22 deterministic checks to pass at `atol=0.0`, `rtol=0.0`. Evidence
+includes checkpoint-commit and graceful-exit durations, RPO in completed steps
+and synthetic-workload tokens, recovery RTO, exact trajectory digests, SARIF,
+JUnit, reports, and a closed unsigned attestation. Storage bytes are emitted
+only after the Gate passes.
+
+This command requires a POSIX host. Windows execution fails closed because
+Windows `TerminateProcess` is not equivalent to catchable POSIX `SIGTERM`.
+The hosted Ubuntu workflow is configured to execute the real signal path. A
+local or hosted run certifies only the included process/workload contract; it does not claim
+that Kubernetes, Slurm, or a cloud provider control plane was exercised.
+
 ## What the demo proves
 
 1. An uninterrupted seeded CPU control produces stable trajectory evidence.
@@ -433,9 +468,11 @@ execute repair code and did not declare recovery successful.
 
 ## Limitations and roadmap
 
-The verified scope is the controlled CPU-only native workload plus the included
-local Hugging Face Trainer and PyTorch Lightning examples on Windows 11 with
-Python 3.12.13. Python 3.11 compatibility is targeted but not locally verified.
+The locally verified scope is the controlled CPU-only native workload plus the
+included local Hugging Face Trainer and PyTorch Lightning examples on Windows
+11 with Python 3.12.13. Python 3.11 compatibility is targeted but not locally
+verified. Managed-preemption certification requires POSIX `SIGTERM` and cannot
+be certified by this Windows host.
 Windows directory fsync is
 unavailable through Python and is best-effort. The project does not qualify
 arbitrary repositories, Trainer scripts, or LightningModules, distributed training, CUDA,
@@ -444,7 +481,7 @@ schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
 Future work may add distributed scenarios and broader platform validation.
-Those later roadmap items are not part of the completed V0.3 SARIF milestone.
+Those later roadmap items are not part of the narrow V0.4 preemption path.
 
 ## Repository and license
 

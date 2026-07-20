@@ -778,3 +778,32 @@ workflow uploads it as a normal diagnostic artifact and keeps minimum
 `contents: read` permissions. Automatic Code Scanning publication is excluded
 because it would require an additional repository-side authorization and is
 not necessary to make the portable SARIF artifact available.
+
+## D-057: Preemption certification requires real catchable POSIX SIGTERM
+
+V0.4 supports exactly `framework=hf`, `signal=SIGTERM`, and the included
+offline CPU Trainer contract. The parent sends the external signal with
+`os.kill`; the worker's Python handler only records in-memory receipt state.
+Checkpoint I/O occurs later in ordinary Trainer callback execution, where an
+explicit in-progress marker brackets the save. Verification requires commit
+evidence before clean exit and completion within the caller's bounded grace
+period.
+
+Windows `TerminateProcess` is an abrupt termination mechanism and cannot prove
+the managed `SIGTERM` behavior targeted by Kubernetes and Slurm. The command
+therefore returns the unsupported exit code before creating artifacts on
+Windows. No event, pipe, polling file, `SIGBREAK`, or internal `raise_signal`
+fallback is relabeled as external `SIGTERM`.
+
+The preemption-safe profile reuses the complete exact Hugging Face persistence
+minimum and still requires zero-tolerance new-process trajectory equivalence.
+RPO is recorded in both completed steps and workload tokens. Checkpoint bytes
+and the unsigned attestation are emitted only after all 22 Gate checks pass.
+The attestation binds signal, grace period, commit duration, exit duration,
+step/token RPO, recovery RTO, checkpoint identity, and the closed evidence
+inventory.
+
+This is process-contract certification, not proof that a particular cluster or
+cloud control plane delivered its notice correctly. Provider-managed tests,
+additional signals, arbitrary Trainer scripts, Lightning preemption,
+distributed/CUDA training, and scheduler discovery remain out of scope.

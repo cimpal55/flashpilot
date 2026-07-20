@@ -91,9 +91,10 @@ class DependencyEnvironmentV1(StrictAttestationModel):
 class RecoveryAttestationV1(StrictAttestationModel):
     schema_version: Literal["flashpilot-attestation-v1"] = "flashpilot-attestation-v1"
     verdict: Literal["verified"] = "verified"
-    qualification_profile: Literal[QualificationProfile.EXACT_TRAINING_RESUME] = (
-        QualificationProfile.EXACT_TRAINING_RESUME
-    )
+    qualification_profile: Literal[
+        QualificationProfile.EXACT_TRAINING_RESUME,
+        QualificationProfile.PREEMPTION_SAFE_TRAINING,
+    ] = QualificationProfile.EXACT_TRAINING_RESUME
     framework: Literal["native-pytorch", "transformers", "lightning"] = "native-pytorch"
     framework_version: str = Field(min_length=1, max_length=200)
     adapter: Literal["native-pytorch", "huggingface-trainer", "pytorch-lightning"] = (
@@ -116,7 +117,16 @@ class RecoveryAttestationV1(StrictAttestationModel):
     html_report_path: Literal["report.html"] = "report.html"
     evidence_manifest_path: Literal["evidence-manifest.json"] = EVIDENCE_MANIFEST_PATH
     evidence_manifest_sha256: str = Field(pattern=SHA256_PATTERN)
-    fault_scenario: Literal["process_termination", "process-kill"] = "process_termination"
+    fault_scenario: Literal[
+        "process_termination",
+        "process-kill",
+        "managed_preemption",
+    ] = "process_termination"
+    preemption_signal: Literal["SIGTERM"] | None = None
+    grace_period_seconds: int | None = Field(default=None, ge=1, le=3_600)
+    checkpoint_commit_seconds: float | None = Field(default=None, ge=0.0)
+    graceful_exit_seconds: float | None = Field(default=None, ge=0.0)
+    rpo_tokens: int | None = Field(default=None, ge=0)
     original_worker_pid: int = Field(gt=0)
     recovery_worker_pid: int = Field(gt=0)
     control_digest: str = Field(pattern=SHA256_PATTERN)
@@ -148,6 +158,28 @@ class RecoveryAttestationV1(StrictAttestationModel):
             raise ValueError("verified attestation requires every Recovery Gate check")
         if self.rpo_steps > self.max_rpo_steps:
             raise ValueError("attested RPO exceeds the declared maximum")
+        preemption_fields = (
+            self.preemption_signal,
+            self.grace_period_seconds,
+            self.checkpoint_commit_seconds,
+            self.graceful_exit_seconds,
+            self.rpo_tokens,
+        )
+        if self.qualification_profile is QualificationProfile.PREEMPTION_SAFE_TRAINING:
+            if (
+                self.framework != "transformers"
+                or self.adapter != "huggingface-trainer"
+                or self.fault_scenario != "managed_preemption"
+                or any(value is None for value in preemption_fields)
+            ):
+                raise ValueError("preemption attestation fields and HF identity must agree")
+            assert self.grace_period_seconds is not None
+            assert self.graceful_exit_seconds is not None
+            if self.graceful_exit_seconds > self.grace_period_seconds:
+                raise ValueError("attested graceful exit exceeds the preemption grace period")
+            return self
+        if any(value is not None for value in preemption_fields):
+            raise ValueError("exact-resume attestation cannot contain preemption metrics")
         if self.framework == "native-pytorch" and (
             self.adapter != "native-pytorch" or self.fault_scenario != "process_termination"
         ):

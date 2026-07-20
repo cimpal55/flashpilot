@@ -590,3 +590,31 @@ Codex did not begin V0.4 preemption certification, distributed/CUDA
 qualification, discovery, or another adapter. SARIF does not change a verdict,
 prove recovery, scan source code, call GPT, execute repair, report checkpoint
 bytes or storage savings, or emit an attestation.
+
+## V0.4 - managed-preemption certification
+
+Codex implemented the narrow V0.4 process-level certification path:
+
+- added `flashpilot certify-preemption --framework hf --signal SIGTERM
+  --grace-period SECONDS` for the included offline CPU Trainer workload;
+- required real external POSIX `os.kill(..., SIGTERM)` and made Windows fail
+  closed rather than treating `TerminateProcess` as equivalent;
+- added typed ready and commit events with exact signal receipt, checkpoint
+  commit, process exit, and grace-period ordering;
+- kept the signal handler I/O-free and bracketed normal callback checkpointing
+  with an explicit durable `preemption/INCOMPLETE` marker;
+- required a full model/trainer/optimizer/scheduler/RNG checkpoint, clean exit,
+  distinct-process recovery, zero step/token RPO, and exact continued
+  trajectory through a 22-check Gate;
+- extended the preemption-safe Persistence Contract, CI evidence, SARIF,
+  JUnit, Markdown/HTML reporting, checked schemas, and closed unsigned
+  attestation with signal and timing metrics;
+- added deterministic unit coverage, a POSIX-only real signal integration
+  test, and an explicit Ubuntu hosted-workflow certification step.
+
+The current Windows host cannot execute a truthful POSIX SIGTERM integration,
+so no local checkpoint-commit, exit, RPO, RTO, byte, or attestation metric is
+claimed. The Windows command was verified to return unsupported without
+creating a run. A real certification result remains subject to the Ubuntu
+hosted workflow. Distributed/CUDA training, Kubernetes/Slurm/provider API
+integration, additional signals, discovery, and new adapters were not started.

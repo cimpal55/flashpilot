@@ -166,3 +166,28 @@ support](https://docs.github.com/en/enterprise-cloud%40latest/code-security/refe
 This is reliability and checkpoint-recovery evidence, not a source-security
 scan or a numeric vulnerability-severity claim. Dashboard rendering does not
 replace typed JSON, policy enforcement, or the deterministic Recovery Gate.
+
+## Managed-preemption positioning
+
+Kubernetes documents graceful Pod termination as delivery of `SIGTERM`
+followed by a bounded grace period and eventual `SIGKILL` for processes that
+remain. FlashPilot's V0.4 harness reproduces only that process-level contract:
+a parent delivers `SIGTERM`, measures the deadline, and proves checkpoint
+commit plus clean exit before exact new-process recovery. It does not create or
+delete a Pod and therefore is not a Kubernetes conformance test. Source:
+[Kubernetes Pod termination
+flow](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination-flow).
+
+Slurm exposes advance signals through `sbatch --signal` and documents separate
+preemption/requeue configuration. FlashPilot does not submit, requeue, or
+cancel Slurm jobs; the local SIGTERM result is evidence that the workload's
+handler contract is viable when a scheduler provides a compatible notice, not
+proof of cluster policy. Source: [Slurm `sbatch --signal`
+documentation](https://slurm.schedmd.com/sbatch.html#OPT_signal).
+
+The contribution is the closed evidence chain around established graceful-
+shutdown behavior: exact ready/send/receipt/commit/exit ordering, an explicit
+in-progress marker, full state inspection, measured step/token RPO, distinct-
+process continuation, exact stochastic trajectory, and verified-only
+attestation. It makes no claim of inventing signals, grace periods,
+checkpoint-on-preemption, or scheduler integration.
