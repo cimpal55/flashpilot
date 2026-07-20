@@ -779,3 +779,10 @@ Codex did not add OIDC identity, Sigstore/Fulcio/Rekor integration, a durable
 publisher identity, KMS/HSM storage, key rotation or revocation, registry
 publication, organization policy, new framework behavior, GPT work, or repair
 behavior. Hosted acceptance is recorded only after the actual workflow runs.
+
+GitHub Actions run 29780077358 subsequently passed both Python quality jobs
+with 385 tests and one expected skip each, the complete real Linux
+qualification job, all eight Ed25519 signing operations, and the 153-check
+suite policy. Downloaded artifact digests matched GitHub. Independent
+verification passed for all eight detached signatures under the one uploaded
+public key, and the success-only artifact contained no private key.
