@@ -2,6 +2,7 @@
 
 from flashpilot.attestation.builder import (
     AttestationEmission,
+    emit_distributed_recovery_attestation,
     emit_hf_preemption_attestation,
     emit_hf_recovery_attestation,
     emit_recovery_attestation,
@@ -29,6 +30,7 @@ __all__ = [
     "EvidenceManifestV1",
     "RecoveryAttestationV1",
     "emit_recovery_attestation",
+    "emit_distributed_recovery_attestation",
     "emit_hf_recovery_attestation",
     "emit_hf_preemption_attestation",
     "verify_recovery_attestation",

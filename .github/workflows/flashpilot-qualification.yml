@@ -61,6 +61,15 @@ jobs:
           --scenario complete
           --run-dir runs/ci-hf
 
+      - name: Qualify real two-rank PyTorch FSDP restart
+        run: >-
+          flashpilot qualify distributed-pytorch
+          --strategy fsdp
+          --backend gloo
+          --world-size 2
+          --profile exact-training-resume
+          --run-dir runs/ci-distributed
+
       - name: Certify managed SIGTERM preemption
         run: >-
           flashpilot certify-preemption
@@ -87,7 +96,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          for summary in runs/ci-hf/job-summary.md runs/ci-preemption/job-summary.md; do
+          for summary in runs/ci-hf/job-summary.md runs/ci-distributed/job-summary.md runs/ci-preemption/job-summary.md; do
             if [[ -f "$summary" ]]; then
               cat "$summary" >> "$GITHUB_STEP_SUMMARY"
             fi

@@ -28,12 +28,19 @@ from flashpilot.checkpoints.loader import CheckpointValidationError, validate_ch
 from flashpilot.contracts import (
     PersistenceContract,
     QualificationProfile,
+    distributed_fsdp_persistence_contract,
     huggingface_trainer_persistence_contract,
     native_minimum_persistence_contract,
     persistence_contract_sha256,
     pytorch_lightning_persistence_contract,
     validate_persistence_contract,
 )
+from flashpilot.distributed.checkpoint import (
+    DistributedCheckpointError,
+    validate_distributed_checkpoint,
+)
+from flashpilot.distributed.models import DistributedQualificationResult
+from flashpilot.distributed.reporting import render_distributed_html, render_distributed_markdown
 from flashpilot.domain.repair import RepairLoopResult
 from flashpilot.hf.models import HFQualificationResult
 from flashpilot.hf.reporting import render_hf_html, render_hf_markdown
@@ -501,6 +508,165 @@ def _verify_lightning_result(
     )
 
 
+def _verify_distributed_result(
+    *,
+    sandbox: PathSandbox,
+    attestation: RecoveryAttestationV1,
+    resolved_attestation: Path,
+    checks: list[AttestationVerificationCheck],
+) -> AttestationVerificationResult:
+    try:
+        result_path = sandbox.resolve_relative(attestation.result_path, must_exist=True)
+    except PathContainmentError as error:
+        raise AttestationVerificationError(
+            "distributed result path is missing or unsafe"
+        ) from error
+    result = _read_model(result_path, DistributedQualificationResult)
+    if result.final_verdict != "VERIFIED" or not result.gate.passed:
+        raise AttestationVerificationError("distributed result lacks a passing exact Gate")
+    original_pids = tuple(item.worker_pid for item in result.checkpoint_processes.ranks)
+    recovery_pids = tuple(item.worker_pid for item in result.recovery_processes.ranks)
+    comparisons = (
+        (result.run_id, attestation.run_id, "distributed run ID mismatch"),
+        (result.created_at, attestation.issued_at, "distributed timestamp mismatch"),
+        (result.strategy, attestation.distributed_strategy, "distributed strategy mismatch"),
+        (
+            result.implementation,
+            attestation.distributed_implementation,
+            "distributed implementation mismatch",
+        ),
+        (result.backend, attestation.distributed_backend, "distributed backend mismatch"),
+        (result.world_size, attestation.distributed_world_size, "distributed world size mismatch"),
+        (original_pids, attestation.original_worker_pids, "checkpoint rank PID set mismatch"),
+        (recovery_pids, attestation.recovery_worker_pids, "recovery rank PID set mismatch"),
+        (original_pids[0], attestation.original_worker_pid, "checkpoint rank-zero PID mismatch"),
+        (recovery_pids[0], attestation.recovery_worker_pid, "recovery rank-zero PID mismatch"),
+        (
+            result.control[0].trainable_state_sha256,
+            attestation.control_digest,
+            "distributed control digest mismatch",
+        ),
+        (
+            result.recovery[0].trainable_state_sha256,
+            attestation.resumed_digest,
+            "distributed recovery digest mismatch",
+        ),
+        (
+            result.control[0].evaluation_sha256,
+            attestation.control_evaluation_digest,
+            "distributed control evaluation mismatch",
+        ),
+        (
+            result.recovery[0].evaluation_sha256,
+            attestation.resumed_evaluation_digest,
+            "distributed recovery evaluation mismatch",
+        ),
+        (len(result.gate.checks), attestation.checks_total, "distributed Gate total mismatch"),
+        (
+            sum(check.status == "pass" for check in result.gate.checks),
+            attestation.checks_passed,
+            "distributed Gate passed count mismatch",
+        ),
+        (result.gate.atol, attestation.atol, "distributed atol mismatch"),
+        (result.gate.rtol, attestation.rtol, "distributed rtol mismatch"),
+        (result.gate.achieved_rpo_steps, attestation.rpo_steps, "distributed RPO mismatch"),
+        (result.gate.max_rpo_steps, attestation.max_rpo_steps, "distributed max RPO mismatch"),
+        (result.recovery_rto_seconds, attestation.rto_seconds, "distributed RTO mismatch"),
+        (
+            result.verified_persisted_bytes,
+            attestation.verified_persisted_bytes,
+            "distributed verified bytes mismatch",
+        ),
+    )
+    for actual, expected, message in comparisons:
+        _require_equal(actual, expected, message)
+    checks.append(
+        _passed(
+            "consistency.result",
+            "Distributed result, topology, exact Gate, process groups, and trajectory agree.",
+        )
+    )
+
+    try:
+        report_path = sandbox.resolve_relative(attestation.report_path, must_exist=True)
+        html_path = sandbox.resolve_relative(attestation.html_report_path, must_exist=True)
+        markdown = report_path.read_text(encoding="utf-8")
+        html = html_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError, PathContainmentError) as error:
+        raise AttestationVerificationError(
+            "distributed report paths are unsafe or unreadable"
+        ) from error
+    _require_equal(
+        markdown,
+        render_distributed_markdown(result),
+        "distributed Markdown report/result mismatch",
+    )
+    _require_equal(
+        html,
+        render_distributed_html(result),
+        "distributed HTML report/result mismatch",
+    )
+    checks.append(_passed("consistency.reports", "Distributed reports derive from result."))
+
+    try:
+        checkpoint_path = sandbox.resolve_relative(attestation.checkpoint_path, must_exist=True)
+        validated = validate_distributed_checkpoint(
+            run_root=sandbox.root,
+            checkpoint_path=checkpoint_path,
+        )
+        checkpoint = directory_content_fingerprint(checkpoint_path)
+    except (
+        DistributedCheckpointError,
+        OSError,
+        ValueError,
+        PathContainmentError,
+    ) as error:
+        raise AttestationVerificationError(
+            "distributed checkpoint is missing, unsafe, or invalid"
+        ) from error
+    for actual, expected, message in (
+        (
+            attestation.checkpoint_path,
+            result.checkpoint_event.checkpoint_path,
+            "distributed checkpoint path differs from result",
+        ),
+        (
+            validated.manifest,
+            result.checkpoint_manifest,
+            "distributed checkpoint manifest differs from result",
+        ),
+        (
+            validated.inventory,
+            result.checkpoint_inventory,
+            "distributed checkpoint inventory differs from result",
+        ),
+        (checkpoint.sha256, attestation.checkpoint_sha256, "distributed hash mismatch"),
+        (
+            checkpoint.file_count,
+            attestation.checkpoint_file_count,
+            "distributed file-count mismatch",
+        ),
+        (
+            checkpoint.logical_bytes,
+            attestation.checkpoint_logical_bytes,
+            "distributed logical-byte mismatch",
+        ),
+        (
+            checkpoint.logical_bytes,
+            attestation.verified_persisted_bytes,
+            "distributed verified-byte mismatch",
+        ),
+    ):
+        _require_equal(actual, expected, message)
+    checks.append(
+        _passed("integrity.checkpoint", "Distributed checkpoint hash and closed state agree.")
+    )
+    return AttestationVerificationResult(
+        attestation_sha256=sha256_file(resolved_attestation),
+        checks=tuple(checks),
+    )
+
+
 def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificationResult:
     """Verify schema, closed evidence inventory, hashes, and result consistency."""
 
@@ -574,6 +740,7 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
         "transformers": "transformers",
         "lightning": "lightning",
         "native-pytorch": "torch",
+        "pytorch-distributed": "torch",
     }[attestation.framework]
     framework_version = next(
         (item.version for item in environment.dependencies if item.name == framework_dependency),
@@ -624,6 +791,8 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
         if attestation.framework == "transformers"
         else pytorch_lightning_persistence_contract()
         if attestation.framework == "lightning"
+        else distributed_fsdp_persistence_contract()
+        if attestation.framework == "pytorch-distributed"
         else native_minimum_persistence_contract(
             attestation.qualification_profile,
             max_rpo_steps=attestation.max_rpo_steps,
@@ -655,6 +824,13 @@ def verify_recovery_attestation(attestation_path: Path) -> AttestationVerificati
         )
     if attestation.framework == "lightning":
         return _verify_lightning_result(
+            sandbox=sandbox,
+            attestation=attestation,
+            resolved_attestation=resolved_attestation,
+            checks=checks,
+        )
+    if attestation.framework == "pytorch-distributed":
+        return _verify_distributed_result(
             sandbox=sandbox,
             attestation=attestation,
             resolved_attestation=resolved_attestation,

@@ -95,11 +95,13 @@ class RecoveryAttestationV1(StrictAttestationModel):
         QualificationProfile.EXACT_TRAINING_RESUME,
         QualificationProfile.PREEMPTION_SAFE_TRAINING,
     ] = QualificationProfile.EXACT_TRAINING_RESUME
-    framework: Literal["native-pytorch", "transformers", "lightning"] = "native-pytorch"
-    framework_version: str = Field(min_length=1, max_length=200)
-    adapter: Literal["native-pytorch", "huggingface-trainer", "pytorch-lightning"] = (
+    framework: Literal["native-pytorch", "transformers", "lightning", "pytorch-distributed"] = (
         "native-pytorch"
     )
+    framework_version: str = Field(min_length=1, max_length=200)
+    adapter: Literal[
+        "native-pytorch", "huggingface-trainer", "pytorch-lightning", "pytorch-fsdp"
+    ] = "native-pytorch"
     run_id: str = Field(min_length=1)
     issued_at: datetime
     code_commit: str = Field(pattern=r"^(?:[0-9a-f]{40}|unavailable)$")
@@ -121,12 +123,19 @@ class RecoveryAttestationV1(StrictAttestationModel):
         "process_termination",
         "process-kill",
         "managed_preemption",
+        "checkpoint_restart",
     ] = "process_termination"
     preemption_signal: Literal["SIGTERM"] | None = None
     grace_period_seconds: int | None = Field(default=None, ge=1, le=3_600)
     checkpoint_commit_seconds: float | None = Field(default=None, ge=0.0)
     graceful_exit_seconds: float | None = Field(default=None, ge=0.0)
     rpo_tokens: int | None = Field(default=None, ge=0)
+    distributed_strategy: Literal["fsdp"] | None = None
+    distributed_implementation: Literal["fully_shard"] | None = None
+    distributed_backend: Literal["gloo"] | None = None
+    distributed_world_size: Literal[2] | None = None
+    original_worker_pids: tuple[int, ...] | None = Field(default=None, min_length=2, max_length=2)
+    recovery_worker_pids: tuple[int, ...] | None = Field(default=None, min_length=2, max_length=2)
     original_worker_pid: int = Field(gt=0)
     recovery_worker_pid: int = Field(gt=0)
     control_digest: str = Field(pattern=SHA256_PATTERN)
@@ -180,6 +189,36 @@ class RecoveryAttestationV1(StrictAttestationModel):
             return self
         if any(value is not None for value in preemption_fields):
             raise ValueError("exact-resume attestation cannot contain preemption metrics")
+        distributed_fields = (
+            self.distributed_strategy,
+            self.distributed_implementation,
+            self.distributed_backend,
+            self.distributed_world_size,
+            self.original_worker_pids,
+            self.recovery_worker_pids,
+        )
+        if self.framework == "pytorch-distributed":
+            if (
+                self.adapter != "pytorch-fsdp"
+                or self.fault_scenario != "checkpoint_restart"
+                or any(value is None for value in distributed_fields)
+            ):
+                raise ValueError("distributed attestation fields and FSDP identity must agree")
+            assert self.original_worker_pids is not None
+            assert self.recovery_worker_pids is not None
+            original = tuple(self.original_worker_pids)
+            recovery = tuple(self.recovery_worker_pids)
+            if (
+                len(set(original)) != 2
+                or len(set(recovery)) != 2
+                or set(original) & set(recovery)
+                or self.original_worker_pid != original[0]
+                or self.recovery_worker_pid != recovery[0]
+            ):
+                raise ValueError("distributed attestation process groups are invalid")
+            return self
+        if any(value is not None for value in distributed_fields):
+            raise ValueError("non-distributed attestation cannot contain topology fields")
         if self.framework == "native-pytorch" and (
             self.adapter != "native-pytorch" or self.fault_scenario != "process_termination"
         ):

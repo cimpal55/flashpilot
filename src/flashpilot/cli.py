@@ -440,6 +440,79 @@ def qualify_lightning(
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 
+@qualify_app.command("distributed-pytorch")
+def qualify_distributed_pytorch(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty distributed qualification directory."),
+    ],
+    strategy: Annotated[
+        str,
+        typer.Option(help="Distributed strategy; only fsdp is supported."),
+    ] = "fsdp",
+    backend: Annotated[
+        str,
+        typer.Option(help="Process-group backend; only gloo is supported."),
+    ] = "gloo",
+    world_size: Annotated[
+        int,
+        typer.Option(help="Fixed distributed world size; only 2 is supported."),
+    ] = 2,
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile; only exact-training-resume is supported."),
+    ] = "exact-training-resume",
+    workload_profile: Annotated[
+        str,
+        typer.Option(help="Bounded workload size: ci or demo."),
+    ] = "ci",
+) -> None:
+    """Qualify exact same-world-size restart for real two-rank PyTorch FSDP."""
+
+    if profile != "exact-training-resume" or workload_profile not in {"ci", "demo"}:
+        typer.echo("Unsupported distributed qualification profile.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    try:
+        from flashpilot.distributed.qualification import (
+            DistributedQualificationError,
+            DistributedUnsupportedConfigurationError,
+            run_distributed_qualification,
+        )
+
+        result = run_distributed_qualification(
+            run_root=run_dir,
+            workload_profile=workload_profile,
+            strategy=strategy,
+            backend=backend,
+            world_size=world_size,
+        )
+    except (DistributedUnsupportedConfigurationError, ValueError) as error:
+        typer.echo(f"Distributed qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    except DistributedQualificationError as error:
+        typer.echo(f"Distributed qualification failed: {error}", err=True)
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED) from error
+    typer.echo(result.final_verdict)
+    typer.echo(f"Strategy: {result.strategy} via {result.implementation}")
+    typer.echo(f"Backend/world size: {result.backend}/{result.world_size}")
+    typer.echo(
+        f"Recovery Gate: {sum(c.status == 'pass' for c in result.gate.checks)}/"
+        f"{len(result.gate.checks)}"
+    )
+    typer.echo(f"Recovery RTO: {result.recovery_rto_seconds:.6f} seconds")
+    typer.echo(f"Verified persisted bytes: {result.verified_persisted_bytes}")
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"Markdown report: {(run_dir / result.report_path).resolve()}")
+    typer.echo(f"HTML report: {(run_dir / result.html_report_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / 'junit.xml').resolve()}")
+    typer.echo(f"Job summary: {(run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(run_dir / 'results.sarif').resolve()}")
+    if result.final_verdict == "VERIFIED":
+        typer.echo(f"Recovery attestation: {(run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
+    else:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
 @qualify_app.command("conversions")
 def qualify_conversions(
     run_dir: Annotated[

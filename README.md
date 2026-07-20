@@ -258,6 +258,36 @@ The hosted Ubuntu workflow is configured to execute the real signal path. A
 local or hosted run certifies only the included process/workload contract; it does not claim
 that Kubernetes, Slurm, or a cloud provider control plane was exercised.
 
+## V1.0 two-rank FSDP restart qualification
+
+The first V1.0 qualification item exercises real PyTorch FSDP2 collectives and
+Distributed Checkpoint sharding on two local CPU ranks:
+
+```powershell
+flashpilot qualify distributed-pytorch `
+  --strategy fsdp `
+  --backend gloo `
+  --world-size 2 `
+  --profile exact-training-resume `
+  --run-dir .\runs\distributed-fsdp
+```
+
+The bounded harness runs separate two-rank control, checkpoint, and recovery
+process groups. `torch.distributed.checkpoint` persists the FSDP model and
+optimizer state; strict per-rank JSON persists scheduler, Python/NumPy/Torch
+RNG, global step, and stochastic loss history. Rank 0 closes checksums and a
+manifest before an atomic same-filesystem directory rename. The 24-check
+Recovery Gate requires all six processes to exit cleanly and the recovered
+per-rank trajectories, trainable state, evaluation, optimizer, scheduler, and
+collective probe to match the uninterrupted control exactly.
+
+This qualification is CPU-only, Gloo-only, fixed at world size 2, and restores
+at the same world size. It proves a clean checkpoint restart for the included
+workload; it does not inject a multi-rank failure, test elastic resharding,
+qualify CUDA/NCCL or network filesystems, or support DeepSpeed. Verified bytes
+and the unsigned attestation are emitted only after the deterministic Gate
+passes.
+
 ## What the demo proves
 
 1. An uninterrupted seeded CPU control produces stable trajectory evidence.

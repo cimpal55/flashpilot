@@ -6,7 +6,8 @@
       "enum": [
         "native-pytorch",
         "huggingface-trainer",
-        "pytorch-lightning"
+        "pytorch-lightning",
+        "pytorch-fsdp"
       ],
       "title": "Adapter",
       "type": "string"
@@ -85,6 +86,58 @@
       "title": "Dependency Environment Sha256",
       "type": "string"
     },
+    "distributed_backend": {
+      "anyOf": [
+        {
+          "const": "gloo",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed Backend"
+    },
+    "distributed_implementation": {
+      "anyOf": [
+        {
+          "const": "fully_shard",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed Implementation"
+    },
+    "distributed_strategy": {
+      "anyOf": [
+        {
+          "const": "fsdp",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed Strategy"
+    },
+    "distributed_world_size": {
+      "anyOf": [
+        {
+          "const": 2,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed World Size"
+    },
     "evidence_manifest_path": {
       "const": "evidence-manifest.json",
       "default": "evidence-manifest.json",
@@ -101,7 +154,8 @@
       "enum": [
         "process_termination",
         "process-kill",
-        "managed_preemption"
+        "managed_preemption",
+        "checkpoint_restart"
       ],
       "title": "Fault Scenario",
       "type": "string"
@@ -111,7 +165,8 @@
       "enum": [
         "native-pytorch",
         "transformers",
-        "lightning"
+        "lightning",
+        "pytorch-distributed"
       ],
       "title": "Framework",
       "type": "string"
@@ -178,6 +233,23 @@
       "title": "Original Worker Pid",
       "type": "integer"
     },
+    "original_worker_pids": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Original Worker Pids"
+    },
     "persistence_contract_path": {
       "const": "persistence-contract.json",
       "default": "persistence-contract.json",
@@ -215,6 +287,23 @@
       "exclusiveMinimum": 0,
       "title": "Recovery Worker Pid",
       "type": "integer"
+    },
+    "recovery_worker_pids": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Recovery Worker Pids"
     },
     "report_path": {
       "const": "report.md",

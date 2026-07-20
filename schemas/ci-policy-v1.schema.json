@@ -28,7 +28,8 @@
       "items": {
         "enum": [
           "process_termination",
-          "managed_preemption"
+          "managed_preemption",
+          "checkpoint_restart"
         ],
         "type": "string"
       },

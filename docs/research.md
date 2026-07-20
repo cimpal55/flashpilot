@@ -199,3 +199,24 @@ checkpoint commit, a 0.695438-second graceful exit, zero step/token RPO, and a
 measurements for the fixed offline CPU workload on that runner, not general
 latency or durability claims for Kubernetes, Slurm, cloud GPU providers, or
 network storage.
+
+## PyTorch FSDP2 and Distributed Checkpoint
+
+PyTorch documents `fully_shard` as the composable FSDP2 API and describes
+distributed model parameter sharding over a device mesh. FlashPilot uses the
+documented API on a two-rank CPU mesh and does not represent DDP as FSDP.
+Source: [PyTorch FSDP reference](https://docs.pytorch.org/docs/stable/fsdp.html).
+
+PyTorch Distributed Checkpoint documents collective sharded state-dict save
+and load and requires an initialized process group for distributed operation.
+FlashPilot uses DCP for the FSDP model and optimizer state, while its strict
+rank-state JSON captures the scheduler, Python/NumPy/Torch RNG, global step,
+and loss trajectory that the controlled exact-resume contract also requires.
+Sources: [Distributed Checkpoint reference](https://docs.pytorch.org/docs/stable/distributed.checkpoint.html),
+[Distributed Checkpoint recipe](https://docs.pytorch.org/tutorials/recipes/distributed_checkpoint_recipe.html).
+
+The qualification claim is intentionally narrower than those APIs: one local
+CPU workload, Gloo, world size 2, same-world-size clean restart, zero-tolerance
+trajectory equivalence, and local same-filesystem durability. It does not
+qualify elastic resharding, CUDA/NCCL, distributed filesystems, or faulted
+multi-rank coordination.

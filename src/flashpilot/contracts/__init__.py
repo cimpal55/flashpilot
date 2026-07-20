@@ -1,6 +1,7 @@
 """VNext persistence contracts and deterministic qualification rules."""
 
 from flashpilot.contracts.canonical import canonical_contract_json, persistence_contract_sha256
+from flashpilot.contracts.distributed import distributed_fsdp_persistence_contract
 from flashpilot.contracts.huggingface import huggingface_trainer_persistence_contract
 from flashpilot.contracts.lightning import pytorch_lightning_persistence_contract
 from flashpilot.contracts.models import (
@@ -30,6 +31,7 @@ __all__ = [
     "RecoverySource",
     "RequirementClass",
     "canonical_contract_json",
+    "distributed_fsdp_persistence_contract",
     "huggingface_trainer_persistence_contract",
     "merge_with_deterministic_minimum",
     "migrate_native_checkpoint_contract",
