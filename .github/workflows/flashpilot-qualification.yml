@@ -49,8 +49,8 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install FlashPilot with the optional HF adapter
-        run: python -m pip install ".[hf]"
+      - name: Install FlashPilot with HF and DeepSpeed qualification support
+        run: python -m pip install ".[hf,deepspeed]"
 
       - name: Run real HF checkpoint qualification
         run: >-
@@ -69,6 +69,15 @@ jobs:
           --world-size 2
           --profile exact-training-resume
           --run-dir runs/ci-distributed
+
+      - name: Qualify real two-rank DeepSpeed ZeRO-2 restart
+        run: >-
+          flashpilot qualify deepspeed
+          --zero-stage 2
+          --backend gloo
+          --world-size 2
+          --profile exact-training-resume
+          --run-dir runs/ci-deepspeed
 
       - name: Certify managed SIGTERM preemption
         run: >-
@@ -96,7 +105,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          for summary in runs/ci-hf/job-summary.md runs/ci-distributed/job-summary.md runs/ci-preemption/job-summary.md; do
+          for summary in runs/ci-hf/job-summary.md runs/ci-distributed/job-summary.md runs/ci-deepspeed/job-summary.md runs/ci-preemption/job-summary.md; do
             if [[ -f "$summary" ]]; then
               cat "$summary" >> "$GITHUB_STEP_SUMMARY"
             fi

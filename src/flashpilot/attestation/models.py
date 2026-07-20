@@ -95,12 +95,16 @@ class RecoveryAttestationV1(StrictAttestationModel):
         QualificationProfile.EXACT_TRAINING_RESUME,
         QualificationProfile.PREEMPTION_SAFE_TRAINING,
     ] = QualificationProfile.EXACT_TRAINING_RESUME
-    framework: Literal["native-pytorch", "transformers", "lightning", "pytorch-distributed"] = (
-        "native-pytorch"
-    )
+    framework: Literal[
+        "native-pytorch", "transformers", "lightning", "pytorch-distributed", "deepspeed"
+    ] = "native-pytorch"
     framework_version: str = Field(min_length=1, max_length=200)
     adapter: Literal[
-        "native-pytorch", "huggingface-trainer", "pytorch-lightning", "pytorch-fsdp"
+        "native-pytorch",
+        "huggingface-trainer",
+        "pytorch-lightning",
+        "pytorch-fsdp",
+        "deepspeed-engine",
     ] = "native-pytorch"
     run_id: str = Field(min_length=1)
     issued_at: datetime
@@ -130,10 +134,11 @@ class RecoveryAttestationV1(StrictAttestationModel):
     checkpoint_commit_seconds: float | None = Field(default=None, ge=0.0)
     graceful_exit_seconds: float | None = Field(default=None, ge=0.0)
     rpo_tokens: int | None = Field(default=None, ge=0)
-    distributed_strategy: Literal["fsdp"] | None = None
-    distributed_implementation: Literal["fully_shard"] | None = None
+    distributed_strategy: Literal["fsdp", "zero"] | None = None
+    distributed_implementation: Literal["fully_shard", "zero-stage-2"] | None = None
     distributed_backend: Literal["gloo"] | None = None
     distributed_world_size: Literal[2] | None = None
+    distributed_zero_stage: Literal[2] | None = None
     original_worker_pids: tuple[int, ...] | None = Field(default=None, min_length=2, max_length=2)
     recovery_worker_pids: tuple[int, ...] | None = Field(default=None, min_length=2, max_length=2)
     original_worker_pid: int = Field(gt=0)
@@ -202,6 +207,9 @@ class RecoveryAttestationV1(StrictAttestationModel):
                 self.adapter != "pytorch-fsdp"
                 or self.fault_scenario != "checkpoint_restart"
                 or any(value is None for value in distributed_fields)
+                or self.distributed_strategy != "fsdp"
+                or self.distributed_implementation != "fully_shard"
+                or self.distributed_zero_stage is not None
             ):
                 raise ValueError("distributed attestation fields and FSDP identity must agree")
             assert self.original_worker_pids is not None
@@ -217,7 +225,30 @@ class RecoveryAttestationV1(StrictAttestationModel):
             ):
                 raise ValueError("distributed attestation process groups are invalid")
             return self
-        if any(value is not None for value in distributed_fields):
+        if self.framework == "deepspeed":
+            if (
+                self.adapter != "deepspeed-engine"
+                or self.fault_scenario != "checkpoint_restart"
+                or any(value is None for value in distributed_fields)
+                or self.distributed_strategy != "zero"
+                or self.distributed_implementation != "zero-stage-2"
+                or self.distributed_zero_stage != 2
+            ):
+                raise ValueError("DeepSpeed attestation fields and ZeRO-2 identity must agree")
+            assert self.original_worker_pids is not None
+            assert self.recovery_worker_pids is not None
+            original = tuple(self.original_worker_pids)
+            recovery = tuple(self.recovery_worker_pids)
+            if (
+                len(set(original)) != 2
+                or len(set(recovery)) != 2
+                or set(original) & set(recovery)
+                or self.original_worker_pid != original[0]
+                or self.recovery_worker_pid != recovery[0]
+            ):
+                raise ValueError("DeepSpeed attestation process groups are invalid")
+            return self
+        if any(value is not None for value in distributed_fields) or self.distributed_zero_stage:
             raise ValueError("non-distributed attestation cannot contain topology fields")
         if self.framework == "native-pytorch" and (
             self.adapter != "native-pytorch" or self.fault_scenario != "process_termination"

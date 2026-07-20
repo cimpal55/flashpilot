@@ -47,6 +47,16 @@ def test_lightning_extra_is_optional_and_development_tested() -> None:
     assert all("lightning" not in dependency for dependency in project["dependencies"])
 
 
+def test_deepspeed_extra_is_linux_optional_and_development_tested() -> None:
+    project = _pyproject()["project"]
+    optional = project["optional-dependencies"]
+    declaration = "deepspeed>=0.19,<0.20; platform_system != 'Windows'"
+
+    assert optional["deepspeed"] == [declaration]
+    assert declaration in optional["dev"]
+    assert all("deepspeed" not in dependency for dependency in project["dependencies"])
+
+
 def test_release_data_files_cover_public_portable_artifacts() -> None:
     data_files = _pyproject()["tool"]["setuptools"]["data-files"]
 
@@ -59,6 +69,13 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
     )
     assert (
         "schemas/distributed-checkpoint-manifest-v1.schema.json"
+        in data_files["share/flashpilot/schemas"]
+    )
+    assert (
+        "schemas/deepspeed-qualification-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    )
+    assert (
+        "schemas/deepspeed-checkpoint-manifest-v1.schema.json"
         in data_files["share/flashpilot/schemas"]
     )
     assert "schemas/partial-write-fuzz-v1.schema.json" in data_files["share/flashpilot/schemas"]

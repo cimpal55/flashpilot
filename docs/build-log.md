@@ -3635,3 +3635,117 @@ The attestation artifact contained all three verified attestations and was
 3,940 bytes with SHA-256
 `6395270926548943a0e1c9b9ec665d66681aa358c605593558dfd166546b509d`.
 Hosted values are measurements for this workflow run only.
+
+## V1.0 item 2 - two-rank DeepSpeed ZeRO-2 qualification
+
+Scope is limited to the second V1.0 production-infrastructure item. The new
+command accepts only Linux, DeepSpeed 0.19.x, CPU, Gloo, world size 2, ZeRO
+stage 2, `exact-training-resume`, same-world-size clean restart, and the
+included deterministic workload. Multi-rank failure injection, elastic or
+universal checkpoints, ZeRO stages 1/3, CUDA/NCCL, signing, OIDC, registry,
+organization policy, and later items were not started.
+
+### Windows fail-closed and diagnostic validation
+
+The normal Windows/Python 3.12.13 command rejected the unsupported runtime
+before creating a run directory:
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify deepspeed --zero-stage 2 --backend gloo --world-size 2 --profile exact-training-resume --run-dir runs\deepspeed-windows-rejected
+DeepSpeed qualification could not run: DeepSpeed qualification requires a Linux host; Windows is rejected before launch
+exit_code=5
+run_dir_exists=False
+```
+
+For implementation diagnosis only, an external `C:\tmp` `sitecustomize` shim
+disabled the locally built DeepSpeed wheel's unavailable optional shared-memory
+extension, and the parent platform check was monkeypatched in that one process.
+Neither bypass is present in repository code or accepted as product behavior.
+That diagnostic exercised the unmodified FlashPilot checkpoint, restore, Gate,
+CI, SARIF, and attestation path and produced:
+
+```text
+VERIFIED 30 () 217878 0.12829039999633096 12.504608
+```
+
+The values are respectively Gate result/count/failures, logical checkpoint
+bytes, commit duration, and recovery RTO. They are diagnostic Windows values,
+not the authoritative acceptance or a storage-savings claim. Direct
+attestation verification returned `VERIFIED`, 30/30, and CI re-emission
+returned `VERIFIED`.
+
+### Local quality gates
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_deepspeed.py tests\unit\test_distributed.py tests\unit\test_ci.py tests\unit\test_packaging.py -q
+...........................................................              [100%]
+59 passed in 2.10s
+
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+205 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+.................s..............s....................................... [ 22%]
+........................................................................ [ 44%]
+........................................................................ [ 66%]
+......................................................s................. [ 88%]
+......................................                                   [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\integration\test_deepspeed_qualification.py:25: real DeepSpeed ZeRO-2 qualification requires the Linux optional dependency
+SKIPPED [1] tests\integration\test_preemption_certification.py:18: real external POSIX SIGTERM is unavailable
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable to the current non-administrator Windows host
+323 passed, 3 skipped in 316.87s (0:05:16)
+```
+
+Both checked workflow YAML files parsed locally. Their qualification steps are
+identical, the active workflow retains global `contents: read`, and the quality
+matrix remains Python 3.11/3.12. Hosted Ubuntu acceptance is pending at this
+point; no Linux DeepSpeed byte or timing metric is recorded until that command
+actually succeeds.
+
+### Hosted Ubuntu acceptance
+
+GitHub Actions pull-request run 29763457210 executed commit `6e2c3bf` on
+Ubuntu with Python 3.11.15 and 3.12. All three jobs passed:
+
+```text
+Quality (Python 3.11): PASS in 5m23s; Ruff PASS; format PASS (205 files); 325 passed, 1 skipped in 180.33s
+Quality (Python 3.12): PASS in 7m08s; Ruff PASS; format PASS (205 files); 325 passed, 1 skipped in 310.09s
+qualify-checkpoint: PASS in 3m30s
+```
+
+The one hosted skip is the Windows-only DeepSpeed CLI rejection test. The real
+Linux DeepSpeed integration, POSIX preemption integration, and symlink
+containment test all executed and passed.
+
+The exact hosted DeepSpeed command completed:
+
+```text
+VERIFIED
+Strategy: zero via zero-stage-2
+Backend/world size: gloo/2
+Recovery Gate: 30/30
+Recovery RTO: 7.122461 seconds
+Verified persisted bytes: 217120
+```
+
+The persisted result additionally measured a 0.015481656-second checkpoint
+commit, six distinct worker PIDs, DeepSpeed 0.19.2, and PyTorch 2.13.0. POSIX
+directory fsync was supported and succeeded. The closed checkpoint inventory
+contained exactly `COMPLETE`, `checksums.json`, `manifest.json`, `latest`,
+`zero_to_fp32.py`, one tagged model-state file, two tagged ZeRO optimizer
+shards, and rank 0/1 state JSON. The 217,120 bytes are one invocation's logical
+checkpoint size, reported only after the Gate passed; no storage-savings or
+physical-write claim is made.
+
+The qualification job also passed the existing real Hugging Face, FSDP,
+managed SIGTERM, static audit, and typed-policy steps. The always-on diagnostic
+artifact was 36,566 bytes with SHA-256
+`f56ed8f78e9c6935fb2bcae394ee3c515ee7ff9986ccdac680155092560989a2`.
+The success-only attestation artifact contained four verified attestations and
+was 5,378 bytes with SHA-256
+`5fc3409d7030996e5106cb0d0548797961d0306a20fd1d2ba8869d482ccb69b2`.
+Hosted values are measurements for this workflow run only.

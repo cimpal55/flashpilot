@@ -31,12 +31,15 @@ from flashpilot.checkpoints.integrity import directory_content_fingerprint, sha2
 from flashpilot.contracts import (
     QualificationProfile,
     canonical_contract_json,
+    deepspeed_zero2_persistence_contract,
     distributed_fsdp_persistence_contract,
     huggingface_trainer_persistence_contract,
     native_minimum_persistence_contract,
     persistence_contract_sha256,
     pytorch_lightning_persistence_contract,
 )
+from flashpilot.deepspeed.models import DeepSpeedQualificationResult
+from flashpilot.deepspeed.reporting import render_deepspeed_html, render_deepspeed_markdown
 from flashpilot.distributed.models import DistributedQualificationResult
 from flashpilot.distributed.reporting import render_distributed_html, render_distributed_markdown
 from flashpilot.domain.repair import RepairLoopResult
@@ -764,6 +767,139 @@ def emit_distributed_recovery_attestation(
         distributed_implementation=persisted.implementation,
         distributed_backend=persisted.backend,
         distributed_world_size=persisted.world_size,
+        original_worker_pid=original_pids[0],
+        recovery_worker_pid=recovery_pids[0],
+        original_worker_pids=original_pids,
+        recovery_worker_pids=recovery_pids,
+        control_digest=persisted.control[0].trainable_state_sha256,
+        resumed_digest=persisted.recovery[0].trainable_state_sha256,
+        control_evaluation_digest=persisted.control[0].evaluation_sha256,
+        resumed_evaluation_digest=persisted.recovery[0].evaluation_sha256,
+        checks_passed=sum(check.status == "pass" for check in persisted.gate.checks),
+        checks_total=len(persisted.gate.checks),
+        rpo_steps=persisted.gate.achieved_rpo_steps,
+        max_rpo_steps=persisted.gate.max_rpo_steps,
+        rto_seconds=persisted.recovery_rto_seconds,
+        verified_persisted_bytes=persisted.verified_persisted_bytes,
+        limitations=persisted.limitations,
+    )
+    attestation_path = write_json_artifact(
+        run_root=root,
+        relative_path=RECOVERY_ATTESTATION_PATH,
+        value=attestation,
+    )
+    from flashpilot.attestation.verifier import verify_recovery_attestation
+
+    verification = verify_recovery_attestation(attestation_path)
+    junit_path = write_text_artifact(
+        run_root=root,
+        relative_path=ATTESTATION_JUNIT_PATH,
+        text=render_attestation_junit(verification),
+    )
+    return AttestationEmission(
+        attestation=attestation,
+        evidence_manifest=evidence_manifest,
+        verification=verification,
+        attestation_path=attestation_path,
+        evidence_manifest_path=evidence_manifest_path,
+        junit_path=junit_path,
+    )
+
+
+def emit_deepspeed_recovery_attestation(
+    *,
+    run_root: Path,
+    result: DeepSpeedQualificationResult,
+) -> AttestationEmission:
+    """Emit and verify an unsigned attestation for a passing ZeRO-2 restart."""
+
+    if result.final_verdict != "VERIFIED" or not result.gate.passed:
+        raise AttestationEmissionError("DeepSpeed attestation requires a passing exact Gate")
+    if result.verified_persisted_bytes is None:
+        raise AttestationEmissionError("DeepSpeed attestation requires post-Gate bytes")
+    root = PathSandbox.create(run_root).root
+    for relative in (
+        EVIDENCE_MANIFEST_PATH,
+        RECOVERY_ATTESTATION_PATH,
+        ATTESTATION_JUNIT_PATH,
+        PERSISTENCE_CONTRACT_PATH,
+        ENVIRONMENT_PATH,
+    ):
+        if (root / relative).exists():
+            raise AttestationEmissionError(f"attestation artifact already exists: {relative}")
+    try:
+        persisted = DeepSpeedQualificationResult.model_validate_json(
+            (root / result.result_path).read_text(encoding="utf-8")
+        )
+        markdown = (root / result.report_path).read_text(encoding="utf-8")
+        html = (root / result.html_report_path).read_text(encoding="utf-8")
+    except (OSError, UnicodeError, ValueError) as error:
+        raise AttestationEmissionError(
+            "persisted DeepSpeed evidence is unavailable or invalid"
+        ) from error
+    if persisted != result:
+        raise AttestationEmissionError("persisted DeepSpeed result differs from memory evidence")
+    if markdown != render_deepspeed_markdown(persisted) or html != render_deepspeed_html(persisted):
+        raise AttestationEmissionError("persisted DeepSpeed reports differ from the result")
+
+    contract = deepspeed_zero2_persistence_contract()
+    write_text_artifact(
+        run_root=root,
+        relative_path=PERSISTENCE_CONTRACT_PATH,
+        text=canonical_contract_json(contract) + "\n",
+    )
+    code_commit, source_tree_state = _source_identity()
+    environment = _dependency_environment(
+        code_commit=code_commit,
+        source_tree_state=source_tree_state,
+        extra_dependencies=("deepspeed",),
+    )
+    write_json_artifact(run_root=root, relative_path=ENVIRONMENT_PATH, value=environment)
+
+    checkpoint = PathSandbox.create(root).resolve_relative(
+        persisted.checkpoint_event.checkpoint_path,
+        must_exist=True,
+    )
+    try:
+        checkpoint_fingerprint = directory_content_fingerprint(checkpoint)
+    except (OSError, ValueError) as error:
+        raise AttestationEmissionError("DeepSpeed checkpoint cannot be fingerprinted") from error
+    if checkpoint_fingerprint.logical_bytes != persisted.verified_persisted_bytes:
+        raise AttestationEmissionError("DeepSpeed checkpoint bytes disagree with result")
+
+    try:
+        evidence_manifest = EvidenceManifestV1(entries=collect_evidence_entries(root))
+    except (OSError, ValueError) as error:
+        raise AttestationEmissionError("DeepSpeed evidence inventory cannot close") from error
+    evidence_manifest_path = write_json_artifact(
+        run_root=root,
+        relative_path=EVIDENCE_MANIFEST_PATH,
+        value=evidence_manifest,
+    )
+    evidence_manifest_sha256 = sha256_file(evidence_manifest_path)
+    original_pids = tuple(item.worker_pid for item in persisted.checkpoint_processes.ranks)
+    recovery_pids = tuple(item.worker_pid for item in persisted.recovery_processes.ranks)
+    attestation = RecoveryAttestationV1(
+        framework="deepspeed",
+        framework_version=persisted.control[0].deepspeed_version,
+        adapter="deepspeed-engine",
+        run_id=persisted.run_id,
+        issued_at=persisted.created_at,
+        code_commit=code_commit,
+        source_tree_state=source_tree_state,
+        dependency_environment_sha256=canonical_model_sha256(environment),
+        checkpoint_path=persisted.checkpoint_event.checkpoint_path,
+        checkpoint_sha256=checkpoint_fingerprint.sha256,
+        checkpoint_file_count=checkpoint_fingerprint.file_count,
+        checkpoint_logical_bytes=checkpoint_fingerprint.logical_bytes,
+        persistence_contract_sha256=persistence_contract_sha256(contract),
+        evidence_manifest_sha256=evidence_manifest_sha256,
+        fault_scenario="checkpoint_restart",
+        distributed_strategy=persisted.strategy,
+        distributed_implementation=persisted.implementation,
+        distributed_backend=persisted.backend,
+        distributed_world_size=persisted.world_size,
+        distributed_zero_stage=persisted.zero_stage,
         original_worker_pid=original_pids[0],
         recovery_worker_pid=recovery_pids[0],
         original_worker_pids=original_pids,

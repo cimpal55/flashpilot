@@ -74,6 +74,7 @@ class CIRunEvidence(StrictCIModel):
         "hf-preemption-certification",
         "lightning-qualification",
         "distributed-qualification",
+        "deepspeed-qualification",
     ]
     status: CIStatus
     qualification_profile: QualificationProfile
@@ -82,6 +83,7 @@ class CIRunEvidence(StrictCIModel):
         "huggingface-trainer",
         "pytorch-lightning",
         "pytorch-distributed",
+        "deepspeed",
         "unknown",
     ]
     checks: tuple[CICheck, ...] = Field(min_length=1)

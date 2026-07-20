@@ -32,6 +32,7 @@ from flashpilot.ci.reporters import (
 )
 from flashpilot.ci.sarif import SARIF_PATH, render_sarif
 from flashpilot.contracts.models import QualificationProfile
+from flashpilot.deepspeed.models import DeepSpeedQualificationResult
 from flashpilot.distributed.models import DistributedQualificationResult
 from flashpilot.domain.recovery import CrashExperimentResult
 from flashpilot.domain.repair import RepairLoopResult
@@ -224,6 +225,29 @@ def _distributed_evidence(result: DistributedQualificationResult) -> CIRunEviden
     )
 
 
+def _deepspeed_evidence(result: DeepSpeedQualificationResult) -> CIRunEvidence:
+    checks = tuple(
+        CICheck(
+            check_id=check.check_id,
+            status=_status(check.status),
+            summary=check.label,
+            expected=check.expected,
+            actual=check.actual,
+        )
+        for check in result.gate.checks
+    )
+    return CIRunEvidence(
+        kind="deepspeed-qualification",
+        status=CIStatus.VERIFIED if result.gate.passed else CIStatus.FAILED,
+        qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
+        framework="deepspeed",
+        checks=checks,
+        fault="checkpoint_restart",
+        rpo_steps=result.gate.achieved_rpo_steps,
+        rto_seconds=result.recovery_rto_seconds,
+    )
+
+
 def normalize_run_evidence(result: object) -> CIRunEvidence:
     if isinstance(result, StaticAuditResult):
         return _audit_evidence(result)
@@ -239,6 +263,8 @@ def normalize_run_evidence(result: object) -> CIRunEvidence:
         return _preemption_evidence(result)
     if isinstance(result, DistributedQualificationResult):
         return _distributed_evidence(result)
+    if isinstance(result, DeepSpeedQualificationResult):
+        return _deepspeed_evidence(result)
     raise CIEvidenceError("unsupported run evidence type")
 
 
@@ -257,6 +283,7 @@ def _read_run_result(run_root: Path) -> object:
             "flashpilot-hf-preemption-certification-v1": HFPreemptionCertificationResult,
             "flashpilot-lightning-qualification-v1": LightningQualificationResult,
             "flashpilot-distributed-qualification-v1": DistributedQualificationResult,
+            "flashpilot-deepspeed-qualification-v1": DeepSpeedQualificationResult,
             "flashpilot-static-audit-v1": StaticAuditResult,
         }.get(schema)
         if model is None:
@@ -305,6 +332,7 @@ def write_qualification_ci_outputs(
         | HFPreemptionCertificationResult
         | LightningQualificationResult
         | DistributedQualificationResult
+        | DeepSpeedQualificationResult
     ),
 ) -> tuple[Path, Path, Path]:
     evidence = normalize_run_evidence(result)

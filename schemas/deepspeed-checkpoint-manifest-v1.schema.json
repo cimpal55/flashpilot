@@ -1,0 +1,168 @@
+{
+  "$defs": {
+    "DeepSpeedCheckpointPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "role": {
+          "enum": [
+            "deepspeed-latest",
+            "deepspeed-model-state",
+            "deepspeed-optimizer-shard",
+            "deepspeed-conversion-helper",
+            "rank-state"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "DeepSpeedCheckpointPayload",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter": {
+      "const": "deepspeed-engine",
+      "default": "deepspeed-engine",
+      "title": "Adapter",
+      "type": "string"
+    },
+    "backend": {
+      "const": "gloo",
+      "default": "gloo",
+      "title": "Backend",
+      "type": "string"
+    },
+    "checkpoint_api": {
+      "const": "DeepSpeedEngine.save_checkpoint",
+      "default": "DeepSpeedEngine.save_checkpoint",
+      "title": "Checkpoint Api",
+      "type": "string"
+    },
+    "checkpoint_id": {
+      "pattern": "^checkpoint-step-[0-9]{6}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "checkpoint_tag": {
+      "pattern": "^global_step[0-9]{6}$",
+      "title": "Checkpoint Tag",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "framework": {
+      "const": "deepspeed",
+      "default": "deepspeed",
+      "title": "Framework",
+      "type": "string"
+    },
+    "global_step": {
+      "exclusiveMinimum": 0,
+      "title": "Global Step",
+      "type": "integer"
+    },
+    "implementation": {
+      "const": "zero-stage-2",
+      "default": "zero-stage-2",
+      "title": "Implementation",
+      "type": "string"
+    },
+    "payloads": {
+      "items": {
+        "$ref": "#/$defs/DeepSpeedCheckpointPayload"
+      },
+      "minItems": 7,
+      "title": "Payloads",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "flashpilot-deepspeed-checkpoint-manifest-v1",
+      "default": "flashpilot-deepspeed-checkpoint-manifest-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "serialized_state": {
+      "default": [
+        "model",
+        "optimizer",
+        "scheduler",
+        "global_step",
+        "loss_history",
+        "python_rng",
+        "numpy_rng",
+        "torch_rng",
+        "topology",
+        "deepspeed_client_state"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Serialized State",
+      "type": "array"
+    },
+    "strategy": {
+      "const": "zero",
+      "default": "zero",
+      "title": "Strategy",
+      "type": "string"
+    },
+    "world_size": {
+      "const": 2,
+      "default": 2,
+      "title": "World Size",
+      "type": "integer"
+    },
+    "zero_stage": {
+      "const": 2,
+      "default": 2,
+      "title": "Zero Stage",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "global_step",
+    "checkpoint_tag",
+    "created_at",
+    "payloads"
+  ],
+  "title": "DeepSpeedCheckpointManifest",
+  "type": "object"
+}

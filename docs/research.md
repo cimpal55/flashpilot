@@ -220,3 +220,32 @@ CPU workload, Gloo, world size 2, same-world-size clean restart, zero-tolerance
 trajectory equivalence, and local same-filesystem durability. It does not
 qualify elastic resharding, CUDA/NCCL, distributed filesystems, or faulted
 multi-rank coordination.
+
+## DeepSpeed checkpoint API and bounded ZeRO-2 claim
+
+DeepSpeed documents that every process must call `save_checkpoint`; calling it
+only on rank 0 can hang because each process owns optimizer/master-weight state.
+It also requires all ranks to use the same checkpoint tag. FlashPilot follows
+that collective contract for two Gloo ranks and performs its own atomic
+directory commitment only after all saving ranks return and synchronize.
+Source: [DeepSpeed model checkpointing](https://deepspeed.readthedocs.io/en/latest/model-checkpointing.html).
+
+The same API documents that `load_checkpoint` returns the loaded path and
+client state and can restore optimizer and learning-rate scheduler state.
+FlashPilot requires both new recovery ranks to return the exact tagged model
+state path, validates a namespaced strict client record, verifies engine step
+and scheduler restoration, restores rank-local RNG, and then proves the full
+stochastic continuation against control.
+
+DeepSpeed's initialization API accepts an existing model, optimizer, scheduler,
+and configuration. The qualification supplies standard CPU AdamW and LinearLR
+objects and fixes `zero_optimization.stage=2`; it does not invoke fused or CPU
+Adam extensions, auto-discover a framework, or consume user configuration.
+Source: [DeepSpeed training initialization](https://deepspeed.readthedocs.io/en/latest/initialize.html).
+
+DeepSpeed's documentation describes universal checkpoint support for loading
+across different parallelism strategies as under development. FlashPilot does
+not infer that same-world-size ZeRO-2 evidence proves elastic or universal
+recovery. The implemented claim remains DeepSpeed 0.19.x, two local CPU/Gloo
+ranks, one offline workload, a clean restart, and exact zero-tolerance
+continuation. Multi-rank failure injection is the next separate roadmap item.
