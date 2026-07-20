@@ -786,3 +786,36 @@ qualification job, all eight Ed25519 signing operations, and the 153-check
 suite policy. Downloaded artifact digests matched GitHub. Independent
 verification passed for all eight detached signatures under the one uploaded
 public key, and the success-only artifact contained no private key.
+
+## V1.0 item 6 - GitHub OIDC provenance
+
+Codex implemented only the sixth V1.0 production-infrastructure item:
+
+- added job-scoped GitHub OIDC and attestation write permissions while keeping
+  repository and quality-job defaults read-only;
+- used the maintained `actions/attest@v4` SLSA path for the exact final
+  `policy-evaluation.json` bytes after every deterministic Gate, signature, and
+  suite-policy check succeeds;
+- preserved the returned Sigstore bundle and verified it in the same hosted
+  job with repository, exact signer workflow/digest, source digest/ref, OIDC
+  issuer, predicate, and hosted-runner constraints;
+- added the policy source, evaluation, Sigstore bundle, and JSON verification
+  result to the existing success-only signed-attestation artifact;
+- retained the separate always-on diagnostics and private-key cleanup under
+  `if: always()`;
+- synchronized the active and example workflows and added focused local tests
+  for permissions, ordering, subject scope, verification constraints, upload
+  boundaries, and the absence of registry/container behavior.
+
+Codex did not add a FlashPilot registry/history service, remote attestation
+lookup, organization policy, custom OIDC/Sigstore code, custom predicates,
+secrets, new framework behavior, GPT work, repair behavior, or Recovery Gate
+changes. Hosted OIDC acceptance is recorded only after the real workflow runs.
+
+GitHub Actions run 29782732807 subsequently passed both Python quality jobs,
+the complete real Linux qualification matrix, the 153-check signed suite
+policy, `actions/attest@v4`, the constrained GitHub CLI verification, private-
+key cleanup, and both artifact uploads. The public GitHub attestation view for
+ID 36247182 confirmed the SLSA predicate, exact workflow, PR merge ref, source
+and signer digest, GitHub OIDC issuer, hosted runner, and the final policy-
+evaluation subject digest.

@@ -992,3 +992,36 @@ runner temporary storage, deletes the private file with `if: always()`, and
 uploads only the public key with successful signed attestations. Durable
 publisher identity, OIDC, hardware/KMS custody, rotation, revocation,
 transparency logs, and a registry remain unresolved later work.
+
+## D-062: GitHub OIDC attests the final deterministic suite evaluation
+
+The sixth V1.0 production-infrastructure item uses GitHub's maintained
+`actions/attest@v4` and GitHub CLI verifier instead of implementing an OIDC
+client, certificate verifier, transparency-log client, or Sigstore primitive
+inside FlashPilot. The qualification job alone receives `id-token: write` and
+`attestations: write`; repository and quality-job defaults remain
+`contents: read`.
+
+The single provenance subject is the exact
+`runs/ci-policy/policy-evaluation.json` file produced after all Recovery Gates,
+eight detached signatures, and the 153-check closed suite policy pass. That
+evaluation already hash-binds the policy source, each explicit result/audit
+source, every verified recovery attestation, each detached signature artifact,
+and the trusted Ed25519 key fingerprint. Attesting this terminal artifact
+keeps the trust chain bounded and avoids repository scanning, broad globs, a
+second manifest format, or self-asserted GitHub identity fields.
+
+The workflow saves the returned Sigstore bundle and verifies it before any
+success artifact is uploaded. Verification requires the exact repository,
+signer workflow path and digest, source digest and ref, SLSA provenance
+predicate, GitHub Actions OIDC issuer, and a GitHub-hosted runner. Identity is
+therefore read from the signed certificate, not from untrusted predicate
+prose. A failed OIDC mint, attestation, identity constraint, digest check, or
+bundle verification fails the job closed and suppresses the success-only
+artifact.
+
+GitHub's attestation service and public transparency log are used as part of
+the official keyless provenance protocol. FlashPilot does not add its own
+registry, history API, remote lookup, retention policy, organization policy,
+key rotation, KMS/HSM custody, or new recovery verdict. The optional
+attestation registry/history remains the separate next roadmap item.
