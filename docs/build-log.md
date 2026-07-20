@@ -4302,6 +4302,54 @@ SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable to t
 
 The five skips are unchanged platform conditions: three Linux-only DeepSpeed
 cases, one POSIX SIGTERM case, and the non-administrator Windows directory-
-symlink case. Hosted OIDC minting, Sigstore persistence, constrained GitHub CLI
-verification, and success-artifact inspection are pending the real feature-
-branch workflow run. No hosted result or provenance metric is claimed yet.
+symlink case.
+
+### Hosted GitHub OIDC acceptance
+
+GitHub Actions pull-request run 29782732807 executed the feature branch through
+the PR merge commit `3ef84249921fe99a8b6780b3b65ac76cd2d18e89`. All three
+jobs passed:
+
+```text
+Quality (Python 3.11): Ruff PASS; format PASS (218 files); 385 passed, 1 skipped in 370.78s
+Quality (Python 3.12): Ruff PASS; format PASS (218 files); 385 passed, 1 skipped in 402.27s
+qualify-checkpoint: PASS in 6m19s
+```
+
+The single hosted skip is the Windows-only DeepSpeed rejection test. Real
+Linux DeepSpeed, POSIX managed preemption, FSDP, symlink containment, all four
+targeted-rank failure cases, eight exact-byte signatures, and the 153-check
+suite policy executed. The policy emitted `POLICY PASS` with 9/9 requirements.
+
+`actions/attest@v4` then created public-good Sigstore build provenance for:
+
+```text
+policy-evaluation.json
+sha256:fe3ea54876322270d1569b077add9751afa5bd121d704ed1fb16857531ad620b
+GitHub attestation ID: 36247182
+```
+
+The next constrained `gh attestation verify` step passed before the private-key
+cleanup and success upload. GitHub's public attestation view independently
+reported:
+
+```text
+predicate: https://slsa.dev/provenance/v1
+build config/signer/source digest: 3ef84249921fe99a8b6780b3b65ac76cd2d18e89
+workflow: cimpal55/flashpilot/.github/workflows/flashpilot-qualification.yml
+source ref: refs/pull/8/merge
+trigger: pull_request
+issuer: https://token.actions.githubusercontent.com
+runner environment: github-hosted
+subject digest: fe3ea54876322270d1569b077add9751afa5bd121d704ed1fb16857531ad620b
+```
+
+The always-on diagnostic artifact was 116,653 bytes with GitHub artifact
+SHA-256 `65ce03c86531e2b058c5f97e5663e3c2119ad6c9cdd976e73cf8847b91b73ece`.
+The success-only signed-attestation/provenance artifact was 43,093 bytes with
+GitHub artifact SHA-256
+`3fdc44bafc0f7e67b48f4e7b850b449f8d9279bca689fcdda105f71d8a63c246`.
+Its upload log included the policy source/evaluation, saved Sigstore bundle,
+and JSON verification result alongside the existing public signed evidence;
+the private key had already been removed successfully. These are hosted-run
+evidence values, not storage-savings or performance claims.

@@ -811,3 +811,11 @@ Codex did not add a FlashPilot registry/history service, remote attestation
 lookup, organization policy, custom OIDC/Sigstore code, custom predicates,
 secrets, new framework behavior, GPT work, repair behavior, or Recovery Gate
 changes. Hosted OIDC acceptance is recorded only after the real workflow runs.
+
+GitHub Actions run 29782732807 subsequently passed both Python quality jobs,
+the complete real Linux qualification matrix, the 153-check signed suite
+policy, `actions/attest@v4`, the constrained GitHub CLI verification, private-
+key cleanup, and both artifact uploads. The public GitHub attestation view for
+ID 36247182 confirmed the SLSA predicate, exact workflow, PR merge ref, source
+and signer digest, GitHub OIDC issuer, hosted runner, and the final policy-
+evaluation subject digest.
