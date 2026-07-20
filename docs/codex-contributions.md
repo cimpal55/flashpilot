@@ -745,5 +745,6 @@ Codex did not add Rego, Cedar, a generic policy engine, scripts, expressions,
 policy plugins, repository scanning, remote policy retrieval, organization
 inheritance, waivers, signing, OIDC, a registry, new framework behavior, GPT
 work, or repair behavior. The P0 adapter and six-action repair surface remain
-unchanged. Hosted acceptance is recorded after the pull-request workflow
-executes the complete real matrix.
+unchanged. Hosted pull-request run 29775471175 passed the complete real matrix,
+both Python quality jobs, the 145-check suite policy, all nine source-hash
+bindings, and all eight success-only attestation-hash bindings.

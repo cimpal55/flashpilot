@@ -3755,8 +3755,56 @@ permissions remain `contents: read`, and the quality matrix remains Python
 3.11/3.12. A wheel built with
 `python -m build --wheel --no-isolation --outdir build\typed-policy-wheel`
 contains all four new policy modules, both public schemas, and the checked-in
-policy example. Hosted acceptance follows below after the pull-request workflow
-executes the Linux-only cases.
+policy example.
+
+Hosted pull-request run
+[29775471175](https://github.com/cimpal55/flashpilot/actions/runs/29775471175)
+passed all three jobs for commit
+`11c0831fd94179b8aafc80db5091e05d7f03f3bf`. The Linux qualification job
+passed real HF process termination; FSDP clean restart and target-rank 0/1
+termination; DeepSpeed ZeRO-2 clean restart and target-rank 0/1 termination;
+managed SIGTERM; static audit; the backward-compatible per-run policy; and the
+new suite policy. The suite command returned:
+
+```text
+POLICY PASS
+Policy ID: flashpilot-v1-production-suite
+Requirements: 9/9
+```
+
+Downloaded hosted evidence independently confirmed 145/145 passing policy
+checks, no failed requirement IDs, policy source SHA-256
+`5b05cb4f96e62171955349c3e3714539282d78c4802ac73b5bf0a027bb35c66e`,
+all nine source-result hashes, eight verified runtime attestation hashes, and
+one non-attesting static audit. The success-only attestation artifact contained
+exactly the same eight attestations. Artifact ZIP digests matched the workflow:
+
+```text
+flashpilot-ci-evidence
+b1b6f0bd626198a9e0700afcb193bec1d619239cb4de9baac26ab3b635ed17cb
+
+flashpilot-attestation
+4cf8061e6245ecb48050fcc2ae068d5cfbe71cdb6d86b920c60b4d7627cfa1d1
+```
+
+The hosted quality jobs returned:
+
+```text
+Python 3.11
+All checks passed!
+216 files already formatted
+372 passed, 1 skipped in 363.39s (0:06:03)
+
+Python 3.12
+All checks passed!
+216 files already formatted
+372 passed, 1 skipped in 395.30s (0:06:35)
+```
+
+The single hosted skip is the unchanged Windows-only DeepSpeed fail-closed
+path. No policy evaluation produced a recovery verdict; every VERIFIED input
+remained derived by its existing deterministic Recovery Gate and verified
+attestation.
 
 ## V1.0 item 3 - targeted multi-rank process termination
 
