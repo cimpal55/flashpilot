@@ -37,9 +37,9 @@ class CIPolicyV1(StrictCIModel):
         QualificationProfile.PREEMPTION_SAFE_TRAINING,
     ] = QualificationProfile.EXACT_TRAINING_RESUME
     unknown_state: Literal["fail"] = "fail"
-    required_faults: tuple[Literal["process_termination", "managed_preemption"], ...] = Field(
-        min_length=1
-    )
+    required_faults: tuple[
+        Literal["process_termination", "managed_preemption", "checkpoint_restart"], ...
+    ] = Field(min_length=1)
     max_rpo_steps: int = Field(ge=0)
     max_rto_seconds: float = Field(gt=0.0)
     require_attestation: bool
@@ -47,8 +47,11 @@ class CIPolicyV1(StrictCIModel):
     @field_validator("required_faults")
     @classmethod
     def unique_faults(
-        cls, values: tuple[Literal["process_termination", "managed_preemption"], ...]
-    ) -> tuple[Literal["process_termination", "managed_preemption"], ...]:
+        cls,
+        values: tuple[
+            Literal["process_termination", "managed_preemption", "checkpoint_restart"], ...
+        ],
+    ) -> tuple[Literal["process_termination", "managed_preemption", "checkpoint_restart"], ...]:
         if len(values) != len(set(values)):
             raise ValueError("required fault identifiers must be unique")
         return tuple(sorted(values))
@@ -70,6 +73,7 @@ class CIRunEvidence(StrictCIModel):
         "hf-qualification",
         "hf-preemption-certification",
         "lightning-qualification",
+        "distributed-qualification",
     ]
     status: CIStatus
     qualification_profile: QualificationProfile
@@ -77,10 +81,11 @@ class CIRunEvidence(StrictCIModel):
         "native-pytorch",
         "huggingface-trainer",
         "pytorch-lightning",
+        "pytorch-distributed",
         "unknown",
     ]
     checks: tuple[CICheck, ...] = Field(min_length=1)
-    fault: Literal["process_termination", "managed_preemption"] | None = None
+    fault: Literal["process_termination", "managed_preemption", "checkpoint_restart"] | None = None
     rpo_steps: int | None = Field(default=None, ge=0)
     rto_seconds: float | None = Field(default=None, gt=0.0)
 

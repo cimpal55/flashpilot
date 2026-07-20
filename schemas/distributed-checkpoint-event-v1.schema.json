@@ -1,0 +1,96 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "atomic_rename_succeeded": {
+      "const": true,
+      "default": true,
+      "title": "Atomic Rename Succeeded",
+      "type": "boolean"
+    },
+    "checkpoint_path": {
+      "title": "Checkpoint Path",
+      "type": "string"
+    },
+    "commit_duration_seconds": {
+      "minimum": 0.0,
+      "title": "Commit Duration Seconds",
+      "type": "number"
+    },
+    "directory_fsync_succeeded": {
+      "title": "Directory Fsync Succeeded",
+      "type": "boolean"
+    },
+    "directory_fsync_supported": {
+      "title": "Directory Fsync Supported",
+      "type": "boolean"
+    },
+    "emitted_at": {
+      "format": "date-time",
+      "title": "Emitted At",
+      "type": "string"
+    },
+    "event": {
+      "const": "checkpoint_committed",
+      "default": "checkpoint_committed",
+      "title": "Event",
+      "type": "string"
+    },
+    "global_step": {
+      "exclusiveMinimum": 0,
+      "title": "Global Step",
+      "type": "integer"
+    },
+    "logical_bytes": {
+      "exclusiveMinimum": 0,
+      "title": "Logical Bytes",
+      "type": "integer"
+    },
+    "metadata_files_synced": {
+      "const": true,
+      "default": true,
+      "title": "Metadata Files Synced",
+      "type": "boolean"
+    },
+    "payload_files_synced": {
+      "const": true,
+      "default": true,
+      "title": "Payload Files Synced",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "flashpilot-distributed-checkpoint-event-v1",
+      "default": "flashpilot-distributed-checkpoint-event-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "world_size": {
+      "const": 2,
+      "default": 2,
+      "title": "World Size",
+      "type": "integer"
+    },
+    "writer_pid": {
+      "exclusiveMinimum": 0,
+      "title": "Writer Pid",
+      "type": "integer"
+    },
+    "writer_rank": {
+      "const": 0,
+      "default": 0,
+      "title": "Writer Rank",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "writer_pid",
+    "checkpoint_path",
+    "global_step",
+    "commit_duration_seconds",
+    "logical_bytes",
+    "directory_fsync_supported",
+    "directory_fsync_succeeded",
+    "emitted_at"
+  ],
+  "title": "DistributedCheckpointEvent",
+  "type": "object"
+}

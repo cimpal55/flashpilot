@@ -1,0 +1,764 @@
+{
+  "$defs": {
+    "DistributedCheckpointEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "atomic_rename_succeeded": {
+          "const": true,
+          "default": true,
+          "title": "Atomic Rename Succeeded",
+          "type": "boolean"
+        },
+        "checkpoint_path": {
+          "title": "Checkpoint Path",
+          "type": "string"
+        },
+        "commit_duration_seconds": {
+          "minimum": 0.0,
+          "title": "Commit Duration Seconds",
+          "type": "number"
+        },
+        "directory_fsync_succeeded": {
+          "title": "Directory Fsync Succeeded",
+          "type": "boolean"
+        },
+        "directory_fsync_supported": {
+          "title": "Directory Fsync Supported",
+          "type": "boolean"
+        },
+        "emitted_at": {
+          "format": "date-time",
+          "title": "Emitted At",
+          "type": "string"
+        },
+        "event": {
+          "const": "checkpoint_committed",
+          "default": "checkpoint_committed",
+          "title": "Event",
+          "type": "string"
+        },
+        "global_step": {
+          "exclusiveMinimum": 0,
+          "title": "Global Step",
+          "type": "integer"
+        },
+        "logical_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Logical Bytes",
+          "type": "integer"
+        },
+        "metadata_files_synced": {
+          "const": true,
+          "default": true,
+          "title": "Metadata Files Synced",
+          "type": "boolean"
+        },
+        "payload_files_synced": {
+          "const": true,
+          "default": true,
+          "title": "Payload Files Synced",
+          "type": "boolean"
+        },
+        "schema_version": {
+          "const": "flashpilot-distributed-checkpoint-event-v1",
+          "default": "flashpilot-distributed-checkpoint-event-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "world_size": {
+          "const": 2,
+          "default": 2,
+          "title": "World Size",
+          "type": "integer"
+        },
+        "writer_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Writer Pid",
+          "type": "integer"
+        },
+        "writer_rank": {
+          "const": 0,
+          "default": 0,
+          "title": "Writer Rank",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "writer_pid",
+        "checkpoint_path",
+        "global_step",
+        "commit_duration_seconds",
+        "logical_bytes",
+        "directory_fsync_supported",
+        "directory_fsync_succeeded",
+        "emitted_at"
+      ],
+      "title": "DistributedCheckpointEvent",
+      "type": "object"
+    },
+    "DistributedCheckpointManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "const": "gloo",
+          "default": "gloo",
+          "title": "Backend",
+          "type": "string"
+        },
+        "checkpoint_id": {
+          "pattern": "^checkpoint-step-[0-9]{6}$",
+          "title": "Checkpoint Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "framework": {
+          "const": "pytorch",
+          "default": "pytorch",
+          "title": "Framework",
+          "type": "string"
+        },
+        "global_step": {
+          "exclusiveMinimum": 0,
+          "title": "Global Step",
+          "type": "integer"
+        },
+        "implementation": {
+          "const": "fully_shard",
+          "default": "fully_shard",
+          "title": "Implementation",
+          "type": "string"
+        },
+        "payloads": {
+          "items": {
+            "$ref": "#/$defs/DistributedCheckpointPayload"
+          },
+          "minItems": 4,
+          "title": "Payloads",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "flashpilot-distributed-checkpoint-manifest-v1",
+          "default": "flashpilot-distributed-checkpoint-manifest-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "serialized_state": {
+          "default": [
+            "model",
+            "optimizer",
+            "scheduler",
+            "global_step",
+            "loss_history",
+            "python_rng",
+            "numpy_rng",
+            "torch_rng"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Serialized State",
+          "type": "array"
+        },
+        "state_dict_api": {
+          "const": "torch.distributed.checkpoint",
+          "default": "torch.distributed.checkpoint",
+          "title": "State Dict Api",
+          "type": "string"
+        },
+        "strategy": {
+          "const": "fsdp",
+          "default": "fsdp",
+          "title": "Strategy",
+          "type": "string"
+        },
+        "world_size": {
+          "const": 2,
+          "default": 2,
+          "title": "World Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "checkpoint_id",
+        "global_step",
+        "created_at",
+        "payloads"
+      ],
+      "title": "DistributedCheckpointManifest",
+      "type": "object"
+    },
+    "DistributedCheckpointPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "role": {
+          "enum": [
+            "dcp-metadata",
+            "dcp-shard",
+            "rank-state"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "DistributedCheckpointPayload",
+      "type": "object"
+    },
+    "DistributedPhaseProcessEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "const": "gloo",
+          "default": "gloo",
+          "title": "Backend",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "control",
+            "checkpoint",
+            "recovery"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "ranks": {
+          "items": {
+            "$ref": "#/$defs/DistributedRankProcessEvidence"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Ranks",
+          "type": "array"
+        },
+        "world_size": {
+          "const": 2,
+          "default": 2,
+          "title": "World Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "phase",
+        "ranks"
+      ],
+      "title": "DistributedPhaseProcessEvidence",
+      "type": "object"
+    },
+    "DistributedQualificationCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "minLength": 1,
+          "title": "Actual",
+          "type": "string"
+        },
+        "category": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Category",
+          "type": "string"
+        },
+        "check_id": {
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Check Id",
+          "type": "string"
+        },
+        "expected": {
+          "minLength": 1,
+          "title": "Expected",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "category",
+        "label",
+        "status",
+        "expected",
+        "actual"
+      ],
+      "title": "DistributedQualificationCheck",
+      "type": "object"
+    },
+    "DistributedRankProcessEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "exit_code": {
+          "const": 0,
+          "default": 0,
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "exit_verified": {
+          "const": true,
+          "default": true,
+          "title": "Exit Verified",
+          "type": "boolean"
+        },
+        "rank": {
+          "minimum": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rank",
+        "worker_pid",
+        "started_at",
+        "completed_at"
+      ],
+      "title": "DistributedRankProcessEvidence",
+      "type": "object"
+    },
+    "DistributedRankSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "const": "gloo",
+          "default": "gloo",
+          "title": "Backend",
+          "type": "string"
+        },
+        "checkpoint_loaded": {
+          "title": "Checkpoint Loaded",
+          "type": "boolean"
+        },
+        "checkpoint_step": {
+          "minimum": 0,
+          "title": "Checkpoint Step",
+          "type": "integer"
+        },
+        "collective_probe_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Collective Probe Sha256",
+          "type": "string"
+        },
+        "device": {
+          "const": "cpu",
+          "default": "cpu",
+          "title": "Device",
+          "type": "string"
+        },
+        "evaluation_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Evaluation Sha256",
+          "type": "string"
+        },
+        "final_global_step": {
+          "exclusiveMinimum": 0,
+          "title": "Final Global Step",
+          "type": "integer"
+        },
+        "implementation": {
+          "const": "fully_shard",
+          "default": "fully_shard",
+          "title": "Implementation",
+          "type": "string"
+        },
+        "loss_history": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Loss History",
+          "type": "array"
+        },
+        "optimizer_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Optimizer Sha256",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "control",
+            "checkpoint",
+            "recovery"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "rank": {
+          "minimum": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "scheduler_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scheduler Sha256",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "flashpilot-distributed-rank-summary-v1",
+          "default": "flashpilot-distributed-rank-summary-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "strategy": {
+          "const": "fsdp",
+          "default": "fsdp",
+          "title": "Strategy",
+          "type": "string"
+        },
+        "torch_version": {
+          "minLength": 1,
+          "title": "Torch Version",
+          "type": "string"
+        },
+        "trainable_state_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Trainable State Sha256",
+          "type": "string"
+        },
+        "worker_pid": {
+          "exclusiveMinimum": 0,
+          "title": "Worker Pid",
+          "type": "integer"
+        },
+        "world_size": {
+          "const": 2,
+          "default": 2,
+          "title": "World Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "phase",
+        "rank",
+        "worker_pid",
+        "final_global_step",
+        "checkpoint_step",
+        "checkpoint_loaded",
+        "loss_history",
+        "trainable_state_sha256",
+        "evaluation_sha256",
+        "optimizer_sha256",
+        "scheduler_sha256",
+        "collective_probe_sha256",
+        "torch_version"
+      ],
+      "title": "DistributedRankSummary",
+      "type": "object"
+    },
+    "DistributedRecoveryGateV1": {
+      "additionalProperties": false,
+      "properties": {
+        "achieved_rpo_steps": {
+          "const": 0,
+          "default": 0,
+          "title": "Achieved Rpo Steps",
+          "type": "integer"
+        },
+        "atol": {
+          "const": 0.0,
+          "default": 0.0,
+          "title": "Atol",
+          "type": "number"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/DistributedQualificationCheck"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "failed_check_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Check Ids",
+          "type": "array"
+        },
+        "max_rpo_steps": {
+          "const": 0,
+          "default": 0,
+          "title": "Max Rpo Steps",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "rtol": {
+          "const": 0.0,
+          "default": 0.0,
+          "title": "Rtol",
+          "type": "number"
+        },
+        "schema_version": {
+          "const": "flashpilot-distributed-recovery-gate-v1",
+          "default": "flashpilot-distributed-recovery-gate-v1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "passed",
+        "checks",
+        "failed_check_ids"
+      ],
+      "title": "DistributedRecoveryGateV1",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter": {
+      "const": "pytorch-fsdp",
+      "default": "pytorch-fsdp",
+      "title": "Adapter",
+      "type": "string"
+    },
+    "backend": {
+      "const": "gloo",
+      "default": "gloo",
+      "title": "Backend",
+      "type": "string"
+    },
+    "checkpoint": {
+      "items": {
+        "$ref": "#/$defs/DistributedRankSummary"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Checkpoint",
+      "type": "array"
+    },
+    "checkpoint_event": {
+      "$ref": "#/$defs/DistributedCheckpointEvent"
+    },
+    "checkpoint_inventory": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Checkpoint Inventory",
+      "type": "array"
+    },
+    "checkpoint_manifest": {
+      "$ref": "#/$defs/DistributedCheckpointManifest"
+    },
+    "checkpoint_processes": {
+      "$ref": "#/$defs/DistributedPhaseProcessEvidence"
+    },
+    "control": {
+      "items": {
+        "$ref": "#/$defs/DistributedRankSummary"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Control",
+      "type": "array"
+    },
+    "control_processes": {
+      "$ref": "#/$defs/DistributedPhaseProcessEvidence"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "final_verdict": {
+      "enum": [
+        "VERIFIED",
+        "FAILED"
+      ],
+      "title": "Final Verdict",
+      "type": "string"
+    },
+    "framework": {
+      "const": "pytorch-distributed",
+      "default": "pytorch-distributed",
+      "title": "Framework",
+      "type": "string"
+    },
+    "gate": {
+      "$ref": "#/$defs/DistributedRecoveryGateV1"
+    },
+    "html_report_path": {
+      "const": "report.html",
+      "default": "report.html",
+      "title": "Html Report Path",
+      "type": "string"
+    },
+    "implementation": {
+      "const": "fully_shard",
+      "default": "fully_shard",
+      "title": "Implementation",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "qualification_profile": {
+      "const": "exact-training-resume",
+      "default": "exact-training-resume",
+      "title": "Qualification Profile",
+      "type": "string"
+    },
+    "recovery": {
+      "items": {
+        "$ref": "#/$defs/DistributedRankSummary"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Recovery",
+      "type": "array"
+    },
+    "recovery_processes": {
+      "$ref": "#/$defs/DistributedPhaseProcessEvidence"
+    },
+    "recovery_rto_seconds": {
+      "exclusiveMinimum": 0.0,
+      "title": "Recovery Rto Seconds",
+      "type": "number"
+    },
+    "report_path": {
+      "const": "report.md",
+      "default": "report.md",
+      "title": "Report Path",
+      "type": "string"
+    },
+    "result_path": {
+      "const": "result.json",
+      "default": "result.json",
+      "title": "Result Path",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-distributed-qualification-v1",
+      "default": "flashpilot-distributed-qualification-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "strategy": {
+      "const": "fsdp",
+      "default": "fsdp",
+      "title": "Strategy",
+      "type": "string"
+    },
+    "verified_persisted_bytes": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Verified Persisted Bytes"
+    },
+    "workload_profile": {
+      "enum": [
+        "ci",
+        "demo"
+      ],
+      "title": "Workload Profile",
+      "type": "string"
+    },
+    "world_size": {
+      "const": 2,
+      "default": 2,
+      "title": "World Size",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "run_id",
+    "created_at",
+    "workload_profile",
+    "control_processes",
+    "control",
+    "checkpoint_processes",
+    "checkpoint",
+    "checkpoint_event",
+    "checkpoint_manifest",
+    "checkpoint_inventory",
+    "recovery_processes",
+    "recovery",
+    "recovery_rto_seconds",
+    "gate",
+    "final_verdict",
+    "limitations"
+  ],
+  "title": "DistributedQualificationResult",
+  "type": "object"
+}

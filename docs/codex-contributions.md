@@ -620,3 +620,26 @@ passed all 22 checks: checkpoint commit 0.025689 seconds, graceful exit
 uploaded both diagnostic evidence and the verified-only attestation.
 Distributed/CUDA training, Kubernetes/Slurm/provider API integration,
 additional signals, discovery, and new adapters were not started.
+
+## V1.0 item 1 - FSDP and distributed PyTorch
+
+Codex implemented only the first V1.0 item:
+
+- added a fixed `qualify distributed-pytorch` surface for two CPU ranks using
+  real FSDP2 `fully_shard`, Gloo collectives, and a run-owned file-store;
+- added collective PyTorch Distributed Checkpoint model/optimizer save and
+  load plus strict per-rank scheduler, Python/NumPy/Torch RNG, progress, and
+  trajectory state;
+- added atomic rank-zero checkpoint finalization, fsync, SHA-256, completion,
+  closed-inventory, containment, and corruption validation;
+- added distinct two-rank control, checkpoint, and recovery process groups and
+  a 24-check exact distributed Recovery Gate;
+- extended typed Persistence Contract, CI evidence, SARIF, schemas, reports,
+  package data, and unsigned verified-only attestation with topology evidence;
+- added focused fail-closed tests and a real two-rank integration test, and
+  configured the Ubuntu qualification workflow to exercise the same command.
+
+Codex did not begin DeepSpeed, multi-rank failure injection, elastic recovery,
+CUDA/NCCL, signing, OIDC, registry publication, organization policy, GPT work,
+or additional adapters. Verified bytes are reported only after the distributed
+Recovery Gate passes.

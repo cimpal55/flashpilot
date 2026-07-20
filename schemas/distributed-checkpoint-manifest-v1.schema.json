@@ -1,0 +1,146 @@
+{
+  "$defs": {
+    "DistributedCheckpointPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "role": {
+          "enum": [
+            "dcp-metadata",
+            "dcp-shard",
+            "rank-state"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "DistributedCheckpointPayload",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "backend": {
+      "const": "gloo",
+      "default": "gloo",
+      "title": "Backend",
+      "type": "string"
+    },
+    "checkpoint_id": {
+      "pattern": "^checkpoint-step-[0-9]{6}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "framework": {
+      "const": "pytorch",
+      "default": "pytorch",
+      "title": "Framework",
+      "type": "string"
+    },
+    "global_step": {
+      "exclusiveMinimum": 0,
+      "title": "Global Step",
+      "type": "integer"
+    },
+    "implementation": {
+      "const": "fully_shard",
+      "default": "fully_shard",
+      "title": "Implementation",
+      "type": "string"
+    },
+    "payloads": {
+      "items": {
+        "$ref": "#/$defs/DistributedCheckpointPayload"
+      },
+      "minItems": 4,
+      "title": "Payloads",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "flashpilot-distributed-checkpoint-manifest-v1",
+      "default": "flashpilot-distributed-checkpoint-manifest-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "serialized_state": {
+      "default": [
+        "model",
+        "optimizer",
+        "scheduler",
+        "global_step",
+        "loss_history",
+        "python_rng",
+        "numpy_rng",
+        "torch_rng"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Serialized State",
+      "type": "array"
+    },
+    "state_dict_api": {
+      "const": "torch.distributed.checkpoint",
+      "default": "torch.distributed.checkpoint",
+      "title": "State Dict Api",
+      "type": "string"
+    },
+    "strategy": {
+      "const": "fsdp",
+      "default": "fsdp",
+      "title": "Strategy",
+      "type": "string"
+    },
+    "world_size": {
+      "const": 2,
+      "default": 2,
+      "title": "World Size",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "global_step",
+    "created_at",
+    "payloads"
+  ],
+  "title": "DistributedCheckpointManifest",
+  "type": "object"
+}

@@ -564,3 +564,30 @@ API cannot substitute for a catchable POSIX `SIGTERM`. The Ubuntu workflow and
 POSIX-only integration test are configured to exercise the real signal path.
 This local harness models the process-level contract used by interruptible environments but does
 not invoke Kubernetes, Slurm, RunPod, Vast, or another provider control plane.
+
+## V1.0 item 1: bounded distributed PyTorch qualification
+
+`qualify distributed-pytorch` owns a fixed six-process lifecycle: two control
+ranks, two checkpoint ranks, and two recovery ranks. Each phase initializes a
+fresh Gloo process group through a UUID-named file-store rendezvous under the
+run directory. The included model is wrapped with PyTorch FSDP2
+`fully_shard`; this is not DDP labeled as FSDP.
+
+PyTorch Distributed Checkpoint collectively saves and loads model and
+optimizer shards. Each rank separately records scheduler, Python/NumPy/Torch
+RNG, progress, and loss history in strict JSON. Rank 0 fsyncs every payload,
+writes a closed checksum document, strict manifest, and completion marker,
+then atomically renames the temporary directory. Directory fsync remains an
+explicit best-effort limitation on Windows.
+
+The result is authoritative only when all 24 distributed Recovery Gate checks
+pass. The Gate requires exact rank topology and process separation, integrity
+closure, complete state, exact control prefix, all-rank load, final progress,
+per-rank stochastic trajectory, full trainable/evaluation/optimizer/scheduler
+digests, and a collective all-gather probe. Only then are logical checkpoint
+bytes and an unsigned closed attestation emitted.
+
+The qualified surface is intentionally fixed to CPU, Gloo, FSDP2, world size
+2, same-world-size restart, and the included workload. Multi-rank failure
+injection, elastic resharding, CUDA/NCCL, DeepSpeed, and network filesystems are
+separate work.

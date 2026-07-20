@@ -814,3 +814,28 @@ exit, measured zero step/token RPO, resumed in a distinct process, passed all
 22 deterministic checks, and emitted the verified-only attestation. This
 closes the process-contract milestone without expanding the claim to hosted
 scheduler or provider-control-plane conformance.
+
+## Decision: qualify FSDP2 with DCP at one exact two-rank topology
+
+The first V1.0 distributed surface accepts only `strategy=fsdp`,
+`implementation=fully_shard`, `backend=gloo`, `world_size=2`, and
+`profile=exact-training-resume`. It uses real FSDP2 collectives and PyTorch
+Distributed Checkpoint for model and optimizer shards. Rank-local scheduler,
+RNG, progress, and trajectory state remain strict typed FlashPilot artifacts.
+
+This fixed contract avoids implying arbitrary distributed-framework or elastic
+support. Recovery uses a new two-rank process group with the same world size.
+The milestone proves a clean checkpoint restart and deliberately does not
+inject multi-rank failure; that is a later plan item.
+
+FlashPilot launches bounded worker processes itself with a UUID run-owned
+`file://` rendezvous. This keeps the local Windows path independent of the
+current PyTorch wheel's unavailable TCPStore/libuv launcher support while
+preserving genuine distributed collectives. The rendezvous file is not
+checkpoint evidence and is removed after each phase. Hosted Ubuntu executes
+the same CLI and contract.
+
+Checkpoint commitment retains the existing same-filesystem atomic rename,
+closed inventory, SHA-256, completion marker, containment, and fsync rules.
+Windows directory fsync remains explicitly best effort. Unknown or malformed
+topology, payload, state, or evidence fails closed.

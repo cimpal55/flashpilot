@@ -54,6 +54,13 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
     assert (
         "schemas/conversion-qualification-v1.schema.json" in data_files["share/flashpilot/schemas"]
     )
+    assert (
+        "schemas/distributed-qualification-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    )
+    assert (
+        "schemas/distributed-checkpoint-manifest-v1.schema.json"
+        in data_files["share/flashpilot/schemas"]
+    )
     assert "schemas/partial-write-fuzz-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert "schemas/fault-timing-trial-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert "schemas/flashpilot-sarif-v1.schema.json" in data_files["share/flashpilot/schemas"]

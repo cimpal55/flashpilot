@@ -257,6 +257,10 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
     for required in (
         "flashpilot audit-checkpoint",
         "flashpilot qualify hf-trainer",
+        "flashpilot qualify distributed-pytorch",
+        "--strategy fsdp",
+        "--backend gloo",
+        "--world-size 2",
         "flashpilot certify-preemption",
         "--signal SIGTERM",
         "--grace-period 300",

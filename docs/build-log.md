@@ -3547,3 +3547,67 @@ This completes the V0.4 process-contract acceptance. It does not qualify a
 specific Kubernetes, Slurm, RunPod, Vast, or other provider control plane.
 Network filesystems, distributed/CUDA training, and best-effort Windows
 directory fsync remain unverified. No later roadmap milestone was started.
+
+## V1.0 item 1 - two-rank FSDP qualification
+
+Scope was limited to the first V1.0 item. The implemented command uses real
+FSDP2 `fully_shard`, Gloo, world size 2, PyTorch Distributed Checkpoint, and a
+clean same-world-size restart for the included CPU workload. DeepSpeed,
+multi-rank failure injection, elastic recovery, CUDA/NCCL, signing, OIDC,
+registry work, and later items were not started.
+
+### Measured local qualification
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify distributed-pytorch --strategy fsdp --backend gloo --world-size 2 --profile exact-training-resume --run-dir runs\debug-dist-attested
+VERIFIED
+Strategy: fsdp via fully_shard
+Backend/world size: gloo/2
+Recovery Gate: 24/24
+Recovery RTO: 5.204134 seconds
+Verified persisted bytes: 293937
+Result: C:\Programming\business\flashpilot\runs\debug-dist-attested\result.json
+Markdown report: C:\Programming\business\flashpilot\runs\debug-dist-attested\report.md
+HTML report: C:\Programming\business\flashpilot\runs\debug-dist-attested\report.html
+JUnit XML: C:\Programming\business\flashpilot\runs\debug-dist-attested\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\debug-dist-attested\job-summary.md
+SARIF: C:\Programming\business\flashpilot\runs\debug-dist-attested\results.sarif
+Recovery attestation: C:\Programming\business\flashpilot\runs\debug-dist-attested\recovery.attestation.json
+```
+
+The result recorded a 0.165688-second checkpoint commit and six distinct
+worker PIDs across control, checkpoint, and recovery. The verified 293,937
+logical bytes cover exactly `COMPLETE`, `checksums.json`, DCP metadata, two DCP
+shards, `manifest.json`, and two rank-state JSON files. This is a measurement
+for this invocation, not a generalized storage-savings claim. Direct
+attestation verification returned `VERIFIED`, 8 checks, and `valid=True`.
+
+### Focused and final local quality gates
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_distributed.py tests\unit\test_ci.py tests\unit\test_packaging.py tests\unit\test_persistence_contracts.py tests\integration\test_distributed_qualification.py -q
+....................................................                     [100%]
+52 passed in 23.28s
+
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+193 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+...............................s........................................ [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 71%]
+................................s....................................... [ 94%]
+................                                                         [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\integration\test_preemption_certification.py:18: real external POSIX SIGTERM is unavailable
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+302 passed, 2 skipped in 266.75s (0:04:26)
+```
+
+Both checked workflow YAML files parsed locally. The active workflow retains
+global `contents: read`, and the reusable example retains job-scoped
+`contents: read`. The hosted Ubuntu qualification step is configured but is
+not claimed as passed until its pull-request run completes.
