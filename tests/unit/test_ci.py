@@ -235,6 +235,15 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
     assert workflow["on"]["pull_request"]["branches"] == ["main"]
     assert "workflow_dispatch" in workflow["on"]
     assert workflow["permissions"] == {"contents": "read"}
+    assert workflow["jobs"]["qualify-checkpoint"]["permissions"] == {
+        "contents": "read",
+        "id-token": "write",
+        "attestations": "write",
+    }
+    assert (
+        example["jobs"]["qualify-checkpoint"]["permissions"]
+        == workflow["jobs"]["qualify-checkpoint"]["permissions"]
+    )
     assert (
         workflow["jobs"]["qualify-checkpoint"]["steps"]
         == example["jobs"]["qualify-checkpoint"]["steps"]
@@ -255,7 +264,9 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
         step for step in steps if step.get("name") == "Upload diagnostic reports, JUnit, and SARIF"
     )
     attestation_upload = next(
-        step for step in steps if step.get("name") == "Upload verified recovery attestation"
+        step
+        for step in steps
+        if step.get("name") == "Upload verified recovery attestations and provenance"
     )
 
     assert diagnostic_upload["if"] == "always()"
@@ -263,6 +274,14 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
     assert "runs/**/recovery.attestation.json" in attestation_upload["with"]["path"]
     assert "runs/**/recovery.attestation.signature.json" in attestation_upload["with"]["path"]
     assert "runs/ci-signing/ed25519-public.pem" in attestation_upload["with"]["path"]
+    assert "examples/ci/qualification-policy.yml" in attestation_upload["with"]["path"]
+    assert "runs/ci-policy/policy-evaluation.json" in attestation_upload["with"]["path"]
+    assert (
+        "runs/ci-provenance/github-oidc-provenance.sigstore.json"
+        in attestation_upload["with"]["path"]
+    )
+    assert "runs/ci-provenance/verification.json" in attestation_upload["with"]["path"]
+    assert "runs/ci-provenance" not in diagnostic_upload["with"]["path"]
     assert "ed25519-private.pem" not in attestation_upload["with"]["path"]
     assert "runs/**/results.sarif" in diagnostic_upload["with"]["path"]
     assert "runs/**/audit.json" in diagnostic_upload["with"]["path"]
@@ -302,8 +321,44 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
         "--run deepspeed-rank-termination-1=runs/ci-deepspeed-fault-rank-1",
         "--run hf-managed-preemption=runs/ci-preemption",
         "--run hf-static-audit=runs/ci-audit",
+        "uses: actions/attest@v4",
+        "subject-path: runs/ci-policy/policy-evaluation.json",
+        "gh attestation verify runs/ci-policy/policy-evaluation.json",
+        '--repo "${GITHUB_REPOSITORY}"',
+        '--signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/flashpilot-qualification.yml"',
+        '--signer-digest "${GITHUB_WORKFLOW_SHA}"',
+        '--source-digest "${GITHUB_SHA}"',
+        '--source-ref "${GITHUB_REF}"',
+        '--predicate-type "https://slsa.dev/provenance/v1"',
+        '--cert-oidc-issuer "https://token.actions.githubusercontent.com"',
+        "--deny-self-hosted-runners",
         'rm -f -- "${RUNNER_TEMP}/flashpilot-signing-key/ed25519-private.pem"',
     ):
         assert required in serialized
-    for forbidden in ("OPENAI_API_KEY", "live-contract", "live-failure", "self-hosted"):
+    for forbidden in (
+        "OPENAI_API_KEY",
+        "live-contract",
+        "live-failure",
+        "push-to-registry",
+        "artifact-metadata: write",
+        "packages: write",
+        "runs-on: self-hosted",
+        "secrets.",
+    ):
         assert forbidden not in serialized
+
+    oidc_step = next(step for step in steps if step.get("id") == "oidc-provenance")
+    policy_step_index = next(
+        index
+        for index, step in enumerate(steps)
+        if step.get("name") == "Enforce the complete typed qualification-suite policy"
+    )
+    oidc_step_index = steps.index(oidc_step)
+    assert oidc_step_index > policy_step_index
+    assert oidc_step == {
+        "name": "Attest the verified suite with GitHub OIDC provenance",
+        "if": "success()",
+        "id": "oidc-provenance",
+        "uses": "actions/attest@v4",
+        "with": {"subject-path": "runs/ci-policy/policy-evaluation.json"},
+    }

@@ -749,3 +749,31 @@ before another optimizer step, yielding an exact zero-step RPO claim. Recovery
 always uses a newly launched group at the same world size. No attempt is made
 to reinitialize a damaged process group in-process, shrink or grow membership,
 invoke TorchElastic or a scheduler, or qualify multi-node/CUDA/NCCL behavior.
+
+## V1.0 item 6: GitHub OIDC provenance
+
+OIDC provenance is a downstream hosted-CI trust layer over the existing local
+evidence chain:
+
+```text
+eight deterministic Recovery Gates
+-> eight exact-byte Ed25519 signatures under one ephemeral public key
+-> nine-requirement / 153-check closed suite policy
+-> policy-evaluation.json with source, attestation, signature, key, and policy hashes
+-> actions/attest@v4 GitHub OIDC + Sigstore SLSA provenance
+-> gh attestation verify with repository/workflow/commit/ref/issuer/runner constraints
+-> success-only evidence upload
+```
+
+The qualification job is the only component granted `id-token: write` and
+`attestations: write`. It attests one explicit file rather than discovering
+repository artifacts. The Sigstore bundle and JSON verification output are
+persisted only alongside the successful signed suite. The always-on diagnostic
+upload remains separate, and the quality matrix remains read-only.
+
+No application component requests an OIDC token or parses a secret-bearing
+runner credential. FlashPilot does not implement Fulcio, Rekor, certificate
+path validation, registry publication, history queries, or a second policy
+language. GitHub provenance can authenticate the terminal deterministic
+artifact but cannot convert UNKNOWN, FAILED, unsigned, or policy-rejected
+evidence into VERIFIED.

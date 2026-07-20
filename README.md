@@ -582,13 +582,38 @@ configuration`.
 is the active pull-request and manual hosted workflow, sourced from
 [examples/github-actions/flashpilot-qualification.yml](examples/github-actions/flashpilot-qualification.yml).
 It publishes diagnostics on failure and uploads attestation payloads, detached
-signatures, and the ephemeral run public key only after qualification and typed
-policy all succeed. The private key is created under runner temporary storage,
-removed with `if: always()`, and never uploaded. This validates the signing
-machinery; it does not establish a durable publisher identity. Its quality matrix runs
-Python 3.11 and 3.12; on Linux, the development extra installs Lightning and
-DeepSpeed so the full suite exercises both optional qualification paths on
-both interpreters.
+signatures, the ephemeral run public key, the final suite-policy evaluation,
+and GitHub OIDC provenance only after qualification and typed policy all
+succeed. The private key is created under runner temporary storage, removed
+with `if: always()`, and never uploaded. Its quality matrix runs Python 3.11
+and 3.12; on Linux, the development extra installs Lightning and DeepSpeed so
+the full suite exercises both optional qualification paths on both
+interpreters.
+
+The workflow uses `actions/attest@v4` to create SLSA provenance for the exact
+`runs/ci-policy/policy-evaluation.json` bytes. That evaluation already binds
+the production policy hash plus every runtime result, recovery attestation,
+detached signature, and trusted-key fingerprint. The workflow immediately
+verifies the saved Sigstore bundle with the GitHub CLI while requiring the
+exact repository, signer-workflow path, workflow digest, source digest, source
+ref, GitHub OIDC issuer, and a GitHub-hosted runner. A consumer can repeat the
+core offline-bundle check after downloading the success artifact:
+
+```powershell
+gh attestation verify .\runs\ci-policy\policy-evaluation.json `
+  --bundle .\runs\ci-provenance\github-oidc-provenance.sigstore.json `
+  --repo cimpal55/flashpilot `
+  --signer-workflow cimpal55/flashpilot/.github/workflows/flashpilot-qualification.yml `
+  --predicate-type https://slsa.dev/provenance/v1 `
+  --cert-oidc-issuer https://token.actions.githubusercontent.com `
+  --deny-self-hosted-runners
+```
+
+Add `--signer-digest`, `--source-digest`, and `--source-ref` with the expected
+workflow commit, source commit, and Git ref to reproduce the workflow's full
+identity constraint. GitHub provenance authenticates who produced the fixed
+policy-evaluation artifact; it cannot create or upgrade a FlashPilot recovery
+verdict.
 
 ## Security model
 
@@ -607,6 +632,14 @@ its own trust root. The local key generator refuses overwrites and does not
 print private-key bytes. POSIX private files are created with mode `0600`;
 Windows file ACL protection is explicitly best-effort. Keep production private
 keys outside the repository and establish public-key trust out of band.
+
+Hosted qualification additionally uses GitHub's OIDC-backed Sigstore flow for
+the final suite-policy evaluation. Only job-scoped `id-token: write` and
+`attestations: write` are added to the qualification job; the repository and
+quality-job default remains `contents: read`. The saved bundle and local
+verification result contain no private key or repository secret. This
+provenance layer is downstream of deterministic policy and Recovery Gate
+results and cannot change them.
 
 ## Prior art and positioning
 
@@ -641,8 +674,8 @@ distributed training, CUDA, NeMo, TensorFlow, or JAX. Fixture replay is tied to 
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add elastic membership, multi-node/CUDA fault scenarios,
-OIDC provenance, and broader platform validation. Those
+Future work may add elastic membership, multi-node/CUDA fault scenarios, an
+optional attestation registry/history, and broader platform validation. Those
 later roadmap items are not implied by the bounded typed production matrix.
 
 ## Repository and license

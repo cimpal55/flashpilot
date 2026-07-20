@@ -321,3 +321,33 @@ provenance, but it crosses the plan's separate OIDC milestone. The current
 Ed25519 sidecar therefore claims only that exact bytes verify under a public
 key the caller already trusts; it does not claim who controls that key. Source:
 [Sigstore signing overview](https://docs.sigstore.dev/cosign/signing/overview/).
+
+## GitHub OIDC provenance boundary
+
+GitHub artifact attestations are cryptographically signed claims whose
+certificate carries identity derived from the workflow's GitHub OIDC token.
+For public repositories, the generated Sigstore bundle is associated with the
+repository and recorded in the public transparency log. Source: [GitHub
+artifact-attestation concepts](https://docs.github.com/en/actions/concepts/security/artifact-attestations).
+
+GitHub's current maintained action uses `actions/attest@v4`; basic binary
+provenance requires `id-token: write`, `attestations: write`, and an explicit
+subject path. The action emits a local Sigstore `bundle-path`, which permits
+the exact generated bundle to travel with the qualification evidence. Sources:
+[GitHub provenance instructions](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations),
+[`actions/attest`](https://github.com/actions/attest).
+
+The GitHub CLI verifier can enforce repository, signer workflow, signer
+digest, source digest/ref, expected predicate, OIDC issuer, and hosted-runner
+identity while verifying a bundle from disk. GitHub warns that statement
+predicate contents are workflow-controlled; certificate identity and verified
+timestamps are the non-forgeable identity/timing surfaces. FlashPilot
+therefore attests a deterministic hash-bound policy result and relies on the
+certificate constraints for GitHub identity rather than trusting custom
+identity text in a predicate. Source: [`gh attestation verify`](https://cli.github.com/manual/gh_attestation_verify).
+
+This is a provenance trust chain, not a second recovery oracle: the GitHub
+attestation authenticates the exact policy-evaluation bytes, while only the
+existing local Recovery Gates and closed suite evaluator determine whether
+recovery is verified. GitHub's required attestation storage is not extended
+into a FlashPilot registry, query service, or history product in this item.

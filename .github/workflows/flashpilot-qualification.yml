@@ -41,6 +41,10 @@ jobs:
 
   qualify-checkpoint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v4
 
@@ -181,6 +185,32 @@ jobs:
           --run hf-managed-preemption=runs/ci-preemption
           --run hf-static-audit=runs/ci-audit
 
+      - name: Attest the verified suite with GitHub OIDC provenance
+        if: success()
+        id: oidc-provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: runs/ci-policy/policy-evaluation.json
+
+      - name: Verify the GitHub OIDC provenance bundle
+        shell: bash
+        run: |
+          mkdir -p runs/ci-provenance
+          cp "${{ steps.oidc-provenance.outputs.bundle-path }}" \
+            runs/ci-provenance/github-oidc-provenance.sigstore.json
+          gh attestation verify runs/ci-policy/policy-evaluation.json \
+            --bundle runs/ci-provenance/github-oidc-provenance.sigstore.json \
+            --repo "${GITHUB_REPOSITORY}" \
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/flashpilot-qualification.yml" \
+            --signer-digest "${GITHUB_WORKFLOW_SHA}" \
+            --source-digest "${GITHUB_SHA}" \
+            --source-ref "${GITHUB_REF}" \
+            --predicate-type "https://slsa.dev/provenance/v1" \
+            --cert-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --deny-self-hosted-runners \
+            --format json \
+            > runs/ci-provenance/verification.json
+
       - name: Remove the ephemeral signing private key
         if: always()
         shell: bash
@@ -218,7 +248,7 @@ jobs:
             runs/**/preemption/commit.json
             runs/**/results.sarif
 
-      - name: Upload verified recovery attestation
+      - name: Upload verified recovery attestations and provenance
         if: success()
         uses: actions/upload-artifact@v4
         with:
@@ -228,3 +258,7 @@ jobs:
             runs/**/recovery.attestation.json
             runs/**/recovery.attestation.signature.json
             runs/ci-signing/ed25519-public.pem
+            examples/ci/qualification-policy.yml
+            runs/ci-policy/policy-evaluation.json
+            runs/ci-provenance/github-oidc-provenance.sigstore.json
+            runs/ci-provenance/verification.json

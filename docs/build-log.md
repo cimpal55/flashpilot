@@ -4238,3 +4238,70 @@ The success-only attestation artifact contained four verified attestations and
 was 5,378 bytes with SHA-256
 `5fc3409d7030996e5106cb0d0548797961d0306a20fd1d2ba8869d482ccb69b2`.
 Hosted values are measurements for this workflow run only.
+
+## V1.0 item 6 - GitHub OIDC provenance
+
+Scope is limited to the sixth V1.0 production-infrastructure item. The active
+and example qualification workflows use the maintained `actions/attest@v4`
+SLSA flow only after all existing qualification producers, eight detached
+signatures, and the 153-check typed suite policy pass. The exact provenance
+subject is `runs/ci-policy/policy-evaluation.json`; its existing strict model
+hash-binds the policy, each result/audit source, all verified recovery
+attestations, all detached signature artifacts, and the trusted Ed25519 key
+fingerprint.
+
+The qualification job adds only job-scoped `id-token: write` and
+`attestations: write` beside `contents: read`. The workflow preserves the
+returned Sigstore bundle and immediately runs `gh attestation verify` with the
+exact repository, signer workflow/digest, source digest/ref, SLSA predicate,
+GitHub Actions OIDC issuer, and hosted-runner requirement. The policy source,
+evaluation, bundle, and JSON verification output join the existing
+success-only signed-attestation artifact. Always-on diagnostics remain
+separate. No application OIDC client, custom Sigstore primitive, secret,
+registry/history feature, organization policy, framework behavior, GPT path,
+repair behavior, tolerance, or Recovery Gate changed.
+
+Local validation used Windows 11, Python 3.12.13, GitHub CLI 2.96.0, and no
+OIDC token or live GitHub attestation call. The installed CLI help confirmed
+support for every configured verifier flag. `actionlint` was not installed;
+PyYAML parsed both files, confirmed 22 synchronized qualification steps, and
+the focused workflow test validated the exact closed configuration:
+
+```text
+actionlint not installed; PyYAML workflow tests are the available local YAML validation
+YAML parsed: 2; qualification steps synchronized: 22
+
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_ci.py tests\unit\test_qualification_policy.py tests\unit\test_packaging.py -q
+..................................................                       [100%]
+50 passed in 2.14s
+```
+
+The exact repository-wide gates then passed:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+218 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+.................sss................s................................... [ 18%]
+........................................................................ [ 37%]
+........................................................................ [ 55%]
+........................................................................ [ 74%]
+...................s.................................................... [ 93%]
+..........................                                               [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\integration\test_deepspeed_qualification.py:26: real DeepSpeed ZeRO-2 qualification requires the Linux optional dependency
+SKIPPED [2] tests\integration\test_deepspeed_qualification.py:119: real DeepSpeed ZeRO-2 qualification requires the Linux optional dependency
+SKIPPED [1] tests\integration\test_preemption_certification.py:18: real external POSIX SIGTERM is unavailable
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable to the current non-administrator Windows host
+381 passed, 5 skipped in 277.48s (0:04:37)
+```
+
+The five skips are unchanged platform conditions: three Linux-only DeepSpeed
+cases, one POSIX SIGTERM case, and the non-administrator Windows directory-
+symlink case. Hosted OIDC minting, Sigstore persistence, constrained GitHub CLI
+verification, and success-artifact inspection are pending the real feature-
+branch workflow run. No hosted result or provenance metric is claimed yet.
