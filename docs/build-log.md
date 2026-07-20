@@ -3701,9 +3701,9 @@ both produced independent peer evidence and passed. This unsuccessful run was
 not relabeled as recovery proof.
 
 DeepSpeed remains product-rejected on Windows before worker launch. Its two
-real target-rank scenarios are enabled in the Ubuntu workflow and are pending
-hosted acceptance; no DeepSpeed fault bytes, PIDs, or timing values are
-claimed locally.
+real target-rank scenarios are enabled in the Ubuntu workflow; their
+authoritative Linux acceptance is recorded below. No DeepSpeed fault bytes,
+PIDs, or timing values are claimed from the local Windows diagnostics.
 
 ### Focused and complete local gates
 
@@ -3775,7 +3775,54 @@ Both workflow YAML documents parsed successfully. Their qualification steps
 are identical, global permissions remain `contents: read`, the quality matrix
 remains Python 3.11/3.12, and the qualification job contains four explicit
 rank-termination steps: FSDP and DeepSpeed, each targeting ranks 0 and 1.
-Hosted Ubuntu acceptance is pending at this point.
+
+### Hosted Ubuntu acceptance
+
+GitHub Actions pull-request run 29768094351 executed commit `3e5b707` on
+Ubuntu. All three jobs passed:
+
+```text
+Quality (Python 3.11): Ruff PASS; format PASS (211 files); 348 passed, 1 skipped in 371.02s
+Quality (Python 3.12): Ruff PASS; format PASS (211 files); 348 passed, 1 skipped in 367.11s
+qualify-checkpoint: PASS
+```
+
+The one hosted skip was the Windows-only DeepSpeed CLI rejection test. The
+Linux DeepSpeed integrations, POSIX SIGTERM integration, and directory-symlink
+containment test executed. The qualification job passed the existing HF,
+clean FSDP, clean DeepSpeed, preemption, static-audit, and typed-policy steps,
+as well as all four new fault steps. The always-on diagnostic artifact was
+92,874 bytes; the success-only attestation artifact was 11,940 bytes and
+contained eight verified attestations.
+
+The uploaded strict results measured:
+
+| Runtime and target | Gate | Failed-group PIDs | Exit codes | Peer | Forced cleanup | RPO | Commit seconds | Recovery RTO seconds | Verified bytes |
+| --- | ---: | --- | --- | ---: | --- | ---: | ---: | ---: | ---: |
+| FSDP rank 0 | 36/36 | 2498, 2499 | -9, 17 | 1 | false, false | 0 | 0.0917260610000028 | 2.452286 | 293,945 |
+| FSDP rank 1 | 36/36 | 2596, 2597 | 17, -9 | 0 | false, false | 0 | 0.05862994000000299 | 2.432176 | 293,945 |
+| DeepSpeed rank 0 | 42/42 | 2877, 2878 | -9, 17 | 1 | false, false | 0 | 0.015568677000004527 | 5.866897 | 217,119 |
+| DeepSpeed rank 1 | 42/42 | 3057, 3058 | 17, -9 | 0 | false, false | 0 | 0.013267632999998114 | 6.116368 | 217,119 |
+
+Every final verdict was `VERIFIED`. Each selected target had the platform
+kill exit `-9`; each peer independently emitted typed
+`gloo_collective_error` evidence and exited 17. Neither group needed forced
+parent cleanup. The four uploaded `failure-event.json` files exactly matched
+the SHA-256 values bound into their corresponding attestations:
+
+```text
+FSDP rank 0:     0040e29ef05f8933a10106fc30bf346b2ce4fc55cee85c5c1ef698b80ba5a4e2
+FSDP rank 1:     20c1754c68c1a5d187a5f665bc88e7ac55a4d721b64f1773c467d1d17279d484
+DeepSpeed rank 0: 648f42b5062164f2dcc604dd86d12c8e7a2732dc82f49ff5d96e4d0168956787
+DeepSpeed rank 1: e4972670d46fa025635e1b0dcf242802cff222bf8e3c8c74387e2ba7bbe6e29f
+```
+
+These are measurements from this hosted run only. The byte figures are
+logical checkpoint sizes reported after the corresponding deterministic Gate
+passed; they are not storage-savings or performance claims. Same-world-size
+CPU/Gloo recovery is qualified. Elastic membership, job-manager retry,
+multi-node execution, CUDA/NCCL, and in-process process-group healing remain
+outside this milestone.
 
 ## V1.0 item 2 - two-rank DeepSpeed ZeRO-2 qualification
 

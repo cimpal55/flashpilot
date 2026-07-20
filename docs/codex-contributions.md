@@ -706,3 +706,14 @@ Codex did not begin typed policy-as-code, elastic membership, TorchElastic,
 in-process group healing, scheduler retries, multi-node or CUDA/NCCL support,
 signing, OIDC, registry publication, organization policy, GPT work, repair, or
 additional adapters. Clean restart remains backward compatible and default.
+
+GitHub Actions pull-request run 29768094351 subsequently passed both Python
+quality jobs and the complete Ubuntu qualification job at commit `3e5b707`.
+Python 3.11 and 3.12 each passed Ruff, the 211-file format check, and 348 tests
+with one expected Windows-only skip. Both target ranks passed for both
+runtimes: FSDP returned 36/36 with 293,945 verified logical bytes, and
+DeepSpeed ZeRO-2 returned 42/42 with 217,119 verified logical bytes. All four
+scenarios achieved zero-step RPO, produced separate peer Gloo-failure
+evidence, stopped both failed-group processes without forced cleanup, and
+restored through fresh two-rank groups. The downloaded failure-event bytes
+matched the SHA-256 values bound into all four success-only attestations.
