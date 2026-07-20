@@ -6,11 +6,15 @@ import os
 import time
 import uuid
 from pathlib import Path
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 
 import typer
 from rich.console import Console
 
+from flashpilot.adapters.huggingface import (
+    HuggingFaceDependencyError,
+    require_huggingface_dependencies,
+)
 from flashpilot.adapters.native_pytorch import NativePyTorchAdapter
 from flashpilot.agent.fixture_provider import FixtureFailureProvider
 from flashpilot.agent.guardrails import validate_failure_analysis
@@ -20,7 +24,29 @@ from flashpilot.agent.service import (
     build_contract_request,
     infer_checkpoint_contract,
 )
+from flashpilot.attestation import (
+    ATTESTATION_JUNIT_PATH,
+    RECOVERY_ATTESTATION_PATH,
+    AttestationVerificationError,
+    RecoveryAttestationV1,
+    verify_recovery_attestation,
+)
+from flashpilot.attestation.reporters import render_attestation_summary
+from flashpilot.audit import (
+    AUDIT_EXIT_CODES,
+    FrameworkSelection,
+    StaticAuditError,
+    run_static_audit,
+)
 from flashpilot.checkpoints.strategies import baseline_json, run_safe_full_baseline
+from flashpilot.ci.exits import (
+    EXIT_INVALID_EVIDENCE,
+    EXIT_QUALIFICATION_FAILED,
+    EXIT_UNSUPPORTED,
+)
+from flashpilot.ci.policy import CIPolicyError, load_ci_policy
+from flashpilot.ci.service import CIEvidenceError, emit_ci_outputs, write_qualification_ci_outputs
+from flashpilot.contracts.models import QualificationProfile
 from flashpilot.diagnostics import run_doctor
 from flashpilot.domain.agent import AgentCallMetadata
 from flashpilot.domain.recovery import CheckpointStrategy, SanitizedFailureArtifact
@@ -36,6 +62,8 @@ from flashpilot.verification.console import render_recovery_gate
 from flashpilot.workload.control import run_control
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
+qualify_app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
+app.add_typer(qualify_app, name="qualify")
 
 _CAPTURED_FAILURE_REQUEST = Path("runs/manual-prompt3-incomplete/agent/request.redacted.json")
 _LIVE_CONTRACT_OBJECTIVE = (
@@ -47,11 +75,23 @@ def _default_demo_run_dir() -> Path:
     return Path("runs") / f"repair-{uuid.uuid4().hex}"
 
 
+def _default_audit_output_dir() -> Path:
+    return Path("runs") / f"audit-{uuid.uuid4().hex}"
+
+
+def _default_hf_script() -> Path:
+    return Path(__file__).resolve().parent / "hf" / "worker.py"
+
+
 def _load_repair_loop_result(run_dir: Path) -> RepairLoopResult:
     path = run_dir / "result.json"
     if not path.is_file():
         raise typer.BadParameter("Prompt 5 result.json is unavailable", param_hint="--run-dir")
     return RepairLoopResult.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def _load_recovery_attestation(path: Path) -> RecoveryAttestationV1:
+    return RecoveryAttestationV1.model_validate_json(path.read_text(encoding="utf-8"))
 
 
 def _require_live_preconditions(*, run_dir: Path, role: str) -> None:
@@ -82,6 +122,145 @@ def _render_live_capture(*, run_dir: Path, role: str) -> None:
     typer.echo(f"Parsed response: {artifact_root / 'response.parsed.json'}")
     typer.echo(f"Validation: {artifact_root / 'validation.json'}")
     typer.echo(f"Metadata: {artifact_root / 'metadata.json'}")
+
+
+@qualify_app.command(
+    "hf-trainer",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def qualify_hf_trainer(
+    context: typer.Context,
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="New or empty isolated qualification directory."),
+    ],
+    script: Annotated[
+        Path | None,
+        typer.Option(
+            help=(
+                "Trainer script implementing the documented FlashPilot callback contract; "
+                "defaults to the installed offline example."
+            )
+        ),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile; only exact-training-resume is supported."),
+    ] = "exact-training-resume",
+    fault: Annotated[
+        str,
+        typer.Option(help="Fault mechanism; only process-kill is supported."),
+    ] = "process-kill",
+    scenario: Annotated[
+        str,
+        typer.Option(help="Checkpoint scenario: complete or model-only."),
+    ] = "complete",
+) -> None:
+    """Qualify the included offline CPU Hugging Face Trainer contract."""
+
+    if profile != "exact-training-resume" or fault != "process-kill":
+        typer.echo("Unsupported Hugging Face qualification profile or fault.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    if scenario not in {"complete", "model-only"}:
+        typer.echo("Unsupported Hugging Face qualification scenario.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    try:
+        require_huggingface_dependencies()
+    except HuggingFaceDependencyError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    try:
+        from flashpilot.hf.qualification import (
+            HFQualificationError,
+            HFUnsupportedConfigurationError,
+            run_hf_qualification,
+        )
+
+        result = run_hf_qualification(
+            script_path=script or _default_hf_script(),
+            run_root=run_dir,
+            scenario=cast("Any", scenario),
+            forwarded_arguments=tuple(context.args),
+        )
+    except (
+        HFUnsupportedConfigurationError,
+        ValueError,
+    ) as error:
+        typer.echo(f"Hugging Face qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    except HFQualificationError as error:
+        typer.echo(f"Hugging Face qualification failed: {error}", err=True)
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED) from error
+    typer.echo(result.final_verdict)
+    typer.echo(
+        f"Processes: control={result.control_process.worker_pid}, "
+        f"terminated={result.crash_process.worker_pid}, "
+        f"recovery={result.recovery_process.worker_pid}"
+    )
+    typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
+    typer.echo(f"Markdown report: {(run_dir / result.report_path).resolve()}")
+    typer.echo(f"HTML report: {(run_dir / result.html_report_path).resolve()}")
+    typer.echo(f"JUnit XML: {(run_dir / 'junit.xml').resolve()}")
+    typer.echo(f"Job summary: {(run_dir / 'job-summary.md').resolve()}")
+    if result.final_verdict == "VERIFIED":
+        typer.echo(f"Recovery attestation: {(run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
+    else:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+
+
+@qualify_app.command("native-pytorch")
+def qualify_native_pytorch(
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile; only exact-training-resume is supported."),
+    ] = "exact-training-resume",
+    fault: Annotated[
+        str,
+        typer.Option(help="Fault mechanism; only process-kill is supported."),
+    ] = "process-kill",
+    workload: Annotated[
+        str,
+        typer.Option(help="Controlled native workload size: ci or demo."),
+    ] = "ci",
+    run_dir: Annotated[
+        Path | None,
+        typer.Option(help="New isolated native qualification directory."),
+    ] = None,
+) -> None:
+    """Run the preserved native red-to-green qualification through the generic CLI."""
+
+    if profile != "exact-training-resume" or fault != "process-kill":
+        typer.echo("Unsupported native qualification profile or fault.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    if workload not in {"ci", "demo"}:
+        typer.echo("Unsupported native workload profile.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
+    selected_run_dir = run_dir or Path("runs") / f"native-qualify-{uuid.uuid4().hex}"
+    try:
+        result = run_bounded_repair_loop(
+            profile_name=workload,
+            run_root=selected_run_dir,
+        )
+    except ValueError as error:
+        typer.echo(f"Native qualification could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    except (OSError, RuntimeError) as error:
+        typer.echo(f"Native qualification failed: {error}", err=True)
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED) from error
+    typer.echo(result.final_verdict)
+    typer.echo(
+        f"Processes: terminated={result.repaired_run.crash.worker_pid}, "
+        f"recovery={result.repaired_run.recovery.worker_pid}"
+    )
+    typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
+    typer.echo(f"JUnit XML: {(selected_run_dir / 'junit.xml').resolve()}")
+    typer.echo(f"Job summary: {(selected_run_dir / 'job-summary.md').resolve()}")
+    if result.final_verdict == "VERIFIED":
+        typer.echo(
+            f"Recovery attestation: {(selected_run_dir / RECOVERY_ATTESTATION_PATH).resolve()}"
+        )
+    else:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 
 @app.command()
@@ -131,6 +310,55 @@ def safe_full(
     except ValueError as error:
         raise typer.BadParameter(str(error)) from error
     typer.echo(baseline_json(result), nl=False)
+
+
+@app.command("audit-checkpoint")
+def audit_checkpoint(
+    path: Annotated[
+        Path,
+        typer.Argument(help="Checkpoint directory to inspect without running training."),
+    ],
+    framework: Annotated[
+        str,
+        typer.Option(help="Framework selection: auto, native-pytorch, or huggingface-trainer."),
+    ] = "auto",
+    profile: Annotated[
+        str,
+        typer.Option(help="Qualification profile: exact-training-resume or model-only-inference."),
+    ] = "exact-training-resume",
+    output_dir: Annotated[
+        Path | None,
+        typer.Option(help="New or empty directory for audit.json, report.md, and junit.xml."),
+    ] = None,
+) -> None:
+    """Inspect checkpoint evidence without executing a training workload."""
+
+    try:
+        selected_framework = FrameworkSelection(framework)
+        selected_profile = QualificationProfile(profile)
+    except ValueError as error:
+        typer.echo(f"Unsupported audit configuration: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    try:
+        run = run_static_audit(
+            checkpoint_path=path,
+            framework_selection=selected_framework,
+            profile=selected_profile,
+            output_dir=output_dir or _default_audit_output_dir(),
+        )
+    except StaticAuditError as error:
+        typer.echo(f"Static audit could not run: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    typer.echo(run.result.status.value)
+    typer.echo("Static audit only; recovery_verified=false.")
+    typer.echo(f"Framework: {run.result.framework.value}")
+    typer.echo(f"Audit JSON: {run.audit_json}")
+    typer.echo(f"Markdown report: {run.report_markdown}")
+    typer.echo(f"JUnit XML: {run.junit_xml}")
+    typer.echo(f"Job summary: {run.job_summary}")
+    exit_code = AUDIT_EXIT_CODES[run.result.status]
+    if exit_code:
+        raise typer.Exit(code=exit_code)
 
 
 @app.command("live-contract")
@@ -208,7 +436,8 @@ def crash_demo(
 
     supported = {"safe_full", "safe_adapter_aware", "missing_training_state"}
     if strategy not in supported:
-        raise typer.BadParameter("unsupported checkpoint strategy", param_hint="--strategy")
+        typer.echo("Unsupported checkpoint strategy.", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED)
     selected_strategy = cast(CheckpointStrategy, strategy)
     selected_run_dir = run_dir or Path("runs") / f"crash-{uuid.uuid4().hex[:12]}"
     try:
@@ -220,7 +449,8 @@ def crash_demo(
             hard_rollback_limit_steps=rollback_limit,
         )
     except ValueError as error:
-        raise typer.BadParameter(str(error)) from error
+        typer.echo(f"Unsupported crash qualification configuration: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
     typer.echo(f"Original worker PID: {result.crash.worker_pid}")
     typer.echo(f"Checkpoint step: {result.crash.checkpoint_step}")
     typer.echo(f"Checkpoint path: {result.crash.checkpoint_path}")
@@ -230,11 +460,19 @@ def crash_demo(
     typer.echo()
     typer.echo(render_recovery_gate(result.gate), nl=False)
     typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
+    junit_path, summary_path = write_qualification_ci_outputs(
+        run_root=selected_run_dir,
+        result=result,
+    )
+    typer.echo(f"JUnit XML: {junit_path.resolve()}")
+    typer.echo(f"Job summary: {summary_path.resolve()}")
     if result.failure_artifact_path is not None:
         typer.echo(
             f"Sanitized failure artifact: "
             f"{(selected_run_dir / result.failure_artifact_path).resolve()}"
         )
+    if not result.gate.passed:
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
 
 @app.command()
@@ -284,7 +522,19 @@ def demo(
         runtime_seconds=runtime_seconds,
     )
     if not result.repaired_run.gate.passed:
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
+    attestation_path = selected_run_dir / RECOVERY_ATTESTATION_PATH
+    attestation = _load_recovery_attestation(attestation_path)
+    verification = verify_recovery_attestation(attestation_path)
+    render_attestation_summary(
+        console=console,
+        attestation=attestation,
+        verification=verification,
+    )
+    typer.echo(f"Recovery attestation: {attestation_path.resolve()}")
+    typer.echo(f"Attestation JUnit: {(selected_run_dir / ATTESTATION_JUNIT_PATH).resolve()}")
+    typer.echo(f"Qualification JUnit: {(selected_run_dir / 'junit.xml').resolve()}")
+    typer.echo(f"Job summary: {(selected_run_dir / 'job-summary.md').resolve()}")
 
 
 @app.command()
@@ -334,8 +584,69 @@ def verify(
         or result.repair_attempt_count != 1
     ):
         typer.echo("Persisted Prompt 5 evidence is not verified.", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
     typer.echo("VERIFIED by the persisted deterministic Recovery Gate (atol=0.0, rtol=0.0).")
+
+
+@app.command("verify-attestation")
+def verify_attestation(
+    file: Annotated[
+        Path,
+        typer.Argument(help="Path to recovery.attestation.json."),
+    ],
+) -> None:
+    """Verify an unsigned attestation and its closed local evidence bundle."""
+
+    try:
+        verification = verify_recovery_attestation(file)
+        attestation = _load_recovery_attestation(file)
+    except (AttestationVerificationError, OSError, UnicodeError, ValueError) as error:
+        typer.echo(f"INVALID OR TAMPERED: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    render_attestation_summary(
+        console=Console(),
+        attestation=attestation,
+        verification=verification,
+    )
+    typer.echo(f"Attestation SHA-256: {verification.attestation_sha256}")
+    typer.echo("Unsigned integrity verification passed; no publisher signature was checked.")
+
+
+@app.command("emit-junit")
+def emit_junit(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="Completed audit or qualification run directory."),
+    ],
+    policy: Annotated[
+        Path | None,
+        typer.Option(help="Optional typed FlashPilot CI policy YAML."),
+    ] = None,
+) -> None:
+    """Emit or verify deterministic JUnit and Markdown CI artifacts."""
+
+    selected_policy = None
+    if policy is not None:
+        try:
+            selected_policy = load_ci_policy(policy)
+        except CIPolicyError as error:
+            typer.echo(f"Unsupported CI policy: {error}", err=True)
+            raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    try:
+        result = emit_ci_outputs(run_root=run_dir, policy=selected_policy)
+    except (CIEvidenceError, CIPolicyError, OSError, UnicodeError, ValueError) as error:
+        typer.echo(f"INVALID OR TAMPERED CI EVIDENCE: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.evidence.status.value)
+    typer.echo(f"JUnit XML: {result.junit_path.resolve()}")
+    typer.echo(f"Job summary: {result.job_summary_path.resolve()}")
+    if result.policy_evaluation is not None:
+        typer.echo("Policy: " + ("PASS" if result.policy_evaluation.passed else "FAIL"))
+        for check in result.policy_evaluation.checks:
+            if check.status.value == "FAIL":
+                typer.echo(f"FAILED REQUIREMENT {check.check_id}: {check.summary}", err=True)
+    if result.exit_code:
+        raise typer.Exit(code=result.exit_code)
 
 
 @app.command()

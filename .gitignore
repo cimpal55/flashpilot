@@ -8,6 +8,8 @@ __pycache__/
 htmlcov/
 dist/*
 !dist/flashpilot-0.1.0-py3-none-any.whl
+!dist/flashpilot-0.2.0-py3-none-any.whl
+!dist/flashpilot-0.2.0.tar.gz
 build/
 *.egg-info/
 .env
@@ -15,3 +17,5 @@ build/
 !.env.example
 runs/*
 !runs/.gitkeep
+
+dist/

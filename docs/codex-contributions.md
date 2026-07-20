@@ -254,3 +254,199 @@ human independently accepted Prompt 6 and intentionally skipped Prompt 7:
 Codex did not make a live API call, implement Prompt 7, add recovery behavior,
 publish a release, upload a video, submit Devpost, choose a license, or invent a
 `/feedback` Session ID.
+
+## Milestone 9
+
+Codex performed the following VNext foundation work on the dedicated
+`codex/qualification-layer-v0.2` branch:
+
+- preserved the immutable `flashpilot-v0.1.0` tag and captured a clean baseline
+  full suite and fixture demo before editing;
+- added strict requirement, recovery-source, exactness, persistence-item,
+  persistence-contract, and two-profile types without changing the v0.1 GPT
+  schemas or captures;
+- implemented fail-closed validation for UNKNOWN state, contradictory sources,
+  missing evidence, missing identity controls, and non-exact state under the
+  exact-training-resume profile;
+- implemented deterministic local-minimum merging that can strengthen a weaker
+  proposal but cannot silently repair contradictions, accept extra state, raise
+  RPO, or change context;
+- added native exact-resume and model-only minimum contracts and an explicit
+  migration from the already accepted v0.1 native checkpoint contract;
+- implemented canonical JSON and SHA-256 contract identity with stable ordering;
+- generated three draft-2020-12 JSON Schema files and added a test that rejects
+  checked-in schema drift;
+- added focused round-trip, hashing, malformed, contradictory, UNKNOWN,
+  exactness, minimum-merge, migration, model-only, and schema tests;
+- updated repository guidance, architecture, decisions, contributions, and the
+  build log for the vNext branch boundary.
+
+Codex did not begin static checkpoint audit, framework detection, attestations,
+Hugging Face support, JUnit output, CI workflow, packaging, signing, or any
+Milestone 10+ functionality.
+
+## Milestone 10
+
+Codex performed the following VNext static-audit work on the existing dedicated
+v0.2 branch:
+
+- added the `audit-checkpoint` CLI with deterministic `auto`, native PyTorch,
+  Hugging Face Trainer, and unknown layout outcomes;
+- added strict typed audit results whose only statuses are `PASS`, `WARN`,
+  `FAIL`, and `UNKNOWN`, with invariant `recovery_verified=false`;
+- reused native manifest, checksum, completion, containment, immutable-base,
+  and weights-only validation without running training or restoring a worker;
+- implemented exact-resume and model-only state requirements, including all
+  nine native Persistence Contract state IDs;
+- added a narrow metadata-first Hugging Face audit for Trainer progress,
+  optimizer, scheduler, RNG, weight files, checkpoint-step identity, training
+  arguments, lifecycle markers, and model/base configuration identity;
+- added a bounded safetensors metadata reader and refused to unpickle
+  `training_args.bin` or unknown files;
+- added deterministic `audit.json`, Markdown, and per-requirement JUnit output,
+  plus stable status and unsupported-configuration exit codes;
+- added focused fixtures for complete native, missing native training state,
+  corrupted native payload, interrupted native temporary state, complete HF,
+  HF model-only under both profiles, unknown layout, unsafe training arguments,
+  malformed safetensors, and untrusted extra files;
+- preserved the UUID pytest basetemp plugin, v0.1 Recovery Gate, fixture demo,
+  repair boundary, and captured agent fixtures unchanged.
+
+Codex did not begin recovery attestation, attestation verification, full HF
+qualification, a Trainer adapter/callback, script execution, process killing,
+new repairs, CI policy, packaging, signing, or any Milestone 11+ functionality.
+
+## Milestone 11
+
+Codex performed the following recovery-attestation work on the existing v0.2
+branch:
+
+- added strict `RecoveryAttestationV1`, evidence-manifest, dependency
+  environment, and verification-result models plus generated public schemas;
+- emitted an attestation from the existing native demo only after the unchanged
+  repaired Recovery Gate persisted a 24/24 exact VERIFIED result;
+- retained the existing result, Markdown, HTML, gate, repair, storage, and agent
+  schemas unchanged and treated them as input evidence;
+- added a closed evidence inventory with run-relative path, size, and SHA-256 for
+  every experiment artifact and fixed circular-statement exclusions;
+- bound native exact Persistence Contract, repaired checkpoint directory,
+  immutable base, dependency environment, Git commit, honest source-tree state,
+  process IDs, trajectory digests, gate counts, RPO/RTO, and verified bytes;
+- added deterministic validation of native checkpoint manifests, payload
+  checksums, completion, base identity, reports, result metrics, and contract;
+- added `verify-attestation` with Rich success output and stable invalid/tampered
+  exit code `4`;
+- added deterministic eight-check attestation JUnit output;
+- added focused tests for verified emission, failed-gate refusal, deterministic
+  verification, one-byte evidence mutation, missing evidence, checkpoint
+  mutation, refreshed external hashes versus native checksums, report mismatch,
+  contract mismatch, metric mismatch, path traversal, CLI exits, Rich wording,
+  and generated schema drift;
+- stated prominently that v1 is unsigned integrity evidence and not publisher
+  authentication or certification.
+
+Codex did not add cryptographic signing, a registry, OIDC provenance, a
+HuggingFaceTrainerAdapter, a callback, HF training execution, a generic qualify
+command, CI policy, release packaging, or any Milestone 12+ functionality.
+
+## Milestone 12
+
+Codex performed the following Hugging Face Trainer qualification work on the
+existing dedicated v0.2 branch:
+
+- added an `hf` optional dependency group for bounded Transformers 5 and
+  Accelerate 1 versions;
+- added one explicit `HuggingFaceTrainerAdapter` without altering the frozen P0
+  native registry, plugin discovery, entry points, auto-detection, or repairs;
+- added a verdict-free `FlashPilotTrainerCallback` that emits only contained
+  post-save checkpoint lifecycle evidence;
+- added a local tiny `PreTrainedModel`, deterministic synthetic dataset,
+  sequential CPU training, dropout, and exact fixed evaluation with no Hub
+  model or dataset downloads;
+- added an external launcher that copies the selected script into the run
+  sandbox, strips API keys, forces offline controls, uses `shell=False`, kills
+  the exact checkpoint process, and resumes in a distinct process;
+- added an exact 13-check HF Recovery Gate covering required files, real
+  termination, distinct recovery, final step, full loss trajectory, and
+  trainable/evaluation/optimizer/scheduler state digests;
+- proved the complete Trainer checkpoint resumes exactly and reports logical
+  bytes only after VERIFIED;
+- proved a valid loadable Trainer model-only checkpoint omits optimizer,
+  scheduler, and RNG state and genuinely diverges through the real
+  dropout-enabled continuation path;
+- extended the unsigned attestation format through an explicit Transformers
+  branch with a separate deterministic HF persistence contract, environment
+  identity, closed evidence inventory, safetensors loading, state-file checks,
+  and exact result/report verification;
+- added the `qualify hf-trainer` CLI and focused unit/integration coverage while
+  retaining the existing native fixture demo and Recovery Gate behavior.
+
+Codex did not begin CI workflow work, global JUnit policy, stable qualification
+exit-code policy, packaging, release automation, signing, generic Trainer-script
+compatibility, another adapter, or any Milestone 13+ functionality.
+
+## Milestone 13
+
+Codex performed the following CI and developer-workflow work on the existing
+dedicated v0.2 branch:
+
+- added the closed `CIPolicyV1` schema and bounded safe YAML loader for exact
+  profile, fail-closed UNKNOWN, allowlisted process termination, RPO/RTO, and
+  attestation requirements without arbitrary scripting;
+- added canonical public exit constants `0`, `2`, `3`, `4`, and `5` and applied
+  them across static audit, native/HF qualification, evidence verification, and
+  unsupported configurations;
+- normalized audit, native repair-loop, direct native crash, and HF results into
+  shared typed CI evidence without parsing logs or creating another verdict;
+- added deterministic qualification `junit.xml` with exact gate check IDs and
+  expected/actual failures, plus `job-summary.md` for every audit and
+  qualification;
+- added `emit-junit --run-dir --policy`, which reuses local result models,
+  verifies attested CI files byte-for-byte, reports exact policy failures, and
+  refuses invalid or missing attested evidence;
+- added the generic `qualify native-pytorch` command as a thin entry point over
+  the preserved native red-to-green core;
+- added a non-installed GitHub Actions example that runs HF qualification,
+  static audit, policy enforcement, GitHub job summary, always-on diagnostics,
+  and success-only attestation upload;
+- added a hash-bound strict HF RNG metadata bridge so real standard Trainer RNG
+  checkpoints pass safe static audit without unrestricted pickle loading;
+- added focused tests for safe policy parsing, schema drift, weak/unknown policy
+  rejection, stable exits, exact JUnit failure IDs, Markdown summaries,
+  pass/fail policy behavior, no mutation of attested bundles, workflow upload
+  conditions, real HF audit compatibility, and RNG hash mismatch.
+
+Codex did not begin clean wheel/source installation, version bumping, release
+checklists, publishing, signing, another adapter, active hosted workflow, or any
+Milestone 14+ functionality.
+
+## Milestone 14
+
+Codex performed the following v0.2 packaging work on the existing dedicated
+qualification branch:
+
+- synchronized package and runtime versions at `0.2.0`, declared Python
+  `>=3.11`, Apache-2.0, project URLs, classifiers, and release metadata;
+- kept the base dependencies HF-free and declared Transformers, Accelerate,
+  and safetensors only through the bounded `hf` optional group;
+- made the installed offline HF worker the default `qualify hf-trainer` entry
+  while retaining the explicit script contract and stable actionable exit `5`
+  when extras are absent;
+- packaged fixtures, public schemas, policy/workflow examples, the HF source
+  example, and the release checklist into both distribution formats;
+- added focused packaging tests covering version/license synchronization,
+  dependency separation, installed resources, the default worker, README
+  paths, and missing-extra behavior;
+- built and inspected the wheel and source distribution with `build` and
+  `twine`, then recorded their exact sizes and SHA-256 digests;
+- installed the wheel into two fresh environments outside the FlashPilot
+  repository and proved the base fixture/native path separately from the
+  complete installed HF path;
+- scanned clean-run outputs and both release archives for the injected secret
+  sentinels and credential-shaped values, with zero matches;
+- documented the exact supported paths, limitations, Windows validation
+  boundaries, release architecture, decisions, and human checklist.
+
+Codex did not publish a package, create a tag or commit, enable a hosted
+workflow, add signing, begin a V0.3 roadmap item, broaden Trainer compatibility,
+add an adapter, or change the frozen native repair surface.

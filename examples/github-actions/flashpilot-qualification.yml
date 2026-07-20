@@ -1,0 +1,74 @@
+name: FlashPilot checkpoint qualification example
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/flashpilot/**"
+      - "examples/hf_trainer/**"
+      - "examples/ci/policy.yml"
+
+jobs:
+  qualify-checkpoint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install FlashPilot with the optional HF adapter
+        run: python -m pip install ".[hf]"
+
+      - name: Run real HF checkpoint qualification
+        run: >-
+          flashpilot qualify hf-trainer
+          --script examples/hf_trainer/train.py
+          --profile exact-training-resume
+          --fault process-kill
+          --scenario complete
+          --run-dir runs/ci-hf
+
+      - name: Audit the qualified checkpoint without executing training
+        run: >-
+          flashpilot audit-checkpoint
+          runs/ci-hf/crash/checkpoints/checkpoint-4
+          --profile exact-training-resume
+          --output-dir runs/ci-audit
+
+      - name: Enforce the same typed policy and evidence locally used by the CLI
+        run: >-
+          flashpilot emit-junit
+          --run-dir runs/ci-hf
+          --policy examples/ci/policy.yml
+
+      - name: Publish FlashPilot Markdown job summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f runs/ci-hf/job-summary.md ]]; then
+            cat runs/ci-hf/job-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload diagnostic reports and JUnit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashpilot-ci-evidence
+          if-no-files-found: error
+          path: |
+            runs/**/junit.xml
+            runs/**/job-summary.md
+            runs/**/report.md
+
+      - name: Upload verified recovery attestation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashpilot-attestation
+          if-no-files-found: error
+          path: runs/**/recovery.attestation.json

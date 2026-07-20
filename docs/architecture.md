@@ -18,7 +18,236 @@ The architecture is deliberately narrow:
 14. JSON is authoritative; Markdown is deterministically rendered without a GPT narrator.
 15. Logical storage impact is calculated only after repaired recovery passes.
 
-## Milestone status through Prompt 5
+## VNext Milestone 9 foundation
+
+VNext adds an independent Persistence Contract beside the frozen v0.1 GPT
+checkpoint-contract schema. The old schema, fixtures, demo, process protocol,
+repair loop, and Recovery Gate remain unchanged.
+
+The vNext contract separates three concerns for every state item:
+
+```text
+requirement: required | optional | ephemeral | unknown
+recovery source: checkpoint | immutable reference | external durable source |
+                 deterministic recompute | none
+exactness: exact | tolerance bounded | non-equivalent
+```
+
+Only `exact-training-resume` and `model-only-inference` profiles exist in v0.2.
+The controlled native exact-resume minimum contains nine state items: adapter,
+immutable base identity, deterministic batch position, global step, optimizer,
+scheduler, and Python/NumPy/Torch RNG. The model-only profile keeps adapter and
+base identity required and classifies training-continuation state as ephemeral.
+
+Contract processing is deterministic:
+
+```text
+typed proposal
+-> reject malformed, contradictory, UNKNOWN, or out-of-inventory state
+-> merge with the native local minimum
+-> validate every required source and exactness rule
+-> canonical JSON
+-> SHA-256 contract identity
+```
+
+A weaker optional classification may be replaced by a required local minimum.
+An internally contradictory proposal is rejected rather than normalized. An
+exact-training-resume contract rejects tolerance-bounded required state. Every
+required item has evidence IDs, and immutable, external-durable, or
+deterministically recomputed sources require identity controls.
+
+`migrate_native_checkpoint_contract` converts an already accepted v0.1 native
+`CheckpointContract` into this model and adds the deterministic batch-position
+minimum. It does not rewrite the v0.1 fixture or route, so the original judge
+demo remains byte- and verdict-compatible. Public draft-2020-12 JSON Schemas are
+checked in under `schemas/` and tested against generated output.
+
+## VNext Milestone 10 static checkpoint audit
+
+`flashpilot audit-checkpoint PATH --framework auto --profile PROFILE` performs
+bounded static inspection without launching training, importing a user script,
+or invoking a framework callback. Detection recognizes only native PyTorch,
+the supported Hugging Face Trainer layout, or unknown. Framework-specific
+metadata takes precedence over shared filenames such as `optimizer.pt`; mixed,
+ambiguous, and unrecognized layouts remain `UNKNOWN`.
+
+The audit path is deliberately separate from recovery qualification:
+
+```text
+contained non-symlink directory
+-> deterministic framework detection
+-> schema and lifecycle metadata
+-> checksums / safe tensor metadata / weights-only payload inspection
+-> profile-specific state requirements
+-> PASS | WARN | FAIL | UNKNOWN
+-> audit.json + report.md + junit.xml
+```
+
+Every result is typed with `static_only=true` and
+`recovery_verified=false`. Static audit has no `VERIFIED` enum value and cannot
+produce an attestation. `PASS` means only that the supported static contract is
+satisfied; a real failure and resumed trajectory still require the Recovery
+Gate in a later qualification step.
+
+Native inspection reuses the existing strict manifest, checksum, completion,
+containment, and payload-size validation. Known PyTorch payloads are opened only
+with `weights_only=True`. Exact resume checks model/adapter state, immutable or
+full-model identity, optimizer, scheduler, Python/NumPy/Torch RNG, global step,
+deterministic batch position, and runtime metadata. Model-only inspection keeps
+model/base identity required but does not require training-continuation state.
+
+The narrow Hugging Face path reads JSON metadata with size limits, validates
+safetensors headers and data offsets without materializing tensors, and applies
+`weights_only=True` only to allowlisted PyTorch payload names. It never unpickles
+`training_args.bin`; the supported exact-resume fixture supplies
+`training_args.json`. Unknown files are reported and reduce an otherwise passing
+audit to `WARN`. A supported model-only layout fails exact resume and passes the
+model-only profile. JUnit contains one testcase per deterministic requirement
+and one failure element per failed requirement.
+
+Static audit exit codes are stable: `PASS=0`, `WARN/UNKNOWN=2`, `FAIL=3`, and
+unsupported configuration `=5`. Code `4` remains reserved for invalid or
+tampered attestation evidence in the later attestation milestone.
+
+## VNext Milestone 11 recovery attestation
+
+The existing native red-to-green demo now emits an unsigned
+`recovery.attestation.json` only after its repaired deterministic Recovery Gate
+passes. The authoritative `repair-loop-result-v1` schema and its Markdown/HTML
+views remain unchanged. Attestation construction reads and revalidates those
+persisted artifacts; it does not participate in recovery or set the gate
+verdict.
+
+Emission order is fail-closed:
+
+```text
+persist VERIFIED result and deterministic reports
+-> validate result/report equality and exact 24/24 gate
+-> write canonical native Persistence Contract
+-> write dependency and source-identity environment evidence
+-> fingerprint repaired checkpoint directory
+-> inventory every experiment evidence file
+-> write evidence-manifest.json
+-> bind its SHA-256 into recovery.attestation.json
+-> independently verify the complete bundle
+-> write attestation.junit.xml
+```
+
+The evidence manifest records run-relative path, logical size, and SHA-256 for
+every experiment evidence artifact. It excludes exactly three statement/index
+artifacts: itself, the attestation, and derived attestation JUnit. This avoids a
+circular hash. Verification recomputes a closed inventory, so missing, added,
+renamed, symlinked, or one-byte-mutated evidence fails.
+
+`RecoveryAttestationV1` binds the exact-resume profile, native framework and
+runtime version, current commit plus explicit clean/dirty/unavailable source
+state, dependency-environment identity, canonical contract identity, repaired
+checkpoint directory identity, distinct worker and recovery PIDs, equal control
+and resumed trainable/evaluation digests, all 24 gate checks, zero tolerances,
+RPO, RTO, and the already verified recurring logical bytes. The source tree is
+currently recorded honestly as dirty because the milestone changes await
+independent review and commit.
+
+`flashpilot verify-attestation recovery.attestation.json` verifies strict
+schemas, manifest identity, the closed evidence inventory, dependency/source
+metadata, deterministic native contract, authoritative result, exact
+Markdown/HTML rendering, native checkpoint manifest/checksums/base artifact,
+checkpoint directory hash, PIDs, trajectories, gate counts, RPO/RTO, and byte
+metrics. Invalid or tampered evidence exits with code `4`. A successful Rich
+summary and eight-check JUnit file report integrity verification.
+
+The v1 attestation is deliberately unsigned. It provides local bundle integrity
+and internal consistency, not publisher authentication, legal certification,
+or third-party certification. Signing is a later roadmap item.
+
+## VNext Milestone 12 Hugging Face qualification
+
+The optional HF path is an explicit `HuggingFaceTrainerAdapter`, not a plugin or
+auto-detected repair adapter. The included script implements one documented
+callback contract with a tiny local `PreTrainedModel`, index-derived synthetic
+dataset, sequential batches, CPU-only execution, full determinism, and dropout.
+No model or dataset is loaded from the Hub.
+
+The `FlashPilotTrainerCallback` runs after Trainer checkpoint save. It records a
+contained checkpoint path and typed file-presence evidence, writes bounded JSON
+metadata, emits one lifecycle event, and waits to be killed. Its schema cannot
+carry a verdict or repair. The external parent owns the trust boundary:
+
+```text
+copy explicitly selected script into run sandbox
+-> launch uninterrupted control process
+-> launch checkpoint worker
+-> validate checkpoint event and contained file contract
+-> kill the exact recorded process
+-> launch recovery in a distinct process
+-> compare loss history and all final state digests at atol=0, rtol=0
+-> persist VERIFIED or FAILED result and deterministic reports
+-> emit unsigned attestation only after VERIFIED
+```
+
+The complete checkpoint contains model, Trainer state, optimizer, scheduler,
+and Python/NumPy/Torch RNG state. Its recovery must match control loss history,
+trainable state, evaluation, optimizer, scheduler, final step, and RPO exactly.
+The model-only checkpoint is a valid Trainer checkpoint and loads, but omits
+optimizer, scheduler, and RNG state. Continued stochastic training genuinely
+diverges and the same gate fails closed. Storage bytes are recorded only for
+the complete checkpoint after the gate passes.
+
+Worker environments remove API-key variables, force the Hugging Face offline
+flags, disable CUDA, and execute an argument vector with `shell=False`. This
+prevents library-mediated downloads for the included example but is explicitly
+not an operating-system network sandbox or a generic arbitrary-script claim.
+
+## VNext Milestone 13 CI and developer workflow
+
+The CI layer normalizes static-audit, native qualification, direct native crash
+experiment, and HF qualification results into `CIRunEvidence`. It does not
+recompute a verdict: each check status, RPO, RTO, framework, fault class, and
+profile comes from the same strict result models used by local commands.
+
+Each audit or qualification emits:
+
+```text
+junit.xml       one testcase per exact audit/gate requirement
+job-summary.md  deterministic GitHub-compatible Markdown view
+```
+
+These files are created before a verified attestation closes its evidence
+inventory. `emit-junit` verifies exact existing content for an attested run and
+refuses to recreate, change, or repair missing evidence. Failed runs have no
+attestation and may still retain diagnostic JUnit and summary artifacts.
+
+`CIPolicyV1` is a closed YAML-backed model with only the exact qualification
+profile, fail-closed UNKNOWN behavior, allowlisted required fault class, maximum
+RPO/RTO, and attestation requirement. PyYAML `safe_load` is bounded to 64 KiB;
+Pydantic rejects extra keys and every non-allowlisted value. There is no policy
+expression language or code execution surface.
+
+The stable command boundary is:
+
+```text
+0  verified qualification or passing audit
+2  warning/UNKNOWN requiring review
+3  failed qualification or policy
+4  invalid/tampered evidence
+5  unsupported configuration
+```
+
+The generic `qualify native-pytorch` command reuses the frozen native
+red-to-green core; `qualify hf-trainer`, `demo`, and static audit use their same
+existing services. The GitHub Actions file lives under `examples/`, not the
+active `.github/workflows` directory. Diagnostic artifacts use `if: always()`;
+attestation upload uses `if: success()` and therefore cannot publish a failed
+run as verified.
+
+The standard HF RNG pickle cannot always be read by PyTorch's default
+`weights_only=True` allowlist because it contains NumPy reconstruction globals.
+The callback therefore emits a strict JSON RNG metadata bridge bound to the
+actual `rng_state.pth` SHA-256. Static audit verifies that hash and the three
+typed RNG-presence claims without unpickling the payload or weakening the safe
+loader. Fixtures without the bridge retain the previous weights-only path.
+
+## Frozen v0.1 architecture
 
 The parent process launches an incomplete-checkpoint worker, waits for and
 validates its post-rename event, kills the recorded PID, and restores in a new
@@ -72,3 +301,28 @@ base. No physical NAND, write-amplification, or SSD-lifetime claim is made.
 | Cross-platform process reproducibility | Exact recovery is proven on the current Windows/Python/PyTorch environment, but other supported OS and dependency versions still require validation. |
 | Durability limits on Windows | Files are fsynced and directory rename is atomic, but Python cannot directory-fsync on Windows, so that part remains explicitly best-effort. |
 | Replay applicability | The accepted GPT-5.6 diagnosis is replayed against the same typed evidence contract; new workload capabilities or failure shapes require a new guarded analysis rather than broadening this executor. |
+
+## VNext Milestone 14 release boundary
+
+The v0.2 wheel keeps Transformers, Accelerate, and safetensors out of the base
+dependency graph. `flashpilot qualify hf-trainer` performs a safe dependency
+probe before importing the HF qualification service. A base installation exits
+with stable code `5` and the exact `pip install 'flashpilot[hf]'` remedy. The
+`hf` extra declares all three libraries because the qualification path directly
+uses each one.
+
+The wheel packages the captured-response fixtures, public JSON Schemas, typed
+CI policy, inactive GitHub Actions example, HF source example, and release
+checklist under the interpreter's data prefix. The offline HF worker itself is
+a normal `flashpilot.hf` package module. Omitting `--script` selects that worker;
+supplying `--script` retains the explicit documented local-script contract.
+Neither path adds discovery, a plugin registry, or arbitrary Trainer support.
+
+Release validation uses two independent virtual environments outside the
+FlashPilot repository. The base environment proves fixture demo, native static
+audit, and actionable missing-extra behavior without any HF distribution. The
+second environment installs the exact same wheel with `[hf]` and proves the
+packaged default worker, exact 13-check recovery, attestation verification,
+typed CI policy, and CPU static audit. Application workers remain offline; a
+temporary wheelhouse is only a dependency-install transport for the clean
+environment setup.

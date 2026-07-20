@@ -1,0 +1,70 @@
+{
+  "$defs": {
+    "EvidenceEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "size_bytes",
+        "sha256"
+      ],
+      "title": "EvidenceEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/EvidenceEntry"
+      },
+      "minItems": 1,
+      "title": "Entries",
+      "type": "array"
+    },
+    "excluded_statement_artifacts": {
+      "default": [
+        "attestation.junit.xml",
+        "evidence-manifest.json",
+        "recovery.attestation.json"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Excluded Statement Artifacts",
+      "type": "array"
+    },
+    "root_scope": {
+      "const": "attestation-directory",
+      "default": "attestation-directory",
+      "title": "Root Scope",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-evidence-manifest-v1",
+      "default": "flashpilot-evidence-manifest-v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "entries"
+  ],
+  "title": "EvidenceManifestV1",
+  "type": "object"
+}

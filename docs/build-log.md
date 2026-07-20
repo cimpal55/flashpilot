@@ -1461,3 +1461,1141 @@ additional adapter, new recovery functionality, desktop UI, Docker, Hugging
 Face, CUDA, policy planner, chaos scenario, or live API call was added. External
 license selection, `/feedback`, video recording/upload, optional GitHub Release,
 and Devpost submission remain manual human tasks.
+
+## Milestone 9 — VNext persistence contract foundation
+
+- Date: 2026-07-20
+- Branch: `codex/qualification-layer-v0.2`
+- Scope: Milestone 9 only. Milestone 10 was not started.
+- Starting revision: `97267a3` on `main`.
+- Frozen annotated release tag: `flashpilot-v0.1.0` tag object `19b19d0`,
+  targeting commit `ad0bf86`; unchanged.
+
+### Baseline before VNext changes
+
+Commands:
+
+```text
+git switch -c codex/qualification-layer-v0.2
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m ruff format --check .
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m flashpilot.cli demo --provider fixture --profile demo --run-dir .\runs\milestone9-baseline-v01
+```
+
+Actual baseline quality output:
+
+```text
+All checks passed!
+76 files already formatted
+127 passed, 1 skipped in 84.30s (0:01:24)
+```
+
+The one skip was the unchanged Windows directory-symlink privilege condition.
+The baseline fixture demo reported:
+
+```text
+Initial Recovery Gate: FAIL — 9 exact failures
+Final Recovery Gate: VERIFIED — 24/24
+atol=0.0, rtol=0.0
+safe_full recurring logical bytes: 126218
+repaired recurring logical bytes: 32743
+one-time frozen-base bytes: 93987
+recurring reduction: 93475 bytes (74.06%)
+repair attempts: 1
+original failed checkpoint unmodified: true
+```
+
+### Implementation
+
+Milestone 9 added a new `flashpilot.contracts` package without changing the
+frozen v0.1 agent, checkpoint, process, repair, gate, or report code.
+
+The public model includes:
+
+```text
+RequirementClass: required, optional, ephemeral, unknown
+RecoverySource: checkpoint, immutable_reference, external_durable_source,
+                deterministic_recompute, none
+RecoveryExactness: exact, tolerance_bounded, non_equivalent
+QualificationProfile: exact-training-resume, model-only-inference
+PersistenceItem
+PersistenceContract
+```
+
+Deterministic validation rejects UNKNOWN state, state outside the local
+inventory, required state without a source or evidence, a non-equivalent
+required item, tolerance-bounded required state under exact training resume,
+and an immutable/external/recomputed source without identity controls.
+
+The merger can add or strengthen a deterministic minimum but rejects malformed
+or contradictory proposals, context changes, RPO weakening, and unknown state.
+The native exact profile contains nine items. The model-only profile retains
+adapter and immutable base identity as required and marks training continuation
+state ephemeral. The accepted v0.1 native `CheckpointContract` migrates through
+an explicit adapter-specific function after the old guardrails pass; no fixture
+or v0.1 artifact is rewritten.
+
+Canonical JSON uses sorted keys, fixed separators, UTF-8, and normalized item
+ordering before SHA-256. Measured deterministic identities:
+
+```text
+exact native minimum: 760789d83b39b7e8943254158cbf6202bca2e87790cd560f06a4202c51ff3295
+migrated accepted v0.1 contract: e28d5f74b11f6c7beda69dd3e7c8009803bb73aac8db847c2641cbd1cddf7e59
+model-only native minimum: 53ec8e96cce0bf28d1a86c424c84ccc353b8abb244582968dee3a57acb7e8a22
+```
+
+Schema generation command:
+
+```text
+.\.venv\Scripts\python.exe -c "from pathlib import Path; from flashpilot.contracts.schema import write_schema_files; print(*(str(path) for path in write_schema_files(Path('schemas'))), sep='\n')"
+```
+
+Generated draft-2020-12 schemas:
+
+```text
+persistence-contract-v1.schema.json    3525 bytes
+persistence-item-v1.schema.json        1767 bytes
+qualification-profile-v1.schema.json    272 bytes
+```
+
+The unit suite reads these files and compares their parsed documents with fresh
+generator output, so schema drift fails tests.
+
+### Focused tests
+
+Command and actual output:
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_persistence_contracts.py -q
+.............                                                            [100%]
+13 passed in 1.21s
+```
+
+Coverage includes exact and model-only native contracts, round-trip stability,
+canonical hash stability under input reordering, UNKNOWN state, missing source,
+missing immutable identity controls, tolerance-bounded exact state, duplicate
+state IDs, deterministic-minimum strengthening, unknown inventory state,
+contradiction rejection, accepted v0.1 migration, and checked-in schema drift.
+
+### Final quality gates
+
+Commands and actual output:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+83 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 51%]
+.............................................s.......................    [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+140 passed, 1 skipped in 78.87s (0:01:18)
+```
+
+Pytest used the unique UUID basetemp and emitted no ACL or cache warning. No
+test, tolerance, gate check, repair limit, redaction boundary, or fixture was
+weakened.
+
+### Post-change v0.1 fixture regression
+
+Command:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli demo --provider fixture --profile demo --run-dir .\runs\milestone9-post-v01
+```
+
+Actual output retained:
+
+```text
+Initial checkpoint: step 12; worker PID 11360; recovery PID 18012
+Initial Recovery Gate: FAIL — 9 exact failures
+Repaired worker PID 20396; recovery PID 21616
+Final Recovery Gate: VERIFIED — 24/24
+atol=0.0, rtol=0.0
+safe_full recurring logical bytes: 126218
+repaired recurring logical bytes: 32743
+one-time frozen-base bytes: 93987
+recurring reduction: 93475 bytes (74.06%)
+```
+
+A direct comparison of pre- and post-change result projections returned:
+
+```text
+InvariantProjectionMatch: True
+InitialFailures: 9
+FinalChecks: 24
+FinalVerdict: VERIFIED
+RepairAttempts: 1
+OriginalCheckpointUnmodified: True
+```
+
+The projection includes schema/verdict fields, failed-check IDs, all final gate
+checks, tolerance policy, control and resumed trainable/evaluation digests,
+applied and unsupported actions, attempt count, immutability, and every storage
+comparison value. PIDs and timestamps are intentionally not compared.
+
+### Acceptance status and remaining risks
+
+All Milestone 9 acceptance criteria pass. The contract foundation is currently
+used through deterministic builders and the explicit accepted-v0.1 migration;
+it does not yet drive static audit, attestation, or a new qualification command.
+Those are later milestones. The JSON Schemas are checked in but are not packaged
+as wheel data until release packaging is addressed. Only the controlled native
+workload is migrated; no Hugging Face adapter or framework detector exists.
+
+After the evidence wording was clarified to distinguish the annotated release
+tag object from its target commit, the final documentation-only confirmation
+again passed: Ruff check passed, all 83 Python files were formatted, and pytest
+reported `140 passed, 1 skipped in 78.59s (0:01:18)`.
+
+## Milestone 10 - static checkpoint audit
+
+- Date: 2026-07-20
+- Branch: `codex/qualification-layer-v0.2`
+- Scope: Milestone 10 only. Milestone 11 was not started.
+- Frozen v0.1 tag and target: unchanged.
+
+### Implementation and trust boundary
+
+Milestone 10 added:
+
+```text
+flashpilot audit-checkpoint PATH --framework auto --profile PROFILE
+```
+
+The command performs no training run, worker launch, restore, script import, or
+user-code execution. It recognizes only `native-pytorch`,
+`huggingface-trainer`, or `unknown`. Results use only `PASS`, `WARN`, `FAIL`, or
+`UNKNOWN`; the typed result always records `static_only=true` and
+`recovery_verified=false`. Static audit cannot issue `VERIFIED` or create a
+recovery attestation.
+
+Native inspection reuses existing containment, manifest, checksum, completion,
+payload-size, immutable-base, and weights-only validation. Exact resume audits
+all nine native Persistence Contract state IDs. The narrow Hugging Face path
+uses bounded JSON, validates safetensors headers and offsets without tensor
+materialization, and opens only allowlisted PyTorch payloads with
+`weights_only=True`. It does not unpickle `training_args.bin` or unknown files.
+
+Outputs are deterministic `audit.json`, `report.md`, and `junit.xml`. JUnit has
+one testcase per check and a failure element for every failed requirement.
+Stable exits are `PASS=0`, `WARN/UNKNOWN=2`, `FAIL=3`, and unsupported or unsafe
+configuration `=5`.
+
+### Development finding
+
+The first focused run exposed that native and Hugging Face layouts share names
+such as `optimizer.pt` and `scheduler.pt`:
+
+```text
+F.F..............                                                        [100%]
+2 failed, 15 passed in 3.69s
+```
+
+Both failures were detector ambiguity, not audit-check failures. Detection was
+corrected to prioritize framework-specific metadata and to treat shared
+training payload names as insufficient framework evidence. The final focused
+suite also proves that `optimizer.pt` alone remains `UNKNOWN`.
+
+### Focused verification
+
+Commands and actual output:
+
+```text
+.\.venv\Scripts\python.exe -m ruff format src\flashpilot\audit tests\unit\test_static_audit.py
+1 file reformatted, 8 files left unchanged
+
+.\.venv\Scripts\python.exe -m ruff check src\flashpilot\audit src\flashpilot\cli.py tests\unit\test_static_audit.py
+All checks passed!
+
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_static_audit.py -q
+..................                                                       [100%]
+18 passed in 5.12s
+```
+
+The focused fixtures cover complete native PASS, valid native missing training
+state FAIL, native checksum corruption FAIL, interrupted native temporary state
+FAIL, supported HF exact-resume PASS, HF model-only exact FAIL and model-only
+PASS, unknown layout, shared-name ambiguity, untrusted extra files, refusal to
+unpickle binary training arguments, invalid safetensors offsets, output
+containment, per-requirement JUnit, and stable exits.
+
+### Manual default-shape native audit
+
+A native checkpoint source was created once for manual inspection:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli safe-full --profile ci --run-dir .\runs\milestone10-native-source
+```
+
+It committed at step 4, reported 44,998 logical bytes, and matched the control
+after direct restore. The final static command was then run without training:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli audit-checkpoint .\runs\milestone10-native-source\checkpoints\checkpoint-step-000004 --framework auto --profile exact-training-resume --output-dir .\runs\milestone10-native-audit-final
+```
+
+Actual command output:
+
+```text
+PASS
+Static audit only; recovery_verified=false.
+Framework: native-pytorch
+Audit JSON: C:\Programming\business\flashpilot\runs\milestone10-native-audit-final\audit.json
+Markdown report: C:\Programming\business\flashpilot\runs\milestone10-native-audit-final\report.md
+JUnit XML: C:\Programming\business\flashpilot\runs\milestone10-native-audit-final\junit.xml
+```
+
+The parsed audit contained 17/17 PASS checks including
+`state.batch-position`. JUnit reported 17 tests, zero failures, zero errors, and
+zero skipped. The result retained `static_only=true` and
+`recovery_verified=false`. Both source and output run directories are ignored
+by Git.
+
+### Final quality gates
+
+Commands and actual output:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+92 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 45%]
+.............................................s.......................... [ 90%]
+...............                                                          [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+158 passed, 1 skipped in 84.83s (0:01:24)
+```
+
+The unchanged Windows platform-conditional symlink test is the only skip.
+Pytest used its unique UUID basetemp and emitted no ACL or cache warning.
+
+### Frozen v0.1 regression
+
+Command:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli demo --provider fixture --profile demo --run-dir .\runs\milestone10-v01-regression
+```
+
+Actual invariant result:
+
+```text
+Initial Recovery Gate: FAIL - 9 exact failures
+Final Recovery Gate: VERIFIED - 24/24
+atol=0.0, rtol=0.0
+repair attempts: 1
+original failed checkpoint unmodified: true
+safe_full recurring logical bytes: 126218
+repaired recurring logical bytes: 32743
+one-time frozen-base bytes: 93987
+recurring reduction: 93475 bytes (74.06%)
+storage reported only after recovery passed: true
+```
+
+The run used worker/recovery PIDs `13560/30036` for the initial failure and
+`24496/18792` for the repaired experiment. Total console runtime was 20.88
+seconds. Generated artifacts are ignored by Git.
+
+### Acceptance and remaining risks
+
+All Milestone 10 acceptance criteria pass. A static audit can prove only that a
+known on-disk layout satisfies the supported static requirements; it cannot
+prove resumed trajectory. Hugging Face support is deliberately qualified to the
+documented metadata bridge and safe file forms. Typical checkpoints that expose
+resume-relevant arguments only through `training_args.bin` fail exact static
+qualification rather than being unpickled. Recovery attestation, attestation
+verification, a Trainer adapter, script execution, real HF qualification, and
+Milestone 11+ work remain unimplemented.
+
+## Milestone 11 - recovery attestation v1
+
+- Date: 2026-07-20
+- Branch: `codex/qualification-layer-v0.2`
+- Scope: Milestone 11 only. Milestone 12 was not started.
+- Frozen v0.1 tag and target: unchanged.
+
+### Implementation
+
+The existing native red-to-green run now emits these additional files only
+after the repaired deterministic Recovery Gate passes:
+
+```text
+persistence-contract.json
+environment.json
+evidence-manifest.json
+recovery.attestation.json
+attestation.junit.xml
+```
+
+The original `result.json`, `report.md`, `report.html`, Recovery Gate, repair
+loop, and storage models remain unchanged. `RecoveryAttestationV1` records the
+exact profile, native framework/runtime, commit and clean/dirty source state,
+dependency-environment hash, contract hash, repaired checkpoint-directory hash,
+distinct process IDs, equal control/resumed digests, 24/24 gate, zero
+tolerances, RPO/RTO, verified recurring bytes, evidence-manifest hash, and
+`signature_status=unsigned`.
+
+The evidence manifest contains path, size, and SHA-256 for every experiment
+artifact. Exactly three index/statement files are excluded to avoid circular
+hashes: the manifest itself, the attestation, and derived attestation JUnit.
+Verification recomputes the closed inventory and rejects missing, extra,
+mutated, path-escaping, or symlinked evidence.
+
+The verifier also checks the dependency/source record, deterministic native
+contract, authoritative result, exact Markdown and HTML rendering, repaired
+checkpoint directory identity, native manifest and payload checksums, immutable
+base identity, worker/recovery PIDs, trajectory digests, gate count and policy,
+RPO/RTO, and verified bytes. `verify-attestation` exits `4` for invalid or
+tampered evidence. No signing or publisher-authentication claim is made.
+
+Generated schemas:
+
+```text
+evidence-manifest-v1.schema.json       1533 bytes
+recovery-attestation-v1.schema.json    6261 bytes
+```
+
+The recovery-attestation schema was regenerated after source provenance was
+bound into environment evidence, and both final files pass schema-drift tests.
+
+### Development findings
+
+The first attestation-enabled repair-loop test run failed closed because
+installed package metadata represented Torch as `2.13.0`, while the actual
+runtime build identity was `2.13.0+cpu`:
+
+```text
+6 errors in 26.21s
+AttestationVerificationError: framework version differs from dependency evidence
+```
+
+The environment record was corrected to use `torch.__version__`, preserving the
+strict equality check. A later review also bound the Git commit and explicit
+`clean`, `dirty`, or `unavailable` source-tree state into the hashed environment
+record. The current manual artifact correctly reports the old HEAD plus
+`source_tree_state=dirty`; it does not pretend uncommitted milestone code is the
+tagged source.
+
+### Focused verification
+
+Commands and final actual output:
+
+```text
+.\.venv\Scripts\python.exe -m ruff format src\flashpilot\attestation\verifier.py tests\integration\test_repair_loop.py
+2 files left unchanged
+
+.\.venv\Scripts\python.exe -m ruff check src\flashpilot\attestation tests\integration\test_repair_loop.py
+All checks passed!
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_repair_loop.py -q
+....................                                                     [100%]
+20 passed in 20.75s
+```
+
+Focused tests cover verified emission, exact persisted fields, closed inventory,
+deterministic repeat verification, failed-gate refusal, one-byte evidence
+mutation, missing evidence, checkpoint mutation, refreshed statement hashes
+versus native payload checksums, report mismatch, contract mismatch, metric
+mismatch, path traversal, valid/invalid CLI exits, Rich unsigned wording,
+eight-check JUnit, and checked-in schema drift.
+
+### Manual native demo and attestation
+
+Commands:
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli demo --provider fixture --profile demo --run-dir .\runs\milestone11-demo
+.\.venv\Scripts\python.exe -m flashpilot.cli verify-attestation .\runs\milestone11-demo\recovery.attestation.json
+```
+
+The native core remained unchanged:
+
+```text
+Initial Recovery Gate: FAIL - 9 exact failures
+Final Recovery Gate: VERIFIED - 24/24
+atol=0.0, rtol=0.0
+repair attempts: 1
+original failed checkpoint unmodified: true
+safe_full recurring logical bytes: 126218
+repaired recurring logical bytes: 32743
+one-time frozen-base bytes: 93987
+recurring reduction: 93475 bytes (74.06%)
+```
+
+Actual attestation summary:
+
+```text
+verdict: verified
+qualification profile: exact-training-resume
+framework: native-pytorch 2.13.0+cpu
+code commit: 97267a3515c9b9add31a63487149d5757a758f0d
+source tree: dirty
+original/recovery PIDs: 16840 / 13376
+Recovery Gate: 24/24
+atol/rtol: 0.0 / 0.0
+RPO/max RPO: 0 / 0 steps
+RTO: 3.975041 seconds
+verified persisted bytes: 32743
+checkpoint files: 8
+checkpoint logical bytes: 32743
+checkpoint SHA-256: b3c1b410a0a478173004618565c0c3c8e42f62e20c6850fd901afe122d5e791a
+contract SHA-256: 760789d83b39b7e8943254158cbf6202bca2e87790cd560f06a4202c51ff3295
+evidence manifest SHA-256: bb36e8727f48c4a9b9217d8cce8831632254cc3d2c6111185b60f04a4fcdd385
+evidence entries: 52
+signature: unsigned
+JUnit: 8 tests, 0 failures
+```
+
+Actual verification output ended with:
+
+```text
+Attestation SHA-256: f79bf9b04061ea46ec4454559873ef22ea118de884c9727109ff6d3e1a54a105
+Unsigned integrity verification passed; no publisher signature was checked.
+```
+
+The manual run directory is ignored by Git.
+
+### Final quality gates
+
+Commands and actual output:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+99 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 41%]
+...........................................................s............ [ 83%]
+.............................                                            [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+172 passed, 1 skipped in 77.74s (0:01:17)
+```
+
+The one skip is the unchanged Windows directory-symlink privilege test. Pytest
+used a unique UUID basetemp and emitted no ACL or cache warning.
+
+### Acceptance and remaining risks
+
+All Milestone 11 acceptance criteria pass. Verification provides strong local
+integrity and internal consistency but not publisher authentication: an actor
+who can replace the entire unsigned bundle can recompute it. Cryptographic
+signing remains explicitly deferred. The attestation currently covers the
+native red-to-green demo; Hugging Face full qualification and its attestation
+remain Milestone 12 work. The source tree remains uncommitted and is recorded as
+dirty rather than misrepresented as clean release code.
+
+## VNext Milestone 12 - Hugging Face Trainer recovery qualification
+
+Date: 2026-07-20. Scope stopped before Milestone 13.
+
+### Dependency and implementation boundary
+
+The new optional group is:
+
+```toml
+hf = [
+    "accelerate>=1.14,<2",
+    "transformers>=5.14,<6",
+]
+```
+
+The first sandboxed editable install could not reach the package index because
+network access was restricted. The approved retry completed successfully:
+
+```text
+.\.venv\Scripts\python.exe -m pip install --no-build-isolation -e ".[hf]"
+Successfully installed accelerate-1.14.0 flashpilot-0.1.0 huggingface_hub-1.24.0
+safetensors-0.8.0 tokenizers-0.22.2 transformers-5.14.1
+```
+
+No model weights or datasets were downloaded. The example creates a tiny model,
+config, and deterministic synthetic dataset locally. All workers ran CPU-only
+with one Torch thread, offline environment flags, explicit seeds, sequential
+samples, and dropout enabled.
+
+The first parent-harness prototype exposed a Windows venv launcher PID mismatch:
+the launcher PID differed from the worker event PID. Reusing the existing
+Windows base-executable pattern alone then lacked venv imports. The final path
+uses the base executable for exact PID ownership and an explicit bounded
+`PYTHONPATH` containing repository source plus current venv site-packages. API
+key variables are removed from the child environment. Successful runs record
+exact event/process PID equality.
+
+### Focused tests
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_hf_adapter.py -q
+........                                                                 [100%]
+8 passed in 0.39s
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_hf_qualification.py -q
+...                                                                      [100%]
+3 passed in 48.66s
+```
+
+The tests cover the narrow capability and argument contracts, callback schema,
+exact persistence inventory, both real three-process protocols, offline worker
+evidence, checkpoint measurement, and complete attestation verification.
+
+### Manual complete HF qualification
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify hf-trainer --script .\examples\hf_trainer\train.py --profile exact-training-resume --fault process-kill --scenario complete --run-dir .\runs\milestone12-hf-complete
+
+VERIFIED
+Processes: control=18724, terminated=25068, recovery=28236
+Result: C:\Programming\business\flashpilot\runs\milestone12-hf-complete\result.json
+Markdown report: C:\Programming\business\flashpilot\runs\milestone12-hf-complete\report.md
+HTML report: C:\Programming\business\flashpilot\runs\milestone12-hf-complete\report.html
+Recovery attestation: C:\Programming\business\flashpilot\runs\milestone12-hf-complete\recovery.attestation.json
+```
+
+Measured evidence:
+
+```text
+checkpoint step / final step: 4 / 8
+verified checkpoint logical bytes: 41635
+control duration: 11.890736 seconds
+checkpoint/termination duration: 8.419455 seconds
+recovery duration: 10.323756 seconds
+Recovery Gate: 13/13
+atol / rtol: 0.0 / 0.0
+RPO / max RPO: 0 / 0
+loss history: exact match
+trainable state: exact SHA-256 match
+fixed evaluation: exact SHA-256 match
+optimizer: exact SHA-256 match
+scheduler: exact SHA-256 match
+```
+
+The checkpoint contains `model.safetensors`, `trainer_state.json`,
+`optimizer.pt`, `scheduler.pt`, and `rng_state.pth` plus bounded metadata.
+Persisted bytes were assigned only after the gate passed.
+
+```text
+.\.venv\Scripts\flashpilot.exe verify-attestation .\runs\milestone12-hf-complete\recovery.attestation.json
+Framework: transformers 5.14.1
+Recovery processes: 25068 -> 28236
+Recovery Gate: 13/13
+Exact policy: atol=0.0, rtol=0.0
+RPO / RTO: 0 steps / 10.324s
+Persisted bytes: 41,635
+Signature: unsigned (integrity only; no publisher authentication)
+Attestation SHA-256: a8cbd09982f3eefa811308d830ade38472f61dff5e3618bd4d3aa19ae696f2ef
+Unsigned integrity verification passed; no publisher signature was checked.
+```
+
+### Manual model-only negative qualification
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify hf-trainer --script .\examples\hf_trainer\train.py --profile exact-training-resume --fault process-kill --scenario model-only --run-dir .\runs\milestone12-hf-model-only
+
+FAILED
+Processes: control=364, terminated=12420, recovery=19792
+model_checkpoint_load_succeeded=true
+model_only_diverged=true
+```
+
+Failed gate IDs:
+
+```text
+checkpoint.optimizer
+checkpoint.scheduler
+checkpoint.rng
+trajectory.loss-history
+state.trainable
+state.evaluation
+state.optimizer
+state.scheduler
+```
+
+The model and Trainer metadata remained valid and loadable. Optimizer,
+scheduler, and RNG files were genuinely absent through Trainer's
+`save_only_model` behavior. Real dropout-enabled continuation diverged without
+output manipulation. No storage metric or attestation was emitted.
+
+### Existing native regression
+
+```text
+.\.venv\Scripts\python.exe -m flashpilot.cli demo --provider fixture --profile ci --run-dir .\runs\milestone12-native-regression
+Initial Recovery Gate: FAIL - 9 exact failures
+Final Recovery Gate: VERIFIED - 24/24
+atol=0.0, rtol=0.0
+RPO: 0
+original failed checkpoint unmodified: true
+```
+
+The P0 NativePyTorchAdapter and six-action repair boundary remain unchanged.
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+112 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 39%]
+......................................................................s. [ 78%]
+........................................                                 [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+183 passed, 1 skipped in 133.36s (0:02:13)
+```
+
+Pytest used a unique UUID basetemp. The skip is the unchanged Windows
+directory-symlink privilege check.
+
+### Acceptance and unresolved risks
+
+All Milestone 12 criteria pass: complete HF recovery is exact and VERIFIED;
+model-only is valid/loadable and FAILED for exact resume; every run uses three
+distinct PIDs with real termination; no network or download is needed; the
+native demo remains green; and Ruff/pytest pass.
+
+Validation used Windows, Python 3.12.13, Transformers 5.14.1, Accelerate 1.14.0,
+and Torch 2.13.0+cpu. Python 3.11 and other hosts remain unverified locally.
+Offline flags are not an OS network sandbox. The adapter qualifies only the
+included callback contract, not arbitrary Trainer scripts. Windows directory
+fsync remains best-effort and attestations remain unsigned. CI workflow,
+every-command JUnit, stable global exit policy, and packaging are Milestone 13+
+and were not started.
+
+## VNext Milestone 13 - CI and developer workflow
+
+Date: 2026-07-20. Scope stopped before Milestone 14.
+
+### Implemented boundary
+
+Milestone 13 adds the opt-in workflow example at
+`examples/github-actions/flashpilot-qualification.yml`; it is intentionally not
+installed under `.github/workflows`. The workflow installs `.[hf]`, runs the
+real HF qualification, statically audits its committed checkpoint, enforces the
+same typed policy used locally, appends `job-summary.md` to
+`GITHUB_STEP_SUMMARY`, uploads diagnostics with `if: always()`, and uploads
+`recovery.attestation.json` only with `if: success()`.
+
+The checked-in `examples/ci/policy.yml` validates against
+`schemas/ci-policy-v1.schema.json`. Its only fields are the exact profile,
+`unknown_state=fail`, canonical process-termination fault, maximum RPO/RTO, and
+attestation requirement. Loading uses bounded `yaml.safe_load`; extra keys,
+arbitrary expressions, weak UNKNOWN settings, and unallowlisted faults fail.
+
+Every completed audit and qualification now contains `junit.xml` and
+`job-summary.md`. Passing attested runs write both before evidence-manifest
+closure. Later `emit-junit` verifies byte equality, refuses to recreate missing
+attested evidence, and independently verifies an existing attestation. Failed
+runs keep diagnostic CI artifacts and never receive an attestation.
+
+### Safe real-HF audit compatibility finding
+
+The first audit of the real Milestone 13 complete Trainer checkpoint failed:
+
+```text
+FAIL
+state.python_rng: rng_state.pth failed weights-only loading
+state.numpy_rng: rng_state.pth failed weights-only loading
+state.torch_rng: rng_state.pth failed weights-only loading
+captured_exit=3
+```
+
+PyTorch reported that the standard Transformers RNG pickle contains
+`numpy._core.multiarray._reconstruct`, which is outside the default
+weights-only allowlist. FlashPilot did not fall back to unrestricted pickle or
+weaken the audit. The supported callback now emits strict
+`flashpilot-hf-rng-metadata-v1` JSON bound to the exact `rng_state.pth` SHA-256
+and three literal RNG presence claims. Static audit validates this bridge and
+hash without loading the pickle. A focused copied-checkpoint test flips one RNG
+byte and proves all three RNG requirements fail.
+
+The corrected real checkpoint audit command and output were:
+
+```text
+.\.venv\Scripts\flashpilot.exe audit-checkpoint .\runs\milestone13-hf-qualified\crash\checkpoints\checkpoint-4 --framework auto --profile exact-training-resume --output-dir .\runs\milestone13-qualified-audit
+PASS
+Static audit only; recovery_verified=false.
+Framework: huggingface-trainer
+Audit JSON: C:\Programming\business\flashpilot\runs\milestone13-qualified-audit\audit.json
+Markdown report: C:\Programming\business\flashpilot\runs\milestone13-qualified-audit\report.md
+JUnit XML: C:\Programming\business\flashpilot\runs\milestone13-qualified-audit\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\milestone13-qualified-audit\job-summary.md
+captured_exit=0
+```
+
+### Generic native qualification
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify native-pytorch --profile exact-training-resume --fault process-kill --workload ci --run-dir .\runs\milestone13-native
+VERIFIED
+Processes: terminated=27632, recovery=31396
+Result: C:\Programming\business\flashpilot\runs\milestone13-native\result.json
+JUnit XML: C:\Programming\business\flashpilot\runs\milestone13-native\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\milestone13-native\job-summary.md
+Recovery attestation: C:\Programming\business\flashpilot\runs\milestone13-native\recovery.attestation.json
+captured_exit=0
+```
+
+The command is a thin entry point over the preserved fixture replay, bounded
+repair, second process termination, exact 24-check Recovery Gate, and unsigned
+attestation core. It adds no new native repair behavior.
+
+### Real HF verified CI path
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify hf-trainer --script .\examples\hf_trainer\train.py --profile exact-training-resume --fault process-kill --scenario complete --run-dir .\runs\milestone13-hf-qualified
+VERIFIED
+Processes: control=16608, terminated=29488, recovery=23100
+JUnit XML: C:\Programming\business\flashpilot\runs\milestone13-hf-qualified\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\milestone13-hf-qualified\job-summary.md
+Recovery attestation: C:\Programming\business\flashpilot\runs\milestone13-hf-qualified\recovery.attestation.json
+captured_exit=0
+```
+
+Measured evidence:
+
+```text
+Recovery Gate: 13/13
+JUnit: 13 tests, 0 failures
+control / terminated / recovery PIDs: 16608 / 29488 / 23100
+RPO: 0 steps
+RTO: 6.536153 seconds
+verified checkpoint logical bytes: 41947
+RNG bridge present: true
+evidence manifest entries: 26
+```
+
+The byte increase from the historical Milestone 12 run is the real strict JSON
+RNG metadata bridge; it is measured rather than hidden or presented as savings.
+
+Policy enforcement and attestation verification:
+
+```text
+.\.venv\Scripts\flashpilot.exe emit-junit --run-dir .\runs\milestone13-hf-qualified --policy .\examples\ci\policy.yml
+VERIFIED
+Policy: PASS
+captured_exit=0
+
+.\.venv\Scripts\flashpilot.exe verify-attestation .\runs\milestone13-hf-qualified\recovery.attestation.json
+Framework: transformers 5.14.1
+Recovery processes: 29488 -> 23100
+Recovery Gate: 13/13
+RPO / RTO: 0 steps / 6.536s
+Persisted bytes: 41,947
+Attestation SHA-256: 638b2166f139ac8a3bc336b426e2ffadf521e5dcedac37e6dadc463ded91db82
+captured_exit=0
+```
+
+### Failed HF CI path and exact requirements
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify hf-trainer --script .\examples\hf_trainer\train.py --profile exact-training-resume --fault process-kill --scenario model-only --run-dir .\runs\milestone13-hf-model-only
+FAILED
+Processes: control=21448, terminated=29604, recovery=28232
+JUnit XML: C:\Programming\business\flashpilot\runs\milestone13-hf-model-only\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\milestone13-hf-model-only\job-summary.md
+captured_exit=3
+```
+
+The JUnit suite contains 13 tests and 8 failures named exactly:
+
+```text
+checkpoint.optimizer
+checkpoint.scheduler
+checkpoint.rng
+trajectory.loss-history
+state.trainable
+state.evaluation
+state.optimizer
+state.scheduler
+```
+
+No attestation exists for this run. Typed policy enforcement remains failed:
+
+```text
+FAILED
+Policy: FAIL
+FAILED REQUIREMENT policy.qualification-verdict: Qualification must have a deterministic VERIFIED verdict.
+captured_exit=3
+```
+
+### Stable exit-code matrix
+
+Actual normal PowerShell process exits:
+
+```text
+0 = verified/pass
+  complete native qualification: 0
+  complete HF qualification: 0
+  complete HF static audit: 0
+  typed policy plus verified attestation: 0
+
+2 = warning/UNKNOWN review
+  unknown empty checkpoint audit: UNKNOWN, captured_exit=2
+
+3 = qualification or enforced-policy failure
+  model-only HF exact qualification: captured_exit=3
+  UNKNOWN with unknown_state=fail: captured_exit=3
+  FAILED REQUIREMENT policy.unknown-state
+
+4 = invalid/tampered evidence
+  emit-junit on a run without result evidence: captured_exit=4
+  INVALID OR TAMPERED CI EVIDENCE: run directory lacks a safe result.json or audit.json
+
+5 = unsupported configuration
+  HF qualification with unsupported profile: captured_exit=5
+```
+
+UNKNOWN never produced exit zero. With the checked-in policy it becomes an
+explicit policy failure rather than PASS.
+
+### Focused verification
+
+Final focused command and actual output:
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_ci.py tests\unit\test_static_audit.py tests\integration\test_repair_loop.py tests\integration\test_hf_qualification.py -q
+............................................................             [100%]
+60 passed in 72.80s (0:01:12)
+```
+
+Additional post-review focused evidence:
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_ci.py tests\integration\test_repair_loop.py -q
+.....................................                                    [100%]
+37 passed in 25.77s
+```
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 35%]
+........................................................................ [ 70%]
+..................s.........................................             [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+203 passed, 1 skipped in 144.55s (0:02:24)
+```
+
+The single skip is the unchanged non-administrator Windows directory-symlink
+test. Pytest used a unique UUID basetemp with no ACL or cache warning. Final Ruff
+outputs after this documentation update were:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+120 files already formatted
+```
+
+### Acceptance and unresolved risks
+
+All Milestone 13 acceptance criteria pass. CI failures name exact audit/gate or
+policy IDs; UNKNOWN cannot become PASS; the example uploads attestations only
+after success; local and example-CI commands share typed services; and full
+pytest passes. The workflow is an opt-in example rather than an active hosted
+service.
+
+Current validation remains Windows/Python 3.12.13. The example targets Python
+3.11 but has not run in hosted GitHub Actions. Windows directory fsync remains
+best-effort, offline flags are not an OS network sandbox, and attestations remain
+unsigned. PyYAML becomes a core dependency so policy loading works without HF
+extras; clean base/HF wheel installation and dependency verification are
+Milestone 14 and were not started.
+
+## 2026-07-20 — VNext Milestone 14: v0.2 release packaging
+
+Milestone 14 was executed alone. Version metadata is `0.2.0`, Python support is
+declared as `>=3.11`, the checked-in Apache-2.0 license is expressed through
+PEP 639 metadata, and the frozen `flashpilot-v0.1.0` tag still resolves to
+`ad0bf8641132125038da7ca17903e4627b9af36d`.
+
+### Build and archive inspection
+
+The release tools were installed at the declared bounds. The first unprivileged
+install attempt was blocked by sandbox network policy; the approved retry
+installed `build 1.5.0` and `twine 6.2.0`. The actual build and validation were:
+
+```text
+.\.venv\Scripts\python.exe -m build --no-isolation
+Successfully built flashpilot-0.2.0.tar.gz and flashpilot-0.2.0-py3-none-any.whl
+
+.\.venv\Scripts\python.exe -m twine check .\dist\flashpilot-0.2.0-py3-none-any.whl .\dist\flashpilot-0.2.0.tar.gz
+Checking .\dist\flashpilot-0.2.0-py3-none-any.whl: PASSED
+Checking .\dist\flashpilot-0.2.0.tar.gz: PASSED
+```
+
+Final artifacts:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `flashpilot-0.2.0-py3-none-any.whl` | 168,532 | `676c1a6110f041b5b84aaa178d3d641a94051ec4ea4ab3c0590b4b8e64bf020b` |
+| `flashpilot-0.2.0.tar.gz` | 129,810 | `cb5383a502558cd441fe6e27893d264c8f77b18a122972977de3bd792cab8a15` |
+
+Programmatic inspection found 111 wheel members and 142 source-distribution
+members. It confirmed name/version, `Requires-Python >=3.11`,
+`License-Expression: Apache-2.0`, `Provides-Extra: dev, hf`, all three HF
+requirements, every required module/fixture/schema/example/checklist, and zero
+run, cache, `.env`, or compiled-Python members.
+
+### Clean installations outside the repository
+
+A network-enabled dependency download created a neutral wheelhouse. Both
+authoritative installations then resolved the FlashPilot wheel offline from
+that wheelhouse. The long clean-environment root is outside this repository and
+was temporarily mapped to `R:` only for installation because Windows long-path
+support is disabled on this host.
+
+Base installation evidence:
+
+```text
+python=3.12.13
+flashpilot=0.2.0
+transformers_present=False
+accelerate_present=False
+safetensors_present=False
+torch=2.13.0
+
+flashpilot doctor --output-dir <outside-repository>/base-run/doctor-output
+Doctor verdict: PASS
+
+flashpilot demo --provider fixture --profile ci --run-dir <outside-repository>/base-run/fixture-demo-canonical
+Initial Recovery Gate: FAIL, 9 exact failures
+Final Recovery Gate: VERIFIED, 24/24
+safe_full recurring logical bytes: 44,998
+repaired recurring logical bytes: 27,681
+one-time immutable base: 18,475
+demo_exit=0
+
+flashpilot audit-checkpoint <safe_full-checkpoint> --framework auto --profile exact-training-resume --output-dir <outside-repository>/base-run/native-safe-full-audit
+PASS
+Static audit only; recovery_verified=false.
+Framework: native-pytorch
+audit_exit=0
+
+flashpilot qualify hf-trainer --run-dir <outside-repository>/base-run/hf-extra-missing
+Hugging Face qualification requires the optional dependencies; install with `pip install 'flashpilot[hf]'`
+hf_missing_exit=5
+```
+
+HF-extra installation evidence:
+
+```text
+python=3.12.13
+flashpilot=0.2.0
+transformers=5.14.1
+accelerate=1.14.0
+safetensors=0.8.0
+torch=2.13.0
+
+flashpilot qualify hf-trainer --profile exact-training-resume --fault process-kill --scenario complete --run-dir <outside-repository>/hf-run/complete-default-worker
+VERIFIED
+Processes: control=6300, terminated=3640, recovery=16756
+Recovery Gate: 13/13
+RPO / RTO: 0 steps / 7.224s
+verified checkpoint logical bytes: 42,010
+hf_qualification_exit=0
+
+flashpilot verify-attestation <outside-repository>/hf-run/complete-default-worker/recovery.attestation.json
+Attestation SHA-256: f9a2670d52ee81272639065c1e87d010644beed0ab72083090481d17bc654509
+Unsigned integrity verification passed; no publisher signature was checked.
+
+flashpilot emit-junit --run-dir <outside-repository>/hf-run/complete-default-worker --policy <installed-data>/examples/ci/policy.yml
+VERIFIED
+Policy: PASS
+
+flashpilot audit-checkpoint <outside-repository>/hf-run/complete-default-worker/crash/checkpoints/checkpoint-4 --framework auto --profile exact-training-resume --output-dir <outside-repository>/hf-run/static-audit
+PASS
+Static audit only; recovery_verified=false.
+Framework: huggingface-trainer
+hf_audit_exit=0
+```
+
+No `--script` argument was used for the accepted HF qualification; the worker
+came from the installed wheel. The worker recorded offline controls, used CPU,
+and downloaded no model or dataset. Scans across both authoritative output
+trees and both distribution archives reported:
+
+```text
+output_secret_matches=0
+distribution_secret_matches=0
+```
+
+### Windows validation findings
+
+Three failed setup attempts were retained as diagnostic facts and not counted
+as acceptance evidence:
+
+- `C:\tmp` environments created under the approved network security context
+  inherited ACLs that denied writes from the normal validation context;
+- installing PyTorch under the first long external path exceeded the host's
+  disabled Windows long-path boundary;
+- a completed fixture run using the `R:` alias failed attestation verification
+  closed because the alias and canonical path were different containment
+  identities.
+
+The successful environments use the external artifact workspace, a short drive
+mapping for package installation, and canonical paths for every run artifact.
+No ACL was modified and no containment rule was weakened. A static audit of an
+adapter-aware checkpoint without its sibling immutable base correctly returned
+FAIL; the authoritative CPU static-audit acceptance used the self-contained
+safe_full checkpoint and returned PASS.
+
+### Focused and full quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+121 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_packaging.py tests\unit\test_doctor.py tests\unit\test_hf_adapter.py tests\integration\test_hf_qualification.py -q
+........................                                                 [100%]
+24 passed in 50.35s
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 34%]
+........................................................................ [ 68%]
+.........................s.........................................      [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+210 passed, 1 skipped in 138.51s (0:02:18)
+```
+
+The single skip is the unchanged Windows directory-symlink privilege test. The
+default pytest command retained its unique UUID basetemp and disabled cache.
+
+### Acceptance and unresolved risks
+
+All Milestone 14 acceptance criteria pass: the native installation works with
+no HF distributions; the HF command fails actionably when its extra is absent;
+the separate HF-extra install qualifies its packaged example; native and HF
+static audits pass on CPU; output and archive secret scans are empty; and the
+full Ruff/pytest gates pass.
+
+Validation remains Windows/Python 3.12.13; Python 3.11 is the declared target
+but was unavailable locally. Windows directory fsync remains best-effort,
+offline environment flags are not an OS network sandbox, the attestation is
+unsigned, dependency installation requires a package index or prepared local
+wheelhouse, and public release/tagging remains a human action. No V0.3 roadmap
+work was started.

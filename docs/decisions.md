@@ -374,3 +374,276 @@ The accepted Prompt 6 measurements remain the submission measurements:
 bytes, 93,475 bytes or 74.06% recurring reduction, and a separate 93,987-byte
 one-time frozen base. The Markdown report now carries the same explicit physical-
 measurement disclaimer as JSON limitations, Rich output, HTML, and README.
+
+## D-031: VNext uses separate requirement, source, and exactness axes
+
+The v0.1 `CheckpointContract` remains frozen for its accepted GPT-5.6 captures
+and fixture demo. VNext adds `PersistenceContract` rather than changing that
+schema in place. Each `PersistenceItem` separately records whether state is
+required, where recovery obtains it, and what equivalence is required. This
+prevents a single enum from conflating necessity with storage location.
+
+V0.2 exposes only `exact-training-resume` and `model-only-inference` profiles.
+The native exact profile requires adapter, immutable base identity, deterministic
+batch position, global step, optimizer, scheduler, and Python/NumPy/Torch RNG.
+The model-only profile requires the adapter and base identity but does not
+pretend training-continuation state is needed for inference.
+
+## D-032: UNKNOWN and contradictions fail closed before minimum merging
+
+`UNKNOWN` is representable so an inspector or model can express uncertainty,
+but deterministic validation never accepts it for qualification. Required state
+must have a non-`none` source and evidence IDs. Exact training resume accepts
+only exact required state. Immutable references, external durable sources, and
+deterministic recomputation require identity controls.
+
+The local native minimum may strengthen a missing or optional proposal item. It
+does not silently repair internally contradictory input, accept state outside
+the deterministic inventory, raise the RPO limit, or change framework, adapter,
+or profile context. This keeps GPT proposals non-authoritative while preserving
+an explicit fail-closed boundary.
+
+## D-033: Canonical contract identity and schemas are deterministic
+
+Contract constructors reject duplicate state IDs and duplicate identifier or
+text entries, and sort unordered contract collections. Canonical JSON uses UTF-8,
+sorted object keys, fixed separators, and no presentation whitespace before
+SHA-256 calculation. Round-trip and reversed-input tests prove stable identity.
+
+The accepted v0.1 native checkpoint contract is migrated through a separate
+function after its existing guardrails pass. The migration retains its strict
+RPO and explanations, maps known state to typed recovery sources, and merges the
+deterministic batch-position minimum. It does not alter v0.1 artifacts or demo
+results. Draft 2020-12 JSON Schemas for the contract, item, and profile are
+generated deterministically and checked into `schemas/`.
+
+## D-034: Static audit has a non-verification verdict domain
+
+Static audit emits only `PASS`, `WARN`, `FAIL`, or `UNKNOWN`, and every typed
+result fixes `static_only=true` and `recovery_verified=false`. It cannot emit
+`VERIFIED`, create a recovery attestation, or substitute file presence for a
+real process-termination and resume experiment. This makes the trust boundary
+machine-enforced rather than a reporting convention.
+
+The stable exit mapping is `PASS=0`, `WARN/UNKNOWN=2`, and `FAIL=3`.
+Unsupported framework/profile or unsafe output configuration uses `5`. Exit
+code `4` remains unused by static audit and reserved for later verification of
+invalid or tampered evidence.
+
+## D-035: Detection uses framework-specific metadata before shared payload names
+
+Native checkpoints are identified through FlashPilot manifest/checksum metadata
+or the native temporary-directory convention. Hugging Face checkpoints are
+identified through Trainer metadata, the `checkpoint-N` convention, or a known
+model/adapter weight filename. Shared training payload names such as
+`optimizer.pt` are insufficient to claim a framework. Conflicting strong
+signals and layouts outside those two inventories stay `UNKNOWN`; a requested
+framework that disagrees with deterministic detection is not forced through.
+
+Audit input must be a contained, non-symlink directory, and audit output must be
+outside that directory. Unknown files are listed and never trusted. Native
+payload integrity is checked before safe inspection using the existing manifest
+and checksum validator.
+
+## D-036: Hugging Face static support is metadata-first and deliberately narrow
+
+The supported Hugging Face exact-resume layout uses schema-checked
+`trainer_state.json`, bounded `training_args.json`, model/config identity,
+safetensors metadata or an allowlisted weights-only model payload, optimizer,
+scheduler, and RNG state. Safetensors inspection validates bounded JSON headers,
+shapes, dtypes, byte counts, non-overlapping offsets, and complete data coverage
+without tensor materialization. Known PyTorch payloads use
+`torch.load(..., weights_only=True)`.
+
+`training_args.bin` is reported but never unpickled; exact resume therefore
+requires the supported JSON metadata bridge. Arbitrary files, training scripts,
+and unknown pickle names are never loaded. This is qualified support for the
+documented fixture, not a generic repository scanner or arbitrary Trainer
+compatibility claim.
+
+## D-037: Only a persisted deterministic VERIFIED result can create an attestation
+
+`RecoveryAttestationV1` is a derived statement, not another verdict engine. The
+builder requires the persisted `RepairLoopResult` to equal the in-memory result,
+the repaired gate to pass with no failed IDs at zero tolerance, all reports to
+match deterministic rendering, the failed checkpoint to remain unchanged, and
+post-gate storage evidence to exist. Any failed or inconsistent condition stops
+before `recovery.attestation.json` is written. Failed experiment records may
+remain available, but they cannot be upgraded into verified attestations.
+
+The original result schema is not extended with attestation fields. This keeps
+the frozen v0.1 result and reports authoritative while allowing a separately
+versioned, portable VNext statement.
+
+## D-038: The evidence manifest is closed but excludes circular statement artifacts
+
+`evidence-manifest.json` contains sorted run-relative path, byte size, and
+SHA-256 entries for every experiment evidence file, including result, reports,
+contract, environment, checkpoints, frozen base, worker evidence, agent replay,
+repair configuration, and measurements. Verification recomputes the entire
+inventory and requires exact equality, not merely verification of entries that
+happen to remain.
+
+The manifest excludes itself, `recovery.attestation.json`, and
+`attestation.junit.xml`. These are an index, its statement, and a derived view;
+including them would create a circular hash. The attestation binds the manifest
+file SHA-256, while the JUnit is deterministically rendered from successful
+verification. Fixed exclusions are schema-validated and cannot be expanded.
+
+## D-039: Attestation verification proves integrity, not publisher identity
+
+The verifier rejects malformed schemas, path traversal, symlinks, missing or
+extra evidence, file mutations, contract changes, result/report mismatch,
+checkpoint-directory changes, native manifest/checksum failure, immutable-base
+failure, environment mismatch, and metric disagreement. `verify-attestation`
+returns `0` only after every check and `4` for invalid or tampered evidence.
+
+The attestation records the Git commit and explicitly records whether the source
+tree was clean, dirty, or unavailable. Both are bound into hashed environment
+evidence. It is still `signature_status=unsigned`: an attacker able to rewrite
+the entire bundle can recompute an unsigned statement. No signing key,
+Sigstore, Ed25519, OIDC provenance, legal certification, or third-party claim is
+part of Milestone 11.
+
+## D-040: Hugging Face qualification is one explicit callback contract
+
+VNext installs Transformers and Accelerate only through the `hf` optional
+dependency group. `HuggingFaceTrainerAdapter` is not registered in the frozen
+P0 native repair registry and provides no discovery, entry points, framework
+auto-detection, or external adapter loading. It builds a bounded subprocess
+argument vector for one documented script protocol and states
+`arbitrary_script_compatibility=false`.
+
+The callback is intentionally non-authoritative. It may report only lifecycle,
+step, path, and checkpoint-state presence after Trainer completes its save. The
+parent validates the event and containment, performs the real process kill,
+launches recovery, compares trajectories, and derives the verdict. This avoids
+turning an in-process callback into self-attested recovery proof.
+
+## D-041: Complete and model-only checkpoints use the same exact gate
+
+The complete scenario uses Trainer's real model, optimizer, scheduler,
+`trainer_state.json`, and Python/NumPy/Torch RNG checkpoint files. Exact resume
+requires zero-tolerance equality for the full loss history, trainable-state
+digest, fixed evaluation digest, optimizer digest, scheduler digest, final
+global step, and RPO. Only this passing scenario may report checkpoint bytes or
+emit the unsigned recovery attestation.
+
+The model-only scenario uses Trainer's real `save_only_model` behavior. Its
+model and Trainer metadata load successfully, but optimizer, scheduler, and RNG
+files are absent. The new process continues through the real dropout-enabled
+training path and diverges; no output manipulation or weakened comparison is
+used. Missing state and trajectory differences remain separate failed checks.
+
+## D-042: Offline controls are evidence, not an OS network-sandbox claim
+
+The included example creates its model/config and deterministic synthetic data
+locally. Every worker requires `TRANSFORMERS_OFFLINE=1`, `HF_HUB_OFFLINE=1`, and
+`HF_DATASETS_OFFLINE=1`, disables CUDA, and records that those controls were
+present. The harness also strips API-key environment variables and uses
+`shell=False`. These controls prevent supported library download paths for this
+example; they do not claim to contain arbitrary user code at the operating
+system network layer.
+
+The complete HF attestation reuses the existing closed evidence inventory and
+unsigned statement format, binds the Transformers/Accelerate environment and a
+separate deterministic HF persistence contract, and validates the safetensors
+model plus required Trainer state files. Native attestation verification remains
+unchanged through an explicit framework branch.
+
+## D-043: CI consumes normalized evidence instead of parsing logs
+
+Static audits, native gates, and HF gates are mapped into one strict
+`CIRunEvidence` view. The mapping preserves exact check IDs and statuses and
+derives no new recovery verdict. JUnit uses one testcase per deterministic
+check, with failure elements containing expected and actual evidence. The
+Markdown job summary lists exact failed IDs from that same normalized object.
+Local `emit-junit` and the example workflow call this shared service; CI has no
+parallel implementation or log-regex policy.
+
+## D-044: Policy YAML is closed data, not policy scripting
+
+`CIPolicyV1` accepts only `exact-training-resume`, `unknown_state=fail`, the
+canonical `process_termination` fault class, nonnegative maximum RPO, positive
+maximum RTO, and an attestation boolean. The loader uses bounded `safe_load`,
+the Pydantic model forbids extra fields, and the checked-in JSON Schema is drift
+tested. UNKNOWN therefore cannot be configured into PASS, and no expression,
+path action, import, command, hook, or arbitrary code field exists.
+
+Mechanism names such as the HF adapter's `process-kill` are normalized only at
+the trusted evidence boundary into the cross-framework fault class
+`process_termination`. This is a fixed deterministic mapping, not free-form
+policy interpretation.
+
+## D-045: CI artifacts precede attestation inventory closure
+
+Qualification `junit.xml` and `job-summary.md` are written from the persisted
+result before a passing run emits its evidence manifest and attestation. They
+therefore become hashed evidence. A later `emit-junit` invocation requires
+byte-for-byte equality and refuses to create a missing file when an attestation
+already exists. This preserves the Milestone 11 closed-inventory guarantee and
+prevents a CI convenience command from repairing or mutating attested evidence.
+
+Failed qualifications emit diagnostic CI artifacts but never an attestation.
+The example GitHub workflow uploads reports/JUnit with `if: always()` and
+uploads the attestation separately with `if: success()`.
+
+## D-046: Standard HF RNG is audited through a hash-bound JSON bridge
+
+Transformers 5.14.1 writes NumPy RNG state using globals that PyTorch's default
+weights-only unpickler refuses. Falling back to unrestricted pickle would break
+the static-audit safety boundary. The supported callback instead writes strict
+`flashpilot-rng-metadata.json`, identifying the standard RNG payload by SHA-256
+and asserting the Python, NumPy, and Torch sections produced by the supported
+Trainer save contract. Audit checks the schema and payload hash without loading
+the pickle. A changed RNG byte or metadata mismatch fails all three RNG
+requirements. Older safe fixtures remain on the original weights-only reader.
+
+## D-047: Stable exits distinguish review, failure, integrity, and support
+
+The public audit/qualification/CI boundary uses `0` for verified/pass, `2` for
+warning or UNKNOWN review, `3` for qualification or enforced-policy failure,
+`4` for invalid/tampered evidence, and `5` for unsupported configuration.
+UNKNOWN is never assigned zero. Legacy diagnostic-only commands that are not
+audit or qualification surfaces retain their existing behavior.
+
+## D-048: v0.2 has one base package and one explicit HF extra
+
+The base distribution retains the native fixture demo, static audit, CI, and
+attestation surfaces without installing Transformers, Accelerate, or
+safetensors. The `hf` extra lists all three direct HF runtime dependencies with
+bounded major versions. The CLI probes the optional group before importing the
+qualification service and fails with exit `5` plus one exact install command.
+Malformed or partially installed dependency metadata is not treated as a
+working HF environment.
+
+The packaged offline worker is the default `qualify hf-trainer` script so an
+installed wheel has a complete, downloadable-model-free example. An explicit
+`--script` still selects the narrow callback contract. This default is packaging
+ergonomics, not framework discovery, external adapter loading, or arbitrary
+script compatibility.
+
+## D-049: Release evidence comes from archives and isolated installations
+
+Milestone 14 accepts neither an editable install nor source-tree import as
+release proof. Both the wheel and source distribution are inspected for
+metadata, required resources, and forbidden generated content. The wheel is
+then installed twice outside the repository: once without extras and once with
+`[hf]`. Both environments resolve from the wheel's declared metadata and run
+the installed console entry point.
+
+Windows validation encountered three host boundaries: cross-principal ACLs in
+`C:\tmp`, disabled long-path support during the PyTorch install, and canonical
+containment disagreement when a `subst` drive alias was used as an evidence
+path. The authoritative environments therefore use a short drive mapping only
+during installation and canonical paths for run artifacts. FlashPilot continues
+to fail closed on aliased containment rather than normalizing two path
+identities into one.
+
+## D-050: Packaging is not publication
+
+Version `0.2.0`, Python `>=3.11`, Apache-2.0 metadata, wheel, source archive,
+hashes, and a release checklist are prepared locally. No tag, signing key,
+registry upload, package-index publication, or hosted workflow activation is
+performed by this milestone. The v0.1 tag remains frozen at its original
+commit, and all human release actions remain explicit checklist items.

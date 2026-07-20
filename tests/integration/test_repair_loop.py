@@ -1,11 +1,35 @@
 from __future__ import annotations
 
+import json
+import shutil
+from pathlib import Path
+from xml.etree import ElementTree
+
 import pytest
 from rich.console import Console
 from typer.testing import CliRunner
 
 from flashpilot.agent.guardrails import RepairAttemptLimitError
+from flashpilot.attestation import (
+    ATTESTATION_JUNIT_PATH,
+    EVIDENCE_MANIFEST_PATH,
+    RECOVERY_ATTESTATION_PATH,
+    EvidenceManifestV1,
+    RecoveryAttestationV1,
+    verify_recovery_attestation,
+)
+from flashpilot.attestation.builder import AttestationEmissionError, emit_recovery_attestation
+from flashpilot.attestation.integrity import collect_evidence_entries
+from flashpilot.attestation.reporters import render_attestation_summary
+from flashpilot.attestation.schema import attestation_schema_documents
+from flashpilot.attestation.verifier import AttestationVerificationError
+from flashpilot.checkpoints.integrity import directory_content_fingerprint, sha256_file
 from flashpilot.cli import app
+from flashpilot.contracts import (
+    PersistenceContract,
+    canonical_contract_json,
+    persistence_contract_sha256,
+)
 from flashpilot.domain.agent import NATIVE_PYTORCH_REPAIR_ACTIONS
 from flashpilot.domain.repair import RepairLoopResult
 from flashpilot.orchestration.repair_loop import run_bounded_repair_loop
@@ -15,6 +39,32 @@ from flashpilot.presentation.console import (
     render_demo_result,
 )
 from flashpilot.repair.executor import execute_bounded_repair
+
+
+def _write_json(path: Path, value: object) -> None:
+    if hasattr(value, "model_dump"):
+        value = value.model_dump(mode="json")
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def _copy_bundle(completed_repair_loop, destination: Path) -> Path:
+    source, _ = completed_repair_loop
+    return Path(shutil.copytree(source, destination))
+
+
+def _refresh_bundle_inventory(bundle: Path, **attestation_updates: object) -> None:
+    manifest = EvidenceManifestV1(entries=collect_evidence_entries(bundle))
+    manifest_path = bundle / EVIDENCE_MANIFEST_PATH
+    _write_json(manifest_path, manifest)
+    attestation_path = bundle / RECOVERY_ATTESTATION_PATH
+    attestation = json.loads(attestation_path.read_text(encoding="utf-8"))
+    attestation["evidence_manifest_sha256"] = sha256_file(manifest_path)
+    attestation.update(attestation_updates)
+    _write_json(attestation_path, attestation)
 
 
 @pytest.fixture(scope="module")
@@ -164,3 +214,321 @@ def test_prompt6_console_and_html_are_result_only_presentations(completed_repair
         MEASUREMENT_DISCLAIMER,
     ):
         assert expected in markdown
+
+
+def test_verified_demo_emits_closed_recovery_attestation(completed_repair_loop) -> None:
+    run_root, result = completed_repair_loop
+    attestation_path = run_root / RECOVERY_ATTESTATION_PATH
+    manifest_path = run_root / EVIDENCE_MANIFEST_PATH
+    junit_path = run_root / ATTESTATION_JUNIT_PATH
+
+    attestation = RecoveryAttestationV1.model_validate_json(
+        attestation_path.read_text(encoding="utf-8")
+    )
+    manifest = EvidenceManifestV1.model_validate_json(manifest_path.read_text(encoding="utf-8"))
+    verification = verify_recovery_attestation(attestation_path)
+
+    assert attestation.verdict == "verified"
+    assert attestation.signature_status == "unsigned"
+    assert attestation.qualification_profile == "exact-training-resume"
+    assert attestation.original_worker_pid == result.repaired_run.crash.worker_pid
+    assert attestation.recovery_worker_pid == result.repaired_run.recovery.worker_pid
+    assert attestation.original_worker_pid != attestation.recovery_worker_pid
+    assert attestation.control_digest == attestation.resumed_digest
+    assert attestation.control_evaluation_digest == attestation.resumed_evaluation_digest
+    assert attestation.checks_passed == attestation.checks_total == 24
+    assert attestation.atol == attestation.rtol == 0.0
+    assert attestation.rpo_steps == 0
+    assert (
+        attestation.verified_persisted_bytes == result.storage_comparison.repaired_recurring_bytes
+    )
+    assert attestation.evidence_manifest_sha256 == sha256_file(manifest_path)
+    assert manifest.entries == collect_evidence_entries(run_root)
+    assert verification.valid is True
+    assert verification.verdict == "VERIFIED"
+    assert len(verification.checks) == 8
+    junit = ElementTree.parse(junit_path).getroot()
+    assert junit.attrib == {
+        "name": "flashpilot.attestation-verification",
+        "tests": "8",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+    }
+    qualification_junit = ElementTree.parse(run_root / "junit.xml").getroot()
+    assert qualification_junit.attrib["tests"] == "24"
+    assert qualification_junit.attrib["failures"] == "0"
+    assert "Exact failed requirements\n\n- None" in (run_root / "job-summary.md").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_emit_junit_enforces_policy_without_mutating_attested_bundle(
+    completed_repair_loop,
+) -> None:
+    run_root, _ = completed_repair_loop
+    before = collect_evidence_entries(run_root)
+
+    invocation = CliRunner().invoke(
+        app,
+        [
+            "emit-junit",
+            "--run-dir",
+            str(run_root),
+            "--policy",
+            "examples/ci/policy.yml",
+        ],
+    )
+
+    assert invocation.exit_code == 0, invocation.output
+    assert "VERIFIED" in invocation.output
+    assert "Policy: PASS" in invocation.output
+    assert collect_evidence_entries(run_root) == before
+    assert verify_recovery_attestation(run_root / RECOVERY_ATTESTATION_PATH).valid is True
+
+
+def test_emit_junit_does_not_repair_missing_artifact_in_attested_bundle(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "missing-ci-junit")
+    (bundle / "junit.xml").unlink()
+
+    invocation = CliRunner().invoke(app, ["emit-junit", "--run-dir", str(bundle)])
+
+    assert invocation.exit_code == 4
+    assert "attested run is missing junit.xml" in invocation.output
+    assert not (bundle / "junit.xml").exists()
+
+
+def test_emit_junit_rejects_tampered_existing_attestation(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "tampered-ci-attestation")
+    attestation = bundle / RECOVERY_ATTESTATION_PATH
+    payload = bytearray(attestation.read_bytes())
+    payload[-2] ^= 1
+    attestation.write_bytes(payload)
+
+    invocation = CliRunner().invoke(app, ["emit-junit", "--run-dir", str(bundle)])
+
+    assert invocation.exit_code == 4
+    assert "existing recovery attestation is invalid or tampered" in invocation.output
+
+
+def test_attestation_verification_is_deterministic(completed_repair_loop) -> None:
+    run_root, _ = completed_repair_loop
+    path = run_root / RECOVERY_ATTESTATION_PATH
+
+    first = verify_recovery_attestation(path)
+    second = verify_recovery_attestation(path)
+
+    assert first == second
+
+
+def test_failed_gate_cannot_emit_verified_attestation(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    _, result = completed_repair_loop
+    failed_gate = result.repaired_run.gate.model_copy(
+        update={"passed": False, "failed_check_ids": ("state.optimizer",)}
+    )
+    failed_run = result.repaired_run.model_copy(update={"gate": failed_gate})
+    failed_result = result.model_copy(
+        update={
+            "repaired_run": failed_run,
+            "final_verdict": "FAILED",
+            "storage_comparison": None,
+            "fallback_status": "documented_not_invoked_after_failure",
+        }
+    )
+    failed_root = tmp_path / "failed"
+
+    with pytest.raises(AttestationEmissionError, match="passing deterministic Recovery Gate"):
+        emit_recovery_attestation(run_root=failed_root, result=failed_result)
+
+    assert not (failed_root / RECOVERY_ATTESTATION_PATH).exists()
+
+
+def test_one_byte_evidence_mutation_is_detected(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "mutated-evidence")
+    report = bundle / "report.md"
+    payload = bytearray(report.read_bytes())
+    payload[0] ^= 0x01
+    report.write_bytes(payload)
+
+    with pytest.raises(AttestationVerificationError, match="mutated artifacts"):
+        verify_recovery_attestation(bundle / RECOVERY_ATTESTATION_PATH)
+
+
+def test_checkpoint_mutation_is_detected(completed_repair_loop, tmp_path: Path) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "mutated-checkpoint")
+    attestation = RecoveryAttestationV1.model_validate_json(
+        (bundle / RECOVERY_ATTESTATION_PATH).read_text(encoding="utf-8")
+    )
+    checkpoint = bundle / attestation.checkpoint_path
+    payload = checkpoint / "adapter.pt"
+    content = bytearray(payload.read_bytes())
+    content[-1] ^= 0x01
+    payload.write_bytes(content)
+
+    with pytest.raises(AttestationVerificationError, match="mutated artifacts"):
+        verify_recovery_attestation(bundle / RECOVERY_ATTESTATION_PATH)
+
+
+def test_native_checkpoint_checksum_rejects_mutation_even_if_statement_hashes_are_refreshed(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "refreshed-checkpoint")
+    attestation_path = bundle / RECOVERY_ATTESTATION_PATH
+    attestation = RecoveryAttestationV1.model_validate_json(
+        attestation_path.read_text(encoding="utf-8")
+    )
+    checkpoint_path = bundle / attestation.checkpoint_path
+    payload = checkpoint_path / "adapter.pt"
+    content = bytearray(payload.read_bytes())
+    content[-1] ^= 0x01
+    payload.write_bytes(content)
+    fingerprint = directory_content_fingerprint(checkpoint_path)
+    _refresh_bundle_inventory(
+        bundle,
+        checkpoint_sha256=fingerprint.sha256,
+        checkpoint_file_count=fingerprint.file_count,
+        checkpoint_logical_bytes=fingerprint.logical_bytes,
+    )
+
+    with pytest.raises(AttestationVerificationError, match="native integrity"):
+        verify_recovery_attestation(attestation_path)
+
+
+def test_missing_evidence_is_detected(completed_repair_loop, tmp_path: Path) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "missing-evidence")
+    (bundle / "agent" / "request.redacted.json").unlink()
+
+    with pytest.raises(AttestationVerificationError, match="missing, extra, or mutated"):
+        verify_recovery_attestation(bundle / RECOVERY_ATTESTATION_PATH)
+
+
+def test_report_mismatch_is_detected_even_with_refreshed_file_hashes(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "report-mismatch")
+    with (bundle / "report.md").open("a", encoding="utf-8", newline="\n") as stream:
+        stream.write("tampered report claim\n")
+    _refresh_bundle_inventory(bundle)
+
+    with pytest.raises(AttestationVerificationError, match="Markdown report/result mismatch"):
+        verify_recovery_attestation(bundle / RECOVERY_ATTESTATION_PATH)
+
+
+def test_contract_mismatch_is_detected_even_with_refreshed_hashes(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "contract-mismatch")
+    contract_path = bundle / "persistence-contract.json"
+    contract = PersistenceContract.model_validate_json(contract_path.read_text(encoding="utf-8"))
+    changed = contract.model_copy(update={"warnings": (*contract.warnings, "tampered warning")})
+    contract_path.write_text(
+        canonical_contract_json(changed) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    _refresh_bundle_inventory(
+        bundle,
+        persistence_contract_sha256=persistence_contract_sha256(changed),
+    )
+
+    with pytest.raises(AttestationVerificationError, match="deterministic native minimum"):
+        verify_recovery_attestation(bundle / RECOVERY_ATTESTATION_PATH)
+
+
+def test_attestation_metric_mismatch_is_detected(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "metric-mismatch")
+    path = bundle / RECOVERY_ATTESTATION_PATH
+    value = json.loads(path.read_text(encoding="utf-8"))
+    value["verified_persisted_bytes"] += 1
+    _write_json(path, value)
+
+    with pytest.raises(AttestationVerificationError, match="persisted bytes mismatch"):
+        verify_recovery_attestation(path)
+
+
+def test_path_traversal_in_evidence_manifest_is_rejected(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "path-traversal")
+    manifest_path = bundle / EVIDENCE_MANIFEST_PATH
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["entries"][0]["path"] = "../outside.json"
+    _write_json(manifest_path, manifest)
+    attestation_path = bundle / RECOVERY_ATTESTATION_PATH
+    attestation = json.loads(attestation_path.read_text(encoding="utf-8"))
+    attestation["evidence_manifest_sha256"] = sha256_file(manifest_path)
+    _write_json(attestation_path, attestation)
+
+    with pytest.raises(AttestationVerificationError, match="invalid evidence-manifest.json"):
+        verify_recovery_attestation(attestation_path)
+
+
+def test_verify_attestation_cli_uses_integrity_exit_code(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    run_root, _ = completed_repair_loop
+    runner = CliRunner()
+    valid = runner.invoke(
+        app,
+        ["verify-attestation", str(run_root / RECOVERY_ATTESTATION_PATH)],
+    )
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "cli-invalid")
+    with (bundle / "report.md").open("a", encoding="utf-8") as stream:
+        stream.write("mutation")
+    invalid = runner.invoke(
+        app,
+        ["verify-attestation", str(bundle / RECOVERY_ATTESTATION_PATH)],
+    )
+
+    assert valid.exit_code == 0, valid.output
+    assert "VERIFIED" in valid.output
+    assert "Unsigned integrity verification passed" in valid.output
+    assert invalid.exit_code == 4
+    assert "INVALID OR TAMPERED" in invalid.output
+
+
+def test_attestation_rich_summary_is_explicitly_unsigned(completed_repair_loop) -> None:
+    run_root, _ = completed_repair_loop
+    path = run_root / RECOVERY_ATTESTATION_PATH
+    attestation = RecoveryAttestationV1.model_validate_json(path.read_text(encoding="utf-8"))
+    verification = verify_recovery_attestation(path)
+    console = Console(record=True, width=180, color_system=None)
+
+    render_attestation_summary(
+        console=console,
+        attestation=attestation,
+        verification=verification,
+    )
+
+    rendered = console.export_text()
+    assert "Recovery attestation v1" in rendered
+    assert "VERIFIED" in rendered
+    assert "24/24" in rendered
+    assert "unsigned" in rendered
+    assert "no publisher authentication" in rendered
+
+
+def test_checked_in_attestation_schemas_match_generator() -> None:
+    for filename, expected in attestation_schema_documents().items():
+        actual = json.loads((Path("schemas") / filename).read_text(encoding="utf-8"))
+        assert actual == expected

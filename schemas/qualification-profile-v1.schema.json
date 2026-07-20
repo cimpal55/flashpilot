@@ -1,0 +1,10 @@
+{
+  "$id": "https://schemas.flashpilot.dev/qualification-profile-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "enum": [
+    "exact-training-resume",
+    "model-only-inference"
+  ],
+  "title": "QualificationProfile",
+  "type": "string"
+}
