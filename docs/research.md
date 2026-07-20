@@ -351,3 +351,38 @@ attestation authenticates the exact policy-evaluation bytes, while only the
 existing local Recovery Gates and closed suite evaluator determine whether
 recovery is verified. GitHub's required attestation storage is not extended
 into a FlashPilot registry, query service, or history product in this item.
+
+## Local attestation-history boundary
+
+The V1.0 registry item deliberately uses simpler, established integrity
+building blocks: exact-byte Ed25519 verification, SHA-256 content identities,
+closed manifests, predecessor hashes, exclusive create-only locking, fsync,
+and atomic same-filesystem directory rename. FlashPilot's contribution is the
+bounded composition around its existing recovery-attestation contract, not a
+new signature, ledger, transparency-log, or distributed-consensus algorithm.
+
+Admission and archival verification answer different questions. Admission
+verifies the complete deterministic recovery bundle twice under an explicit
+trusted key before commit. The compact history preserves the exact signed
+statement, detached signature, and public key, so later verification can prove
+that those bytes and the local sequence have not changed. It cannot revalidate
+source checkpoint bytes that were intentionally not copied. Documentation and
+CLI output therefore do not call a registry-history check a new Recovery Gate
+verdict.
+
+The predecessor chain makes interior removal, insertion, reordering, or
+mutation detectable when the complete local directory is validated. A local
+atomically replaced `HEAD` additionally binds the expected count and newest
+manifest hash so suffix truncation is detected. This is still not a
+transparency log: there is no witness, consistency proof, independently
+published head, remote service, or globally trusted root. An adversary with
+authority to replace the whole registry can replace its metadata, chain, and
+local head. This threat is stated rather than obscured by a stronger product
+claim.
+
+The implementation also avoids repository or filesystem discovery outside the
+explicit registry root. There is no network protocol, SQL/document store,
+background publisher, retention worker, deletion API, search language,
+organization-policy evaluation, or OIDC/Sigstore import. These boundaries keep
+the item useful for local evidence history without prematurely implementing the
+commercial registry/dashboard layer deferred by the master plan.

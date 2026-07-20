@@ -54,6 +54,7 @@ from flashpilot.presentation.console import (
     MEASUREMENT_DISCLAIMER,
     render_demo_result,
 )
+from flashpilot.registry import verify_attestation_registry
 from flashpilot.repair.executor import execute_bounded_repair
 
 
@@ -866,6 +867,102 @@ def test_signed_attestation_cli_is_fail_closed_and_secret_free(
     assert ci_trusted.exit_code == 0, ci_trusted.output
     assert repeated_keygen.exit_code == 5
     assert "must not already exist" in repeated_keygen.output
+
+
+def test_local_registry_admits_only_the_real_verified_signed_bundle(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "registry-source-bundle")
+    attestation_path = bundle / RECOVERY_ATTESTATION_PATH
+    generated = generate_ed25519_signing_key(tmp_path / "registry-key")
+    wrong_key = generate_ed25519_signing_key(tmp_path / "registry-wrong-key")
+    attestation_bytes = attestation_path.read_bytes()
+    registry_root = tmp_path / "attestation-registry"
+    runner = CliRunner()
+
+    initialized = runner.invoke(
+        app,
+        ["attestation-registry", "init", str(registry_root)],
+    )
+    unsigned = runner.invoke(
+        app,
+        [
+            "attestation-registry",
+            "add",
+            str(attestation_path),
+            "--registry-root",
+            str(registry_root),
+            "--public-key",
+            str(generated.public_key_path),
+        ],
+    )
+    sign_recovery_attestation(
+        attestation_path=attestation_path,
+        private_key_path=generated.private_key_path,
+    )
+    signature_bytes = (bundle / ATTESTATION_SIGNATURE_PATH).read_bytes()
+    untrusted = runner.invoke(
+        app,
+        [
+            "attestation-registry",
+            "add",
+            str(attestation_path),
+            "--registry-root",
+            str(registry_root),
+            "--public-key",
+            str(wrong_key.public_key_path),
+        ],
+    )
+    registered = runner.invoke(
+        app,
+        [
+            "attestation-registry",
+            "add",
+            str(attestation_path),
+            "--registry-root",
+            str(registry_root),
+            "--public-key",
+            str(generated.public_key_path),
+        ],
+    )
+    verified = runner.invoke(
+        app,
+        ["attestation-registry", "verify", str(registry_root)],
+    )
+    duplicate = runner.invoke(
+        app,
+        [
+            "attestation-registry",
+            "add",
+            str(attestation_path),
+            "--registry-root",
+            str(registry_root),
+            "--public-key",
+            str(generated.public_key_path),
+        ],
+    )
+    history = verify_attestation_registry(registry_root)
+    stored_root = next((registry_root / "entries").iterdir())
+
+    assert initialized.exit_code == 0, initialized.output
+    assert unsigned.exit_code == 4
+    assert "valid signed recovery-attestation bundle" in unsigned.output
+    assert untrusted.exit_code == 4
+    assert "valid signed recovery-attestation bundle" in untrusted.output
+    assert registered.exit_code == 0, registered.output
+    assert "REGISTERED" in registered.output
+    assert verified.exit_code == 0, verified.output
+    assert "Entries: 1" in verified.output
+    assert duplicate.exit_code == 4
+    assert "already registered" in duplicate.output
+    assert history.entry_count == 1
+    assert history.entries[0].verification_check_ids[-1] == "signature.ed25519"
+    assert (stored_root / RECOVERY_ATTESTATION_PATH).read_bytes() == attestation_bytes
+    assert (stored_root / ATTESTATION_SIGNATURE_PATH).read_bytes() == signature_bytes
+    assert generated.private_key_path.read_bytes() not in b"".join(
+        path.read_bytes() for path in stored_root.iterdir() if path.is_file()
+    )
 
 
 def test_signing_rejects_a_non_ed25519_private_key(

@@ -4353,3 +4353,155 @@ Its upload log included the policy source/evaluation, saved Sigstore bundle,
 and JSON verification result alongside the existing public signed evidence;
 the private key had already been removed successfully. These are hosted-run
 evidence values, not storage-savings or performance claims.
+
+## V1.0 item 7 - optional local attestation registry and history
+
+The seventh V1.0 item added only an explicitly initialized, local,
+append-only history for existing signed recovery attestations. It did not
+change qualification, checkpointing, policy, OIDC, framework, GPT, repair, or
+Recovery Gate behavior, and it did not begin organization-level policy.
+
+Registry admission runs the existing complete recovery-attestation verifier
+twice with `require_signed=True` and an explicitly supplied trusted Ed25519
+public key. Between those checks it captures the exact attestation, signature,
+and public-key bytes. A strict entry records their sizes and hashes, immutable
+attestation identity, successful check IDs, sequence, and predecessor manifest
+hash. A fixed completion marker and content-addressed final directory close the
+entry after durable file writes and an atomic same-filesystem directory rename.
+A strict atomically replaced `HEAD` records the expected count and newest
+manifest hash, so suffix deletion and interrupted entry/head updates also fail
+closed.
+
+Every read and append validates the complete registry from sequence 1 through
+its head, including root/entry inventories, the 10,000-entry bound, directory
+names, manifest and completion hashes, exact artifact bytes, strict Pydantic
+models, Ed25519 signatures, attestation summaries, and predecessor links. An
+exclusive create-only lock serializes writers. Duplicate attestations,
+symbolic links, unknown files, temporary entries, gaps, retained locks, wrong
+keys, unsigned statements, and mutations fail closed. Windows directory fsync
+remains best-effort; payload and metadata file fsync and atomic rename remain
+required.
+
+The registry stores no private key and no source checkpoint/evidence bundle.
+Consequently, later history verification proves the stored signature and local
+chain, not a newly executed Recovery Gate. It is a local operator-controlled
+archive, not a hosted service, transparency log, remote API, organization
+policy, revocation system, or repository scanner.
+
+Focused model, schema, packaging, synthetic two-entry chain, CLI, and real
+deterministic source-bundle validation passed:
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_attestation_registry.py tests\unit\test_packaging.py tests\integration\test_repair_loop.py -q
+............................................................             [100%]
+60 passed in 27.61s
+```
+
+The real-bundle test additionally proved that unsigned and wrong-key sources
+are rejected, then admitted the unchanged valid signed bundle, rejected a
+duplicate, preserved exact public bytes, and verified the resulting history.
+
+Local validation used Windows 11 and Python 3.12.13. The repository-wide gates
+passed with unchanged platform skips:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+223 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+.................sss................s................................... [ 18%]
+........................................................................ [ 36%]
+........................................................................ [ 54%]
+........................................................................ [ 72%]
+...............................s........................................ [ 90%]
+......................................                                   [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\integration\test_deepspeed_qualification.py:26: real DeepSpeed ZeRO-2 qualification requires the Linux optional dependency
+SKIPPED [2] tests\integration\test_deepspeed_qualification.py:119: real DeepSpeed ZeRO-2 qualification requires the Linux optional dependency
+SKIPPED [1] tests\integration\test_preemption_certification.py:18: real external POSIX SIGTERM is unavailable
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] the client does not hold the required privilege
+393 passed, 5 skipped in 321.13s (0:05:21)
+```
+
+The skip detail above translates the localized Windows privilege message; the
+test remains enabled and conditionally skipped. No tolerance, status,
+signature, policy, containment, or Recovery Gate check was weakened.
+
+Two preceding full-suite attempts each reported `392 passed, 5 skipped, 1
+failed` because the unchanged Windows/Gloo FSDP target-rank-0 case did not
+persist peer collective-failure evidence before its fixed deadline. The first
+failed run completed in 293.41 seconds and the second in 317.84 seconds. No
+timeout, assertion, product code, or test setting was changed. The exact test
+then passed in isolation (`1 passed in 33.40s`), and the exact full-suite prefix
+through all FSDP cases passed (`20 passed, 3 skipped in 121.59s`). The final
+normal default-command run above passed completely. This intermittent local
+Gloo observation remains an unresolved host risk and is not hidden by a retry
+inside product or test code.
+
+Archive construction and metadata validation passed, and direct wheel listing
+confirmed all four registry modules and all five public registry schemas:
+
+```text
+.\.venv\Scripts\python.exe -m build --no-isolation
+Successfully built flashpilot-0.2.0.tar.gz and flashpilot-0.2.0-py3-none-any.whl
+
+.\.venv\Scripts\python.exe -m twine check .\dist\flashpilot-0.2.0-py3-none-any.whl .\dist\flashpilot-0.2.0.tar.gz
+Checking .\dist\flashpilot-0.2.0-py3-none-any.whl: PASSED
+Checking .\dist\flashpilot-0.2.0.tar.gz: PASSED
+
+.\.venv\Scripts\python.exe -m zipfile -l .\dist\flashpilot-0.2.0-py3-none-any.whl | Select-String "flashpilot/registry|attestation-registry"
+flashpilot/registry/__init__.py
+flashpilot/registry/models.py
+flashpilot/registry/schema.py
+flashpilot/registry/service.py
+attestation-registry-completion-v1.schema.json
+attestation-registry-entry-v1.schema.json
+attestation-registry-head-v1.schema.json
+attestation-registry-history-v1.schema.json
+attestation-registry-v1.schema.json
+```
+
+No package was uploaded, no live API was called, and no hosted registry or
+remote publication was attempted.
+
+### Hosted item 7 branch acceptance
+
+Pull-request workflow run 29786919619 passed at commit
+`84647392eecd1565104ee3d8570fc7dcd1d6be35`. Both quality jobs passed Ruff,
+the 223-file format check, and the complete suite:
+
+```text
+Quality (Python 3.11.15): 397 passed, 1 skipped in 253.42s
+Quality (Python 3.12.13): 397 passed, 1 skipped in 404.17s
+qualify-checkpoint: PASS
+```
+
+The one hosted skip is the Windows-only DeepSpeed rejection test. Linux ran
+real DeepSpeed, POSIX SIGTERM, both FSDP targeted-rank cases, the symlink
+containment test, and all registry tests. The qualification job passed HF,
+clean and both-rank FSDP, clean and both-rank DeepSpeed, managed preemption,
+static audit, single-run policy, all eight detached signatures, and the
+153-check nine-requirement suite policy. The hosted FSDP target-rank-0 case
+passed without retry.
+
+The unchanged downstream OIDC chain then attested and constrained-verifier
+checked the exact terminal policy evaluation:
+
+```text
+policy-evaluation.json
+sha256:2b84606d739ed7d69ec0e922b08a010e847fcd43e085c813ee8cef7c9d9db7c2
+GitHub attestation ID: 36255747
+Sigstore log index: 2208873117
+```
+
+The always-on diagnostic artifact was 116,606 bytes with GitHub artifact
+SHA-256 `669d73f350e2b406e4592431f7f06e6b30767c3753c9c1b89ebf164716b225aa`.
+The success-only signed-attestation/provenance artifact was 42,803 bytes with
+GitHub artifact SHA-256
+`3eed7fcc9db1f8887c554a780c15657681d1b7d0c07b0575f8ecd25514a4c5d4`.
+The private signing key was removed before upload. These workflow artifacts do
+not publish to or exercise the new optional local registry; the workflow and
+product qualification behavior were unchanged.
