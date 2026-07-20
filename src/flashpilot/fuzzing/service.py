@@ -322,4 +322,11 @@ def run_partial_write_fuzz(
         relative_path=result.job_summary_path,
         text=render_fuzz_job_summary(result),
     )
+    from flashpilot.ci.sarif_adapters import render_fuzz_sarif
+
+    write_text_artifact(
+        run_root=run_root,
+        relative_path=result.sarif_path,
+        text=render_fuzz_sarif(result),
+    )
     return result

@@ -46,6 +46,12 @@ def test_all_four_conversion_classes_pass_with_declared_equivalence(tmp_path: Pa
     assert (run_root / "report.md").is_file()
     assert (run_root / "junit.xml").is_file()
     assert (run_root / "job-summary.md").is_file()
+    sarif = json.loads((run_root / "results.sarif").read_text(encoding="utf-8"))
+    sarif_run = sarif["runs"][0]
+    assert len(sarif_run["tool"]["driver"]["rules"]) == sum(
+        len(case.checks) for case in result.cases
+    )
+    assert sarif_run["results"] == []
     junit = (run_root / "junit.xml").read_text(encoding="utf-8")
     for kind in ConversionKind:
         assert kind.value in junit
@@ -90,3 +96,6 @@ def test_compare_checkpoints_cli_reuses_typed_comparison_core(tmp_path: Path) ->
     persisted = json.loads((output / "comparison.json").read_text(encoding="utf-8"))
     assert persisted["passed"] is True
     assert persisted["recovery_verified"] is False
+    sarif = json.loads((output / "results.sarif").read_text(encoding="utf-8"))
+    assert len(sarif["runs"][0]["tool"]["driver"]["rules"]) == len(persisted["checks"])
+    assert sarif["runs"][0]["results"] == []

@@ -253,6 +253,12 @@
       "title": "Result Path",
       "type": "string"
     },
+    "sarif_path": {
+      "const": "results.sarif",
+      "default": "results.sarif",
+      "title": "Sarif Path",
+      "type": "string"
+    },
     "schedule_sha256": {
       "pattern": "^[0-9a-f]{64}$",
       "title": "Schedule Sha256",

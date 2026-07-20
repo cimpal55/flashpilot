@@ -200,6 +200,29 @@ The result includes relative paths, JSON, Markdown, JUnit, and a job summary.
 It does not call GPT, execute repair, emit an attestation, or calculate or
 report checkpoint bytes or storage savings.
 
+## V0.3 SARIF dashboard output
+
+FlashPilot now writes `results.sarif` beside its typed JSON, Markdown, and
+JUnit evidence for static audits; native, Hugging Face, and Lightning
+qualification; conversion equivalence; partial-write fuzzing; previous-valid
+fallback; and randomized fault timing. Existing completed audit and core
+qualification runs can be projected again without rerunning training:
+
+```powershell
+flashpilot emit-sarif --run-dir .\runs\ci-hf
+```
+
+The SARIF 2.1.0 document is a deterministic view of existing evidence, not a
+second verdict engine or a source-code scanner. Exact FlashPilot check IDs are
+stable rules. `FAIL` becomes an error, `WARN` and `UNKNOWN` become warnings,
+and `PASS` or `NOT_APPLICABLE` produces no dashboard alert. Every emitted
+result points to the relative authoritative evidence file and carries a stable
+partial fingerprint; absolute local paths are not invented.
+
+The included GitHub Actions workflow uploads SARIF as an ordinary diagnostic
+artifact under its existing `contents: read` permission. It does not request
+`security-events: write` or automatically publish Code Scanning results.
+
 ## What the demo proves
 
 1. An uninterrupted seeded CPU control produces stable trajectory evidence.
@@ -420,9 +443,8 @@ DeepSpeed, NeMo, TensorFlow, or JAX. Fixture replay is tied to the captured
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add distributed scenarios, SARIF, and broader platform
-validation. Those later roadmap items are not part of the completed repeated
-randomized fault-timing milestone.
+Future work may add distributed scenarios and broader platform validation.
+Those later roadmap items are not part of the completed V0.3 SARIF milestone.
 
 ## Repository and license
 

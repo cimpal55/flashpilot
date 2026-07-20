@@ -13,7 +13,13 @@ JOB_SUMMARY_PATH = "job-summary.md"
 def render_qualification_junit(evidence: CIRunEvidence) -> str:
     failures = sum(check.status is CICheckStatus.FAIL for check in evidence.checks)
     skipped = sum(
-        check.status in {CICheckStatus.WARN, CICheckStatus.UNKNOWN} for check in evidence.checks
+        check.status
+        in {
+            CICheckStatus.WARN,
+            CICheckStatus.UNKNOWN,
+            CICheckStatus.NOT_APPLICABLE,
+        }
+        for check in evidence.checks
     )
     suite = ElementTree.Element(
         "testsuite",
@@ -50,7 +56,11 @@ def render_qualification_junit(evidence: CIRunEvidence) -> str:
                 {"message": check.summary, "type": "qualification-requirement"},
             )
             failure.text = detail
-        elif check.status in {CICheckStatus.WARN, CICheckStatus.UNKNOWN}:
+        elif check.status in {
+            CICheckStatus.WARN,
+            CICheckStatus.UNKNOWN,
+            CICheckStatus.NOT_APPLICABLE,
+        }:
             ElementTree.SubElement(
                 case,
                 "skipped",

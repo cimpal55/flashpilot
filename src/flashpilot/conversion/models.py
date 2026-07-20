@@ -214,6 +214,7 @@ class ConversionCaseResult(StrictConversionModel):
     resume_in_distinct_process: bool
     recovery_verified: Literal[False] = False
     storage_savings_reported: Literal[False] = False
+    sarif_path: Literal["results.sarif"] = "results.sarif"
 
     @model_validator(mode="after")
     def derive_result(self) -> Self:
@@ -271,6 +272,7 @@ class ConversionQualificationResult(StrictConversionModel):
     report_path: Literal["report.md"] = "report.md"
     junit_path: Literal["junit.xml"] = "junit.xml"
     job_summary_path: Literal["job-summary.md"] = "job-summary.md"
+    sarif_path: Literal["results.sarif"] = "results.sarif"
     recovery_verified: Literal[False] = False
     attestation_emitted: Literal[False] = False
     storage_savings_reported: Literal[False] = False

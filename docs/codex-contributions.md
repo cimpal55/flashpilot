@@ -565,3 +565,28 @@ Codex implemented only the fifth V0.3 roadmap item:
 Codex did not begin SARIF, distributed/CUDA qualification, discovery, or
 another adapter. The implementation made no GPT call, executed no repair,
 reported no checkpoint bytes or storage savings, and emitted no attestation.
+
+## V0.3 roadmap item 6 - SARIF dashboard output
+
+Codex implemented only the sixth V0.3 roadmap item:
+
+- added a strict, schema-versioned SARIF 2.1.0 subset and deterministic
+  renderer over existing typed FlashPilot evidence;
+- preserved exact check IDs as stable rules, emitted `FAIL` as error and
+  `WARN`/`UNKNOWN` as warning, and suppressed `PASS`/`NOT_APPLICABLE` alerts;
+- bound non-passing results to relative authoritative evidence locations and
+  deterministic partial fingerprints without exposing absolute host paths;
+- emitted `results.sarif` for static audit, native/Hugging Face/Lightning
+  qualification, conversions, partial-write fuzzing, previous-valid fallback,
+  and randomized fault timing;
+- added read-only `emit-sarif` projection for completed core CI evidence and
+  protected closed attested inventories from missing-file mutation;
+- packaged the checked JSON Schema, uploaded SARIF as an ordinary diagnostic
+  workflow artifact, and retained workflow `contents: read` permissions;
+- added focused schema, mapping, status, fingerprint, integration, redaction,
+  packaging, and attested-run tamper tests.
+
+Codex did not begin V0.4 preemption certification, distributed/CUDA
+qualification, discovery, or another adapter. SARIF does not change a verdict,
+prove recovery, scan source code, call GPT, execute repair, report checkpoint
+bytes or storage savings, or emit an attestation.

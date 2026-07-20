@@ -818,6 +818,12 @@
       "title": "Run Id",
       "type": "string"
     },
+    "sarif_path": {
+      "const": "results.sarif",
+      "default": "results.sarif",
+      "title": "Sarif Path",
+      "type": "string"
+    },
     "scenario": {
       "const": "corrupt-newest",
       "default": "corrupt-newest",

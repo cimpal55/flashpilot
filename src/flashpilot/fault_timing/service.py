@@ -269,6 +269,13 @@ def run_randomized_fault_timing(
         relative_path=result.job_summary_path,
         text=render_timing_job_summary(verified),
     )
+    from flashpilot.ci.sarif_adapters import render_randomized_timing_sarif
+
+    write_text_artifact(
+        run_root=root,
+        relative_path=result.sarif_path,
+        text=render_randomized_timing_sarif(verified),
+    )
     return verified
 
 

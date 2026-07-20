@@ -48,6 +48,7 @@ def test_complete_lightning_checkpoint_survives_real_kill_and_exact_resume(
     assert result.crash_process.exit_verified is True
     assert (run_root / "junit.xml").is_file()
     assert (run_root / "job-summary.md").is_file()
+    assert (run_root / "results.sarif").is_file()
     verification = verify_recovery_attestation(run_root / "recovery.attestation.json")
     assert verification.valid is True
     assert emit_ci_outputs(run_root=run_root).exit_code == 0
@@ -67,6 +68,7 @@ def test_weights_only_checkpoint_loads_but_fails_exact_resume(tmp_path: Path) ->
     assert result.weights_only_diverged is True
     assert result.verified_persisted_bytes is None
     assert not (run_root / "recovery.attestation.json").exists()
+    assert (run_root / "results.sarif").is_file()
     assert {
         "checkpoint.optimizer",
         "checkpoint.scheduler",

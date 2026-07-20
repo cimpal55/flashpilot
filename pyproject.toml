@@ -77,6 +77,7 @@ where = ["src"]
     "schemas/fuzz-case-v1.schema.json",
     "schemas/fuzz-checkpoint-artifact-v1.schema.json",
     "schemas/fault-timing-trial-v1.schema.json",
+    "schemas/flashpilot-sarif-v1.schema.json",
     "schemas/partial-write-fuzz-v1.schema.json",
     "schemas/previous-valid-fallback-v1.schema.json",
     "schemas/persistence-contract-v1.schema.json",

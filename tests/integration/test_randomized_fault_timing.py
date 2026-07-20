@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -64,8 +65,17 @@ def test_randomized_fault_timing_cli_runs_real_stratified_process_kills(
     assert all(trial.producer_termination_verified for trial in result.trials)
     assert all(trial.recovery_exit_code == 0 for trial in result.trials)
     assert all(trial.recovery_exit_verified for trial in result.trials)
+    sarif = json.loads((run_root / "results.sarif").read_text(encoding="utf-8"))
+    assert len(sarif["runs"][0]["tool"]["driver"]["rules"]) == result.iterations
+    assert sarif["runs"][0]["results"] == []
 
-    for relative in ("result.json", "report.md", "junit.xml", "job-summary.md"):
+    for relative in (
+        "result.json",
+        "report.md",
+        "junit.xml",
+        "job-summary.md",
+        "results.sarif",
+    ):
         text = (run_root / relative).read_text(encoding="utf-8")
         assert sentinel not in text
         assert "OPENAI_API_KEY" not in text

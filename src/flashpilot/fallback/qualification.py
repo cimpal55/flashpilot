@@ -403,4 +403,11 @@ def run_previous_valid_fallback(
         relative_path=result.job_summary_path,
         text=render_fallback_job_summary(result),
     )
+    from flashpilot.ci.sarif_adapters import render_fallback_sarif
+
+    write_text_artifact(
+        run_root=root,
+        relative_path=result.sarif_path,
+        text=render_fallback_sarif(result),
+    )
     return result

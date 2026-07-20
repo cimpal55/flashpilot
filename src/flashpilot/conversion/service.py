@@ -659,6 +659,13 @@ def compare_conversion_artifacts(
         relative_path="junit.xml",
         text=render_case_junit(result),
     )
+    from flashpilot.ci.sarif_adapters import render_conversion_case_sarif
+
+    write_text_artifact(
+        run_root=output,
+        relative_path=result.sarif_path,
+        text=render_conversion_case_sarif(result),
+    )
     return result
 
 
@@ -711,6 +718,13 @@ def run_conversion_qualification(*, run_root: Path) -> ConversionQualificationRe
         run_root=run_root,
         relative_path=result.job_summary_path,
         text=render_job_summary(result),
+    )
+    from flashpilot.ci.sarif_adapters import render_conversion_qualification_sarif
+
+    write_text_artifact(
+        run_root=run_root,
+        relative_path=result.sarif_path,
+        text=render_conversion_qualification_sarif(result),
     )
     return result
 

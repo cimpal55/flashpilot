@@ -2716,7 +2716,7 @@ All checks passed!
 ....................................s................................... [ 97%]
 ......                                                                   [100%]
 =========================== short test summary info ===========================
-SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Клиент не обладает требуемыми правами
 221 passed, 1 skipped in 203.89s (0:03:23)
 ```
 
@@ -3223,3 +3223,157 @@ fsync. The run does not characterize probabilistic failure distributions,
 network filesystems, storage-controller persistence, distributed/CUDA
 coordination, or a general RTO. SARIF, distributed qualification, discovery,
 and additional adapters were not started.
+
+## V0.3 roadmap item 6 - SARIF dashboard output
+
+Date: 2026-07-20
+
+Only roadmap item 6 was implemented. Local validation used Python 3.12.13 on
+Windows; Python 3.11 remains the declared compatibility target. The milestone
+added a deterministic SARIF 2.1.0 projection without changing any product
+verdict, Recovery Gate check, tolerance, policy, adapter, repair action,
+checkpoint format, or training workload.
+
+### Mapping and integrity evidence
+
+Exact typed FlashPilot check IDs are SARIF rule IDs. `FAIL` maps to `error`,
+`WARN` and fail-closed `UNKNOWN` map to `warning`, while `PASS` and
+`NOT_APPLICABLE` remain rules but do not create alerts. Results retain exact
+expected/actual evidence, use only `audit.json`, `result.json`, or
+`comparison.json` as relative locations, and receive deterministic SHA-256
+partial fingerprints. The strict checked schema rejects unknown properties,
+duplicate or substituted rules, invalid result references, and unsupported
+locations.
+
+The active and example GitHub Actions workflows upload `results.sarif` with
+the existing always-on diagnostic artifact. They retain minimum
+`contents: read` permissions and do not request a Code Scanning upload token.
+Workflow YAML validation with installed PyYAML 6.0.3 passed.
+
+### Authoritative native evidence
+
+The preserved native `safe_full` run emitted 24 rules and zero results. It
+retained the unchanged 22 `PASS` plus 2 `NOT_APPLICABLE` Gate statuses and
+exited `0` when revalidated with `emit-sarif`:
+
+```text
+SARIF bytes: 22449
+SARIF SHA-256: eed7735ae0bb5c6967e788e34163d9bae0d384997bbda204978fe9e5ff5f9909
+Absolute local path matches: 0
+Secret matches: 0
+Official OASIS schema validation: PASS
+```
+
+The preserved `missing_training_state` run remained `FAILED`, emitted nine
+error results for exactly these unchanged Gate failures, and exited `3` when
+revalidated:
+
+```text
+state.optimizer
+state.scheduler
+state.python_rng
+state.numpy_rng
+state.torch_rng
+trajectory.final_trainable
+trajectory.final_evaluation
+trajectory.loss_history
+contract.no_mandatory_omission
+
+SARIF bytes: 33542
+SARIF SHA-256: 3c391196bcccdb58416bae8c518ccad84e36b638c614859e78c0fefa1f80beb9
+Unique partial fingerprints: 9
+Absolute local path matches: 0
+Secret matches: 0
+Official OASIS schema validation: PASS
+```
+
+No failed output was normalized, repaired, or upgraded to a recovery verdict.
+
+### V0.3 qualification projection
+
+The fresh all-conversions qualification command produced:
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify conversions --run-dir runs\manual-v03-sarif-conversions
+PASS
+full-to-peft: PASS (tolerance-bounded)
+peft-to-merged: PASS (tolerance-bounded)
+sharded-to-consolidated: PASS (exact)
+version-upgrade-resume: PASS (exact-training-resume)
+Recovery verified: false
+Storage savings reported: false
+Result: C:\Programming\business\flashpilot\runs\manual-v03-sarif-conversions\result.json
+JUnit XML: C:\Programming\business\flashpilot\runs\manual-v03-sarif-conversions\junit.xml
+Job summary: C:\Programming\business\flashpilot\runs\manual-v03-sarif-conversions\job-summary.md
+SARIF: C:\Programming\business\flashpilot\runs\manual-v03-sarif-conversions\results.sarif
+```
+
+Its `results.sarif` contained 34 rules, zero results, 34,489 bytes, and SHA-256
+`872ea64803fa61a51b6177477d0628d9a073c86a6533a6b5cd535f9677eb809d`.
+It validated against the official OASIS SARIF Errata 01 JSON Schema. The
+official schema and temporary `jsonschema` package were used only from
+`C:\tmp`; a cross-principal Windows ACL initially prevented the normal process
+from reading that temporary validator, so the offline validation was rerun in
+the matching security context. No validation dependency was added to the
+product.
+
+### Focused validation
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_sarif.py tests\unit\test_ci.py tests\unit\test_static_audit.py tests\unit\test_packaging.py tests\unit\test_conversion.py tests\unit\test_checkpoint_fuzzing.py tests\unit\test_fallback_qualification.py tests\unit\test_fault_timing.py -q
+........................................................................ [ 88%]
+.........                                                                [100%]
+81 passed in 6.23s
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_conversion_qualification.py tests\integration\test_partial_write_fuzz_qualification.py tests\integration\test_previous_valid_fallback.py tests\integration\test_randomized_fault_timing.py -q
+...............                                                          [100%]
+15 passed in 56.34s
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_repair_loop.py tests\integration\test_hf_qualification.py tests\integration\test_lightning_qualification.py tests\integration\test_crash_recovery.py -q
+.......................................                                  [100%]
+39 passed in 166.39s (0:02:46)
+```
+
+The focused coverage includes exact rule and status mapping, deterministic
+fingerprints, fail-closed unknown evidence, schema drift, passing zero-result
+logs, all V0.3 qualification families, failed Recovery Gate IDs, framework
+qualification, and rejection of mutated SARIF in an attested run.
+
+### Final quality gates
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+172 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+........................................................................ [ 25%]
+........................................................................ [ 51%]
+........................................................................ [ 77%]
+...............s..............................................           [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [WinError 1314] Client lacks the required directory-symlink privilege
+277 passed, 1 skipped in 223.92s (0:03:43)
+```
+
+The single skip is the unchanged Windows directory-symlink privilege test.
+The default pytest command retained its unique UUID basetemp plugin and
+disabled cache provider.
+
+### Acceptance and unresolved risks
+
+Roadmap item 6 passes: output is deterministic and schema-versioned; exact
+typed identifiers are preserved; non-passing evidence is dashboard-visible;
+passing or not-applicable evidence creates no false alert; paths remain
+relative; official schema validation passes; all implemented qualification
+families emit the file; attested inventory tampering fails closed; workflow
+permissions remain minimal; and the full local suite passes.
+
+Remaining risks are GitHub dashboard rendering not exercised against a remote
+repository, automatic Code Scanning upload deliberately absent, Windows-only
+local validation, unverified Python 3.11 execution on this host, and the
+existing best-effort Windows directory fsync limitation. SARIF is not a source
+scanner or a recovery proof. V0.4 preemption certification, distributed/CUDA
+qualification, discovery, and additional adapters were not started.

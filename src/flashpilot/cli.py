@@ -210,6 +210,7 @@ def qualify_hf_trainer(
     typer.echo(f"HTML report: {(run_dir / result.html_report_path).resolve()}")
     typer.echo(f"JUnit XML: {(run_dir / 'junit.xml').resolve()}")
     typer.echo(f"Job summary: {(run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(run_dir / 'results.sarif').resolve()}")
     if result.final_verdict == "VERIFIED":
         typer.echo(f"Recovery attestation: {(run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
     else:
@@ -263,6 +264,7 @@ def qualify_native_pytorch(
     typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
     typer.echo(f"JUnit XML: {(selected_run_dir / 'junit.xml').resolve()}")
     typer.echo(f"Job summary: {(selected_run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(selected_run_dir / 'results.sarif').resolve()}")
     if result.final_verdict == "VERIFIED":
         typer.echo(
             f"Recovery attestation: {(selected_run_dir / RECOVERY_ATTESTATION_PATH).resolve()}"
@@ -346,6 +348,7 @@ def qualify_lightning(
     typer.echo(f"HTML report: {(run_dir / result.html_report_path).resolve()}")
     typer.echo(f"JUnit XML: {(run_dir / 'junit.xml').resolve()}")
     typer.echo(f"Job summary: {(run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(run_dir / 'results.sarif').resolve()}")
     if result.final_verdict == "VERIFIED":
         typer.echo(f"Recovery attestation: {(run_dir / RECOVERY_ATTESTATION_PATH).resolve()}")
     else:
@@ -383,6 +386,7 @@ def qualify_conversions(
     typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
     typer.echo(f"JUnit XML: {(run_dir / result.junit_path).resolve()}")
     typer.echo(f"Job summary: {(run_dir / result.job_summary_path).resolve()}")
+    typer.echo(f"SARIF: {(run_dir / result.sarif_path).resolve()}")
     if not result.passed:
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
@@ -439,6 +443,7 @@ def qualify_previous_valid_fallback(
     typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
     typer.echo(f"JUnit XML: {(run_dir / result.junit_path).resolve()}")
     typer.echo(f"Job summary: {(run_dir / result.job_summary_path).resolve()}")
+    typer.echo(f"SARIF: {(run_dir / result.sarif_path).resolve()}")
     if not result.recovery_verified:
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
@@ -500,6 +505,7 @@ def qualify_randomized_fault_timing(
     typer.echo(f"Result: {(run_dir / result.result_path).resolve()}")
     typer.echo(f"JUnit XML: {(run_dir / result.junit_path).resolve()}")
     typer.echo(f"Job summary: {(run_dir / result.job_summary_path).resolve()}")
+    typer.echo(f"SARIF: {(run_dir / result.sarif_path).resolve()}")
     if not result.recovery_verified:
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
@@ -540,6 +546,7 @@ def compare_checkpoints(
     typer.echo("Recovery verified: false")
     typer.echo("Storage savings reported: false")
     typer.echo(f"Comparison JSON: {(output_dir / 'comparison.json').resolve()}")
+    typer.echo(f"SARIF: {(output_dir / result.sarif_path).resolve()}")
     if not result.passed:
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
@@ -587,6 +594,7 @@ def fuzz_checkpoint(
     typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
     typer.echo(f"JUnit XML: {(selected_run_dir / result.junit_path).resolve()}")
     typer.echo(f"Job summary: {(selected_run_dir / result.job_summary_path).resolve()}")
+    typer.echo(f"SARIF: {(selected_run_dir / result.sarif_path).resolve()}")
     if not result.passed:
         raise typer.Exit(code=EXIT_QUALIFICATION_FAILED)
 
@@ -656,7 +664,9 @@ def audit_checkpoint(
     ] = "exact-training-resume",
     output_dir: Annotated[
         Path | None,
-        typer.Option(help="New or empty directory for audit.json, report.md, and junit.xml."),
+        typer.Option(
+            help=("New or empty directory for audit.json, report.md, junit.xml, and results.sarif.")
+        ),
     ] = None,
 ) -> None:
     """Inspect checkpoint evidence without executing a training workload."""
@@ -684,6 +694,7 @@ def audit_checkpoint(
     typer.echo(f"Markdown report: {run.report_markdown}")
     typer.echo(f"JUnit XML: {run.junit_xml}")
     typer.echo(f"Job summary: {run.job_summary}")
+    typer.echo(f"SARIF: {run.sarif_json}")
     exit_code = AUDIT_EXIT_CODES[run.result.status]
     if exit_code:
         raise typer.Exit(code=exit_code)
@@ -788,12 +799,13 @@ def crash_demo(
     typer.echo()
     typer.echo(render_recovery_gate(result.gate), nl=False)
     typer.echo(f"Result: {(selected_run_dir / result.result_path).resolve()}")
-    junit_path, summary_path = write_qualification_ci_outputs(
+    junit_path, summary_path, sarif_path = write_qualification_ci_outputs(
         run_root=selected_run_dir,
         result=result,
     )
     typer.echo(f"JUnit XML: {junit_path.resolve()}")
     typer.echo(f"Job summary: {summary_path.resolve()}")
+    typer.echo(f"SARIF: {sarif_path.resolve()}")
     if result.failure_artifact_path is not None:
         typer.echo(
             f"Sanitized failure artifact: "
@@ -863,6 +875,7 @@ def demo(
     typer.echo(f"Attestation JUnit: {(selected_run_dir / ATTESTATION_JUNIT_PATH).resolve()}")
     typer.echo(f"Qualification JUnit: {(selected_run_dir / 'junit.xml').resolve()}")
     typer.echo(f"Job summary: {(selected_run_dir / 'job-summary.md').resolve()}")
+    typer.echo(f"SARIF: {(selected_run_dir / 'results.sarif').resolve()}")
 
 
 @app.command()
@@ -951,7 +964,7 @@ def emit_junit(
         typer.Option(help="Optional typed FlashPilot CI policy YAML."),
     ] = None,
 ) -> None:
-    """Emit or verify deterministic JUnit and Markdown CI artifacts."""
+    """Emit or verify deterministic JUnit, Markdown, and SARIF CI artifacts."""
 
     selected_policy = None
     if policy is not None:
@@ -968,11 +981,34 @@ def emit_junit(
     typer.echo(result.evidence.status.value)
     typer.echo(f"JUnit XML: {result.junit_path.resolve()}")
     typer.echo(f"Job summary: {result.job_summary_path.resolve()}")
+    typer.echo(f"SARIF: {result.sarif_path.resolve()}")
     if result.policy_evaluation is not None:
         typer.echo("Policy: " + ("PASS" if result.policy_evaluation.passed else "FAIL"))
         for check in result.policy_evaluation.checks:
             if check.status.value == "FAIL":
                 typer.echo(f"FAILED REQUIREMENT {check.check_id}: {check.summary}", err=True)
+    if result.exit_code:
+        raise typer.Exit(code=result.exit_code)
+
+
+@app.command("emit-sarif")
+def emit_sarif(
+    run_dir: Annotated[
+        Path,
+        typer.Option(help="Completed audit or qualification run directory."),
+    ],
+) -> None:
+    """Emit or verify deterministic SARIF alongside the existing CI artifacts."""
+
+    try:
+        result = emit_ci_outputs(run_root=run_dir)
+    except (CIEvidenceError, OSError, UnicodeError, ValueError) as error:
+        typer.echo(f"INVALID OR TAMPERED CI EVIDENCE: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    typer.echo(result.evidence.status.value)
+    typer.echo(f"SARIF: {result.sarif_path.resolve()}")
+    typer.echo(f"JUnit XML: {result.junit_path.resolve()}")
+    typer.echo(f"Job summary: {result.job_summary_path.resolve()}")
     if result.exit_code:
         raise typer.Exit(code=result.exit_code)
 

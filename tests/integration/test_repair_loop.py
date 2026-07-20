@@ -261,6 +261,7 @@ def test_verified_demo_emits_closed_recovery_attestation(completed_repair_loop) 
     assert "Exact failed requirements\n\n- None" in (run_root / "job-summary.md").read_text(
         encoding="utf-8"
     )
+    assert (run_root / "results.sarif").is_file()
 
 
 def test_emit_junit_enforces_policy_without_mutating_attested_bundle(
@@ -315,6 +316,20 @@ def test_emit_junit_rejects_tampered_existing_attestation(
 
     assert invocation.exit_code == 4
     assert "existing recovery attestation is invalid or tampered" in invocation.output
+
+
+def test_emit_sarif_rejects_tampered_attested_sarif(
+    completed_repair_loop,
+    tmp_path: Path,
+) -> None:
+    bundle = _copy_bundle(completed_repair_loop, tmp_path / "tampered-ci-sarif")
+    sarif = bundle / "results.sarif"
+    sarif.write_text(sarif.read_text(encoding="utf-8") + " ", encoding="utf-8")
+
+    invocation = CliRunner().invoke(app, ["emit-sarif", "--run-dir", str(bundle)])
+
+    assert invocation.exit_code == 4
+    assert "existing results.sarif differs from run evidence" in invocation.output
 
 
 def test_attestation_verification_is_deterministic(completed_repair_loop) -> None:

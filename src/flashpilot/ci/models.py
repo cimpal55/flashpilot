@@ -27,6 +27,7 @@ class CICheckStatus(StrEnum):
     WARN = "WARN"
     UNKNOWN = "UNKNOWN"
     FAIL = "FAIL"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
 
 
 class CIPolicyV1(StrictCIModel):
@@ -91,8 +92,9 @@ class CIRunEvidence(StrictCIModel):
                 raise ValueError("static audit can never become VERIFIED")
         elif self.fault is None or self.rpo_steps is None or self.rto_seconds is None:
             raise ValueError("qualification evidence requires fault, RPO, and RTO")
+        passing_statuses = {CICheckStatus.PASS, CICheckStatus.NOT_APPLICABLE}
         if self.status in {CIStatus.VERIFIED, CIStatus.PASS} and any(
-            check.status is not CICheckStatus.PASS for check in self.checks
+            check.status not in passing_statuses for check in self.checks
         ):
             raise ValueError("passing CI evidence cannot contain non-passing checks")
         return self

@@ -78,6 +78,12 @@
           "default": null,
           "title": "Resume Worker Pid"
         },
+        "sarif_path": {
+          "const": "results.sarif",
+          "default": "results.sarif",
+          "title": "Sarif Path",
+          "type": "string"
+        },
         "schema_version": {
           "const": "flashpilot-conversion-case-v1",
           "default": "flashpilot-conversion-case-v1",
@@ -299,6 +305,12 @@
       "const": "result.json",
       "default": "result.json",
       "title": "Result Path",
+      "type": "string"
+    },
+    "sarif_path": {
+      "const": "results.sarif",
+      "default": "results.sarif",
+      "title": "Sarif Path",
       "type": "string"
     },
     "schema_version": {

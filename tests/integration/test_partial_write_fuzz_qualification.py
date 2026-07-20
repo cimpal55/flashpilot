@@ -34,6 +34,9 @@ def test_complete_two_iteration_matrix_fails_closed_and_is_reproducible(tmp_path
     assert (first_root / "report.md").is_file()
     assert (first_root / "junit.xml").is_file()
     assert (first_root / "job-summary.md").is_file()
+    sarif = json.loads((first_root / "results.sarif").read_text(encoding="utf-8"))
+    assert len(sarif["runs"][0]["tool"]["driver"]["rules"]) == len(FuzzScenario)
+    assert sarif["runs"][0]["results"] == []
 
     expected = {
         FuzzScenario.TRUNCATED_PAYLOAD: FuzzRejectionReason.PAYLOAD_SIZE_MISMATCH,

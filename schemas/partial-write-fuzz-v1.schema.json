@@ -215,6 +215,12 @@
       "title": "Result Path",
       "type": "string"
     },
+    "sarif_path": {
+      "const": "results.sarif",
+      "default": "results.sarif",
+      "title": "Sarif Path",
+      "type": "string"
+    },
     "scenario": {
       "const": "partial-write",
       "default": "partial-write",

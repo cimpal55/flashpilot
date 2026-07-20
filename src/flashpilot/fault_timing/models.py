@@ -97,6 +97,7 @@ class RandomizedFaultTimingResult(StrictTimingModel):
     report_path: Literal["report.md"] = "report.md"
     junit_path: Literal["junit.xml"] = "junit.xml"
     job_summary_path: Literal["job-summary.md"] = "job-summary.md"
+    sarif_path: Literal["results.sarif"] = "results.sarif"
     attestation_emitted: Literal[False] = False
     storage_savings_reported: Literal[False] = False
     limitations: tuple[str, ...] = Field(min_length=1)

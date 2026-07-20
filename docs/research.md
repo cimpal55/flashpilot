@@ -144,3 +144,25 @@ step rollback for this fixed local CPU workload. It does not characterize a
 failure probability distribution, mid-instruction crashes, distributed
 coordination, network filesystems, physical persistence, or general recovery
 time objectives.
+
+## SARIF positioning
+
+SARIF is an OASIS standard interchange format for static-analysis results;
+FlashPilot does not claim the format, rule/result model, or dashboard
+integration mechanism as novel. The V0.3 contribution is a deliberately small
+and deterministic projection from already-authoritative checkpoint evidence:
+exact check IDs become rules, only non-passing checks become results, and
+relative evidence locations plus stable partial fingerprints make repeated
+runs useful to dashboard consumers. Source: [OASIS SARIF 2.1.0 Plus Errata
+01](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html).
+
+GitHub documents support for a SARIF 2.1.0 subset and recommends partial
+fingerprints so results can be tracked across runs. FlashPilot emits those
+portable fields but intentionally does not auto-upload to Code Scanning: the
+included minimum-permission workflow keeps the file as a normal diagnostic
+artifact. Source: [GitHub SARIF
+support](https://docs.github.com/en/enterprise-cloud%40latest/code-security/reference/code-scanning/sarif-files/sarif-support).
+
+This is reliability and checkpoint-recovery evidence, not a source-security
+scan or a numeric vulnerability-severity claim. Dashboard rendering does not
+replace typed JSON, policy enforcement, or the deterministic Recovery Gate.

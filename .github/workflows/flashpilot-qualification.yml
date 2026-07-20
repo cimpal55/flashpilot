@@ -82,7 +82,7 @@ jobs:
             cat runs/ci-hf/job-summary.md >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Upload diagnostic reports and JUnit
+      - name: Upload diagnostic reports, JUnit, and SARIF
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -92,6 +92,7 @@ jobs:
             runs/**/junit.xml
             runs/**/job-summary.md
             runs/**/report.md
+            runs/**/results.sarif
 
       - name: Upload verified recovery attestation
         if: success()

@@ -142,6 +142,7 @@ class PartialWriteFuzzResult(StrictFuzzModel):
     report_path: Literal["report.md"] = "report.md"
     junit_path: Literal["junit.xml"] = "junit.xml"
     job_summary_path: Literal["job-summary.md"] = "job-summary.md"
+    sarif_path: Literal["results.sarif"] = "results.sarif"
     recovery_verified: Literal[False] = False
     attestation_emitted: Literal[False] = False
     storage_savings_reported: Literal[False] = False

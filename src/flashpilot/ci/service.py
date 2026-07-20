@@ -30,6 +30,7 @@ from flashpilot.ci.reporters import (
     render_job_summary,
     render_qualification_junit,
 )
+from flashpilot.ci.sarif import SARIF_PATH, render_sarif
 from flashpilot.contracts.models import QualificationProfile
 from flashpilot.domain.recovery import CrashExperimentResult
 from flashpilot.domain.repair import RepairLoopResult
@@ -48,6 +49,7 @@ class CIArtifactResult:
     evidence: CIRunEvidence
     junit_path: Path
     job_summary_path: Path
+    sarif_path: Path
     policy_evaluation: CIPolicyEvaluation | None
     exit_code: int
 
@@ -62,6 +64,8 @@ def _status(value: object) -> CICheckStatus:
         return CICheckStatus.WARN
     if normalized == "UNKNOWN":
         return CICheckStatus.UNKNOWN
+    if normalized == "NOT_APPLICABLE":
+        return CICheckStatus.NOT_APPLICABLE
     raise CIEvidenceError(f"unsupported check status: {value}")
 
 
@@ -246,7 +250,7 @@ def write_qualification_ci_outputs(
         | HFQualificationResult
         | LightningQualificationResult
     ),
-) -> tuple[Path, Path]:
+) -> tuple[Path, Path, Path]:
     evidence = normalize_run_evidence(result)
     junit = _write_or_verify_text(
         root=run_root,
@@ -258,20 +262,31 @@ def write_qualification_ci_outputs(
         relative_path=JOB_SUMMARY_PATH,
         expected=render_job_summary(evidence),
     )
-    return junit, summary
+    sarif = _write_or_verify_text(
+        root=run_root,
+        relative_path=SARIF_PATH,
+        expected=render_sarif(evidence),
+    )
+    return junit, summary, sarif
 
 
-def write_static_audit_job_summary(
+def write_static_audit_ci_outputs(
     *,
     run_root: Path,
     result: StaticAuditResult,
-) -> Path:
+) -> tuple[Path, Path]:
     evidence = normalize_run_evidence(result)
-    return _write_or_verify_text(
+    summary = _write_or_verify_text(
         root=run_root,
         relative_path=JOB_SUMMARY_PATH,
         expected=render_job_summary(evidence),
     )
+    sarif = _write_or_verify_text(
+        root=run_root,
+        relative_path=SARIF_PATH,
+        expected=render_sarif(evidence),
+    )
+    return summary, sarif
 
 
 def emit_ci_outputs(
@@ -299,6 +314,12 @@ def emit_ci_outputs(
         root=root,
         relative_path=JOB_SUMMARY_PATH,
         expected=summary_text,
+        allow_create=not attestation_exists,
+    )
+    sarif = _write_or_verify_text(
+        root=root,
+        relative_path=SARIF_PATH,
+        expected=render_sarif(evidence),
         allow_create=not attestation_exists,
     )
     if attestation_exists:
@@ -330,6 +351,7 @@ def emit_ci_outputs(
         evidence=evidence,
         junit_path=junit,
         job_summary_path=summary,
+        sarif_path=sarif,
         policy_evaluation=evaluation,
         exit_code=exit_code,
     )

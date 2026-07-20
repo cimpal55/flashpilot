@@ -490,3 +490,36 @@ Randomization is limited to completed training-step boundaries. The design
 does not claim mid-instruction, filesystem-controller, network-filesystem, or
 distributed timing coverage. It calls no GPT provider, executes no repair,
 emits no attestation, and never computes a storage byte or savings result.
+
+## V0.3 SARIF evidence projection
+
+SARIF output is downstream of the existing typed result models. It cannot
+change a qualification, audit, policy, or Recovery Gate verdict.
+
+```text
+strict typed FlashPilot evidence
+-> deterministic check-to-rule projection
+-> suppress PASS and NOT_APPLICABLE alerts
+-> emit FAIL as error; WARN and UNKNOWN as warning
+-> bind each alert to a relative evidence artifact and stable fingerprint
+-> validate the strict FlashPilot SARIF subset
+-> write results.sarif beside the authoritative evidence
+```
+
+The projection uses SARIF 2.1.0 and the official OASIS Errata 01 schema URI.
+Its strict Pydantic subset closes unknown properties and requires one run,
+unique exact rule IDs, correct rule-index references, relative evidence
+locations, and one deterministic partial fingerprint per non-passing result.
+The checked JSON Schema is packaged with the application.
+
+Core native, Hugging Face, and Lightning evidence uses the same CI-normalized
+renderer as static audit. Conversion, fuzz, fallback, and randomized-timing
+results use narrow typed adapters over their existing checks; no generic
+scanner, plugin, policy planner, or numeric severity model is introduced.
+When a verified attestation already closes a run inventory, re-emission may
+verify the existing SARIF bytes but may not add a missing file.
+
+The GitHub Actions workflow retains `contents: read` and uploads
+`results.sarif` as an ordinary always-on diagnostic artifact. Publishing to a
+repository's Code Scanning service is deliberately left to an explicitly
+authorized workflow with the appropriate repository permissions.

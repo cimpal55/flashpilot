@@ -755,3 +755,26 @@ This milestone randomizes completed-step boundaries only. It does not simulate
 mid-instruction interruption, add a scheduler or policy engine, call GPT,
 execute repair, or issue a recovery attestation. No checkpoint bytes or
 storage savings are computed or reported.
+
+## D-056: SARIF is a deterministic evidence projection, not a verdict
+
+V0.3 maps existing strict FlashPilot checks to SARIF 2.1.0 after the audit,
+qualification, policy, or Recovery Gate logic has produced its authoritative
+result. One exact check ID becomes one stable rule. `FAIL` emits an error,
+`WARN` and fail-closed `UNKNOWN` emit warnings, and `PASS` or
+`NOT_APPLICABLE` emits no result. This preserves the underlying status instead
+of manufacturing a second severity score or rewriting evidence.
+
+Every result retains expected and actual values, refers only to the relative
+typed evidence artifact, and receives a stable SHA-256-based partial
+fingerprint derived from the evidence kind, framework, check ID, and source
+URI. Rules exist even in passing runs so dashboard identifiers stay stable.
+The format is constrained by strict Pydantic models, a checked package schema,
+and validation against the official OASIS schema during implementation.
+
+SARIF output does not prove recovery, audit arbitrary repositories, inspect
+source code, call GPT, execute repair, or issue an attestation. The active
+workflow uploads it as a normal diagnostic artifact and keeps minimum
+`contents: read` permissions. Automatic Code Scanning publication is excluded
+because it would require an additional repository-side authorization and is
+not necessary to make the portable SARIF artifact available.

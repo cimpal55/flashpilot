@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -69,6 +70,11 @@ def test_previous_valid_fallback_cli_proves_exact_recovery(
     assert (run_root / "report.md").is_file()
     assert (run_root / "junit.xml").is_file()
     assert (run_root / "job-summary.md").is_file()
+    sarif = json.loads((run_root / "results.sarif").read_text(encoding="utf-8"))
+    assert len(sarif["runs"][0]["tool"]["driver"]["rules"]) == (
+        len(result.selection_checks) + len(result.gate.checks)
+    )
+    assert sarif["runs"][0]["results"] == []
 
     previous = validate_checkpoint(
         run_root=run_root,
@@ -81,7 +87,13 @@ def test_previous_valid_fallback_cli_proves_exact_recovery(
             checkpoint_path=run_root / result.newest_checkpoint_path,
         )
 
-    for relative in ("result.json", "report.md", "junit.xml", "job-summary.md"):
+    for relative in (
+        "result.json",
+        "report.md",
+        "junit.xml",
+        "job-summary.md",
+        "results.sarif",
+    ):
         text = (run_root / relative).read_text(encoding="utf-8")
         assert sentinel not in text
         assert "OPENAI_API_KEY" not in text
