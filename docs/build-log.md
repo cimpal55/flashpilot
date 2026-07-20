@@ -4466,3 +4466,42 @@ attestation-registry-v1.schema.json
 
 No package was uploaded, no live API was called, and no hosted registry or
 remote publication was attempted.
+
+### Hosted item 7 branch acceptance
+
+Pull-request workflow run 29786919619 passed at commit
+`84647392eecd1565104ee3d8570fc7dcd1d6be35`. Both quality jobs passed Ruff,
+the 223-file format check, and the complete suite:
+
+```text
+Quality (Python 3.11.15): 397 passed, 1 skipped in 253.42s
+Quality (Python 3.12.13): 397 passed, 1 skipped in 404.17s
+qualify-checkpoint: PASS
+```
+
+The one hosted skip is the Windows-only DeepSpeed rejection test. Linux ran
+real DeepSpeed, POSIX SIGTERM, both FSDP targeted-rank cases, the symlink
+containment test, and all registry tests. The qualification job passed HF,
+clean and both-rank FSDP, clean and both-rank DeepSpeed, managed preemption,
+static audit, single-run policy, all eight detached signatures, and the
+153-check nine-requirement suite policy. The hosted FSDP target-rank-0 case
+passed without retry.
+
+The unchanged downstream OIDC chain then attested and constrained-verifier
+checked the exact terminal policy evaluation:
+
+```text
+policy-evaluation.json
+sha256:2b84606d739ed7d69ec0e922b08a010e847fcd43e085c813ee8cef7c9d9db7c2
+GitHub attestation ID: 36255747
+Sigstore log index: 2208873117
+```
+
+The always-on diagnostic artifact was 116,606 bytes with GitHub artifact
+SHA-256 `669d73f350e2b406e4592431f7f06e6b30767c3753c9c1b89ebf164716b225aa`.
+The success-only signed-attestation/provenance artifact was 42,803 bytes with
+GitHub artifact SHA-256
+`3eed7fcc9db1f8887c554a780c15657681d1b7d0c07b0575f8ecd25514a4c5d4`.
+The private signing key was removed before upload. These workflow artifacts do
+not publish to or exercise the new optional local registry; the workflow and
+product qualification behavior were unchanged.

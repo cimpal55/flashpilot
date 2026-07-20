@@ -854,3 +854,10 @@ framework behavior, GPT work, repair behavior, or Recovery Gate change. The
 compact registry does not copy source checkpoints and therefore re-verifies
 stored signature/chain integrity rather than claiming a fresh recovery verdict.
 Organization policy and all later roadmap items were not started.
+
+GitHub Actions run 29786919619 subsequently passed both complete quality
+matrices with 397 tests and one expected skip each, the full real Linux
+qualification job, all signed-policy and OIDC steps, private-key cleanup, and
+both artifact uploads. The hosted FSDP target-rank-0 case passed without retry.
+The OIDC subject was the unchanged terminal policy evaluation; no workflow step
+published to or read from the optional local registry.
