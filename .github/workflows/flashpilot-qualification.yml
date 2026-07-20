@@ -1,0 +1,102 @@
+name: FlashPilot checkpoint qualification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install development and Hugging Face dependencies
+        run: python -m pip install ".[dev,hf]"
+
+      - name: Run Ruff lint
+        run: python -m ruff check .
+
+      - name: Check Ruff formatting
+        run: python -m ruff format --check .
+
+      - name: Run full test suite
+        run: python -m pytest -q
+
+  qualify-checkpoint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install FlashPilot with the optional HF adapter
+        run: python -m pip install ".[hf]"
+
+      - name: Run real HF checkpoint qualification
+        run: >-
+          flashpilot qualify hf-trainer
+          --script examples/hf_trainer/train.py
+          --profile exact-training-resume
+          --fault process-kill
+          --scenario complete
+          --run-dir runs/ci-hf
+
+      - name: Audit the qualified checkpoint without executing training
+        run: >-
+          flashpilot audit-checkpoint
+          runs/ci-hf/crash/checkpoints/checkpoint-4
+          --profile exact-training-resume
+          --output-dir runs/ci-audit
+
+      - name: Enforce the same typed policy and evidence locally used by the CLI
+        run: >-
+          flashpilot emit-junit
+          --run-dir runs/ci-hf
+          --policy examples/ci/policy.yml
+
+      - name: Publish FlashPilot Markdown job summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f runs/ci-hf/job-summary.md ]]; then
+            cat runs/ci-hf/job-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload diagnostic reports and JUnit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashpilot-ci-evidence
+          if-no-files-found: error
+          path: |
+            runs/**/junit.xml
+            runs/**/job-summary.md
+            runs/**/report.md
+
+      - name: Upload verified recovery attestation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashpilot-attestation
+          if-no-files-found: error
+          path: runs/**/recovery.attestation.json

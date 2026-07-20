@@ -199,18 +199,47 @@ def test_checked_in_policy_schema_matches_generator() -> None:
     assert actual == ci_policy_schema_document()
 
 
-def test_github_actions_example_is_noninstalled_and_uploads_attestation_only_on_success() -> None:
-    path = Path("examples/github-actions/flashpilot-qualification.yml")
-    workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+def test_active_github_actions_workflow_preserves_qualification_and_quality_guards() -> None:
+    example_path = Path("examples/github-actions/flashpilot-qualification.yml")
+    active_path = Path(".github/workflows/flashpilot-qualification.yml")
+    example = yaml.load(example_path.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+    workflow = yaml.load(active_path.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+
+    assert workflow["on"]["pull_request"]["branches"] == ["main"]
+    assert "workflow_dispatch" in workflow["on"]
+    assert workflow["permissions"] == {"contents": "read"}
+    assert (
+        workflow["jobs"]["qualify-checkpoint"]["steps"]
+        == example["jobs"]["qualify-checkpoint"]["steps"]
+    )
+
+    quality = workflow["jobs"]["quality"]
+    assert quality["runs-on"] == "ubuntu-latest"
+    assert quality["strategy"]["matrix"]["python-version"] == ["3.11", "3.12"]
+    assert [step["run"] for step in quality["steps"] if "run" in step] == [
+        'python -m pip install ".[dev,hf]"',
+        "python -m ruff check .",
+        "python -m ruff format --check .",
+        "python -m pytest -q",
+    ]
+
     steps = workflow["jobs"]["qualify-checkpoint"]["steps"]
+    diagnostic_upload = next(
+        step for step in steps if step.get("name") == "Upload diagnostic reports and JUnit"
+    )
     attestation_upload = next(
         step for step in steps if step.get("name") == "Upload verified recovery attestation"
     )
 
-    assert not Path(".github/workflows/flashpilot-qualification.yml").exists()
+    assert diagnostic_upload["if"] == "always()"
     assert attestation_upload["if"] == "success()"
     assert attestation_upload["with"]["path"] == "runs/**/recovery.attestation.json"
-    serialized = path.read_text(encoding="utf-8")
-    assert "flashpilot audit-checkpoint" in serialized
-    assert "flashpilot qualify hf-trainer" in serialized
-    assert "flashpilot emit-junit" in serialized
+    serialized = active_path.read_text(encoding="utf-8")
+    for required in (
+        "flashpilot audit-checkpoint",
+        "flashpilot qualify hf-trainer",
+        "flashpilot emit-junit",
+    ):
+        assert required in serialized
+    for forbidden in ("OPENAI_API_KEY", "live-contract", "live-failure", "self-hosted"):
+        assert forbidden not in serialized
