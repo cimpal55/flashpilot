@@ -197,6 +197,9 @@ def test_deepspeed_schemas_match_checked_files() -> None:
         ("--backend", "nccl"),
         ("--world-size", "4"),
         ("--profile", "model-only-inference"),
+        ("--fault", "unsupported"),
+        ("--fault", "rank-termination"),
+        ("--target-rank", "0"),
     ],
 )
 def test_deepspeed_cli_rejects_unsupported_contract_without_starting_workers(

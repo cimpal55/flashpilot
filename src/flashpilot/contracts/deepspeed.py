@@ -65,7 +65,7 @@ def deepspeed_zero2_persistence_contract() -> PersistenceContract:
             ),
             warnings=(
                 "Only the deterministic DeepSpeed Recovery Gate can verify recovery.",
-                "Multi-rank fault injection and elastic recovery are separate milestones.",
+                "Only checkpoint-boundary target-rank termination is qualified; elastic recovery is not.",
             ),
         )
     )

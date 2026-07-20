@@ -100,6 +100,65 @@
       "default": null,
       "title": "Distributed Backend"
     },
+    "distributed_failure_event_path": {
+      "anyOf": [
+        {
+          "const": "failure-event.json",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed Failure Event Path"
+    },
+    "distributed_failure_event_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed Failure Event Sha256"
+    },
+    "distributed_fault_target_rank": {
+      "anyOf": [
+        {
+          "enum": [
+            0,
+            1
+          ],
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed Fault Target Rank"
+    },
+    "distributed_fault_worker_pids": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed Fault Worker Pids"
+    },
     "distributed_implementation": {
       "anyOf": [
         {
@@ -115,6 +174,22 @@
       ],
       "default": null,
       "title": "Distributed Implementation"
+    },
+    "distributed_peer_failure_observer_rank": {
+      "anyOf": [
+        {
+          "enum": [
+            0,
+            1
+          ],
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Distributed Peer Failure Observer Rank"
     },
     "distributed_strategy": {
       "anyOf": [
@@ -175,7 +250,8 @@
         "process_termination",
         "process-kill",
         "managed_preemption",
-        "checkpoint_restart"
+        "checkpoint_restart",
+        "rank_process_termination"
       ],
       "title": "Fault Scenario",
       "type": "string"

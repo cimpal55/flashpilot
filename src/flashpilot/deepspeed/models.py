@@ -16,6 +16,7 @@ from flashpilot.distributed.models import (
     TorchRngState,
 )
 from flashpilot.domain.manifests import SHA256_PATTERN, ManagedRelativePath
+from flashpilot.multirank.models import MultiRankFailureEvent
 
 DeepSpeedPhase = Literal["control", "checkpoint", "recovery"]
 DeepSpeedPayloadRole = Literal[
@@ -297,6 +298,9 @@ class DeepSpeedQualificationResult(StrictDeepSpeedModel):
     backend: Literal["gloo"] = "gloo"
     world_size: Literal[2] = 2
     workload_profile: Literal["ci", "demo"]
+    fault_scenario: Literal["checkpoint_restart", "rank_process_termination"] = "checkpoint_restart"
+    fault_target_rank: Literal[0, 1] | None = None
+    failure_event: MultiRankFailureEvent | None = None
     control_processes: DistributedPhaseProcessEvidence
     control: tuple[DeepSpeedRankSummary, ...] = Field(min_length=2, max_length=2)
     checkpoint_processes: DistributedPhaseProcessEvidence
@@ -345,6 +349,30 @@ class DeepSpeedQualificationResult(StrictDeepSpeedModel):
             all_pids.extend(process_pids)
         if len(all_pids) != len(set(all_pids)):
             raise ValueError("DeepSpeed phases require distinct rank processes")
+        fault_check_ids = {
+            check.check_id for check in self.gate.checks if check.check_id.startswith("fault.")
+        }
+        if self.fault_scenario == "rank_process_termination":
+            if self.fault_target_rank not in (0, 1) or self.failure_event is None:
+                raise ValueError("rank termination requires target-rank failure evidence")
+            if (
+                self.failure_event.framework != self.framework
+                or self.failure_event.adapter != self.adapter
+                or self.failure_event.target_rank != self.fault_target_rank
+                or self.failure_event.checkpoint_path != self.checkpoint_event.checkpoint_path
+                or self.failure_event.checkpoint_step != self.checkpoint_event.global_step
+                or self.failure_event.checkpoint_tag != self.checkpoint_event.checkpoint_tag
+            ):
+                raise ValueError("DeepSpeed failure evidence differs from result identity")
+            fault_pids = tuple(item.worker_pid for item in self.failure_event.rank_processes)
+            if set(all_pids) & set(fault_pids) or len(set(fault_pids)) != 2:
+                raise ValueError("failed DeepSpeed rank group must use distinct processes")
+            if "fault.peer-propagation" not in fault_check_ids:
+                raise ValueError("DeepSpeed rank-termination Gate lacks peer-propagation evidence")
+        elif (
+            self.fault_target_rank is not None or self.failure_event is not None or fault_check_ids
+        ):
+            raise ValueError("clean DeepSpeed restart cannot contain failure evidence")
         if self.checkpoint_event.writer_pid != self.checkpoint_processes.ranks[0].worker_pid:
             raise ValueError("DeepSpeed checkpoint writer must identify checkpoint rank 0")
         if self.checkpoint_event.global_step != self.checkpoint_manifest.global_step:

@@ -247,5 +247,29 @@ DeepSpeed's documentation describes universal checkpoint support for loading
 across different parallelism strategies as under development. FlashPilot does
 not infer that same-world-size ZeRO-2 evidence proves elastic or universal
 recovery. The implemented claim remains DeepSpeed 0.19.x, two local CPU/Gloo
-ranks, one offline workload, a clean restart, and exact zero-tolerance
-continuation. Multi-rank failure injection is the next separate roadmap item.
+ranks, one offline workload, and exact zero-tolerance continuation.
+
+## Multi-rank failure evidence boundary
+
+PyTorch documents `monitored_barrier` as a Gloo-only host-side synchronization
+primitive that can report ranks which fail to participate. It also warns that
+reinitializing process groups after destruction is currently unsupported or
+untested and needs synchronization outside `torch.distributed`. FlashPilot
+therefore uses monitored collectives only as failure-observation evidence and
+never tries to heal the damaged group in place. It fully reaps that group and
+launches a new one through a fresh UUID rendezvous. Source: [PyTorch
+distributed communication](https://docs.pytorch.org/docs/stable/distributed.html).
+
+DeepSpeed checkpoint save still requires every rank and a common tag, while
+load returns framework-owned training state and client state. The failure
+scenario is deliberately placed after collective load and before any new
+optimizer step, so it tests rank loss and new-group recovery without claiming
+that a partially participating save is safe. Source: [DeepSpeed model
+checkpointing](https://deepspeed.readthedocs.io/en/latest/model-checkpointing.html).
+
+This contribution is the deterministic evidence boundary around established
+process and collective behavior: both ranks prove restore readiness, one exact
+parent-owned process is killed, the other proves collective impact separately,
+all failed processes stop, and distinct ranks resume exactly from immutable
+checkpoint evidence. It does not claim a new fault-tolerance algorithm,
+elastic orchestration, or general cluster recovery.

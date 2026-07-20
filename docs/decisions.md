@@ -878,3 +878,33 @@ decision. DeepSpeed 0.19.2 completed the exact two-rank ZeRO-2 command, all 30
 Gate checks passed, POSIX directory fsync succeeded, and the verified-only
 attestation upload ran. The Windows diagnostic bypass remains non-product
 evidence and is not required by or present in the accepted implementation.
+
+## D-059: qualify targeted rank loss at a committed zero-RPO boundary
+
+The third V1.0 production-infrastructure item supports exactly one hard
+process-failure shape for each already-qualified distributed runtime:
+`fault=rank-termination`, target rank 0 or 1, CPU, Gloo, world size 2, and a
+same-world-size replacement group. Clean restart remains the default and the
+checkpoint formats are unchanged.
+
+Fault delivery is parent-owned and uses the selected `subprocess.Popen`
+handle, not a PID supplied by a worker or artifact. Both fault ranks must first
+validate and load the committed checkpoint and atomically persist typed ready
+records. They then enter Gloo monitored collectives. Killing the selected rank
+is not sufficient evidence: the peer must separately persist a typed
+collective-failure observation with the opposite rank and matching PID before
+the parent can create `failure-event.json`.
+
+The failed group is fully reaped before two fresh recovery ranks launch.
+Qualification retains the original 24-check FSDP or 30-check DeepSpeed exact
+Gate and appends 12 checks for identity, readiness, checkpoint binding,
+zero-RPO ordering, target termination, peer propagation, nonzero exits, group
+cleanup, process separation, and recovery ordering. Storage bytes and the
+unsigned attestation remain unavailable until all 36 or 42 checks pass.
+
+The event, ready records, and peer record are closed evidence-manifest entries.
+The attestation directly binds the target, two fault PIDs, peer observer, and
+failure-event SHA-256. Malformed, missing, contradictory, path-escaping, or
+tampered evidence fails closed. This decision does not add elastic membership,
+in-process process-group reinitialization, automatic retry, multi-node
+orchestration, CUDA/NCCL, policy-as-code, signing, OIDC, or registry behavior.

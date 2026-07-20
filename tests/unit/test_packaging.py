@@ -88,6 +88,13 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
     assert "schemas/hf-preemption-commit-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert "schemas/hf-preemption-ready-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert (
+        "schemas/multi-rank-failure-event-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    )
+    assert "schemas/multi-rank-fault-ready-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    assert (
+        "schemas/multi-rank-peer-failure-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    )
+    assert (
         "schemas/previous-valid-fallback-v1.schema.json" in data_files["share/flashpilot/schemas"]
     )
     assert "schemas/recovery-attestation-v1.schema.json" in data_files["share/flashpilot/schemas"]

@@ -131,6 +131,27 @@ def test_distributed_attestation_requires_separate_disjoint_rank_groups() -> Non
         RecoveryAttestationV1.model_validate(payload)
 
 
+def test_distributed_rank_termination_attestation_requires_separate_fault_evidence() -> None:
+    payload = _distributed_attestation().model_dump(mode="python")
+    payload.update(
+        {
+            "fault_scenario": "rank_process_termination",
+            "distributed_fault_target_rank": 0,
+            "distributed_fault_worker_pids": (301, 302),
+            "distributed_peer_failure_observer_rank": 1,
+            "distributed_failure_event_path": "failure-event.json",
+            "distributed_failure_event_sha256": "9" * 64,
+        }
+    )
+
+    attestation = RecoveryAttestationV1.model_validate(payload)
+    assert attestation.distributed_fault_target_rank == 0
+
+    payload["distributed_peer_failure_observer_rank"] = 0
+    with pytest.raises(ValidationError, match="process evidence is invalid"):
+        RecoveryAttestationV1.model_validate(payload)
+
+
 def test_distributed_contract_is_exact_and_same_world_size() -> None:
     contract = distributed_fsdp_persistence_contract()
     by_id = {item.state_id: item for item in contract.items}
@@ -170,6 +191,9 @@ def test_distributed_schemas_match_checked_files() -> None:
         ("--backend", "nccl"),
         ("--world-size", "4"),
         ("--profile", "model-only-inference"),
+        ("--fault", "unsupported"),
+        ("--fault", "rank-termination"),
+        ("--target-rank", "0"),
     ],
 )
 def test_distributed_cli_rejects_unsupported_contract_without_starting_workers(

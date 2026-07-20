@@ -681,3 +681,39 @@ and the complete Ubuntu qualification job. The hosted DeepSpeed command passed
 all 30 checks with six distinct processes, successful POSIX directory fsync,
 a 0.015481656-second checkpoint commit, a 7.122461-second recovery RTO,
 217,120 verified logical bytes, and a verified-only unsigned attestation.
+
+## V1.0 item 3 - multi-rank failure scenarios
+
+Codex implemented only the third V1.0 item:
+
+- extended both existing FSDP and DeepSpeed commands with the explicit
+  `rank-termination` fault and required target rank 0 or 1;
+- required both fault ranks to validate and load the committed checkpoint
+  before parent-owned fault delivery at a zero-step-RPO boundary;
+- added strict, separate rank-ready, peer collective-failure, process-exit,
+  cleanup, and aggregate failure-event evidence;
+- required eight distinct processes per scenario and fresh same-world-size
+  recovery only after failed-group cleanup;
+- appended 12 deterministic checks to the existing exact Gates, producing
+  36-check FSDP and 42-check DeepSpeed verdicts without changing tolerances;
+- bound fault identity and `failure-event.json` SHA-256 into the closed
+  verified-only attestation and CI evidence;
+- added schemas, fail-closed tests, both-rank real integration coverage,
+  active/example workflow scenarios, and English architecture/decision/
+  research documentation.
+
+Codex did not begin typed policy-as-code, elastic membership, TorchElastic,
+in-process group healing, scheduler retries, multi-node or CUDA/NCCL support,
+signing, OIDC, registry publication, organization policy, GPT work, repair, or
+additional adapters. Clean restart remains backward compatible and default.
+
+GitHub Actions pull-request run 29768094351 subsequently passed both Python
+quality jobs and the complete Ubuntu qualification job at commit `3e5b707`.
+Python 3.11 and 3.12 each passed Ruff, the 211-file format check, and 348 tests
+with one expected Windows-only skip. Both target ranks passed for both
+runtimes: FSDP returned 36/36 with 293,945 verified logical bytes, and
+DeepSpeed ZeRO-2 returned 42/42 with 217,119 verified logical bytes. All four
+scenarios achieved zero-step RPO, produced separate peer Gloo-failure
+evidence, stopped both failed-group processes without forced cleanup, and
+restored through fresh two-rank groups. The downloaded failure-event bytes
+matched the SHA-256 values bound into all four success-only attestations.

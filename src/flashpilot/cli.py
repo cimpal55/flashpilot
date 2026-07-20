@@ -466,8 +466,16 @@ def qualify_distributed_pytorch(
         str,
         typer.Option(help="Bounded workload size: ci or demo."),
     ] = "ci",
+    fault: Annotated[
+        str,
+        typer.Option(help="Fault scenario: checkpoint-restart or rank-termination."),
+    ] = "checkpoint-restart",
+    target_rank: Annotated[
+        int | None,
+        typer.Option(help="Required target rank (0 or 1) for rank-termination."),
+    ] = None,
 ) -> None:
-    """Qualify exact same-world-size restart for real two-rank PyTorch FSDP."""
+    """Qualify exact two-rank FSDP restart with optional rank termination."""
 
     if profile != "exact-training-resume" or workload_profile not in {"ci", "demo"}:
         typer.echo("Unsupported distributed qualification profile.", err=True)
@@ -485,6 +493,8 @@ def qualify_distributed_pytorch(
             strategy=strategy,
             backend=backend,
             world_size=world_size,
+            fault=fault,
+            target_rank=target_rank,
         )
     except (DistributedUnsupportedConfigurationError, ValueError) as error:
         typer.echo(f"Distributed qualification could not run: {error}", err=True)
@@ -495,6 +505,9 @@ def qualify_distributed_pytorch(
     typer.echo(result.final_verdict)
     typer.echo(f"Strategy: {result.strategy} via {result.implementation}")
     typer.echo(f"Backend/world size: {result.backend}/{result.world_size}")
+    typer.echo(f"Fault scenario: {result.fault_scenario}")
+    if result.fault_target_rank is not None:
+        typer.echo(f"Terminated rank: {result.fault_target_rank}")
     typer.echo(
         f"Recovery Gate: {sum(c.status == 'pass' for c in result.gate.checks)}/"
         f"{len(result.gate.checks)}"
@@ -539,8 +552,16 @@ def qualify_deepspeed(
         str,
         typer.Option(help="Bounded workload size: ci or demo."),
     ] = "ci",
+    fault: Annotated[
+        str,
+        typer.Option(help="Fault scenario: checkpoint-restart or rank-termination."),
+    ] = "checkpoint-restart",
+    target_rank: Annotated[
+        int | None,
+        typer.Option(help="Required target rank (0 or 1) for rank-termination."),
+    ] = None,
 ) -> None:
-    """Qualify exact same-world-size restart for real DeepSpeed ZeRO stage 2."""
+    """Qualify exact ZeRO-2 restart with optional rank termination."""
 
     if profile != "exact-training-resume" or workload_profile not in {"ci", "demo"}:
         typer.echo("Unsupported DeepSpeed qualification profile.", err=True)
@@ -558,6 +579,8 @@ def qualify_deepspeed(
             zero_stage=zero_stage,
             backend=backend,
             world_size=world_size,
+            fault=fault,
+            target_rank=target_rank,
         )
     except (DeepSpeedUnsupportedConfigurationError, ValueError) as error:
         typer.echo(f"DeepSpeed qualification could not run: {error}", err=True)
@@ -568,6 +591,9 @@ def qualify_deepspeed(
     typer.echo(result.final_verdict)
     typer.echo(f"Strategy: {result.strategy} via {result.implementation}")
     typer.echo(f"Backend/world size: {result.backend}/{result.world_size}")
+    typer.echo(f"Fault scenario: {result.fault_scenario}")
+    if result.fault_target_rank is not None:
+        typer.echo(f"Terminated rank: {result.fault_target_rank}")
     typer.echo(
         f"Recovery Gate: {sum(c.status == 'pass' for c in result.gate.checks)}/"
         f"{len(result.gate.checks)}"

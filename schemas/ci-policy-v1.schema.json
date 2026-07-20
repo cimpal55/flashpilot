@@ -29,7 +29,8 @@
         "enum": [
           "process_termination",
           "managed_preemption",
-          "checkpoint_restart"
+          "checkpoint_restart",
+          "rank_process_termination"
         ],
         "type": "string"
       },

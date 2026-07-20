@@ -53,6 +53,7 @@ from flashpilot.hf.models import HFQualificationResult
 from flashpilot.hf.reporting import render_hf_html, render_hf_markdown
 from flashpilot.lightning.models import LightningQualificationResult
 from flashpilot.lightning.reporting import render_lightning_html, render_lightning_markdown
+from flashpilot.multirank.models import MultiRankFailureEvent
 from flashpilot.orchestration.repair_loop import render_repair_report
 from flashpilot.preemption.models import (
     PREEMPTION_INCOMPLETE_MARKER,
@@ -81,6 +82,52 @@ def _read_model(path: Path, model_type: type):
 def _require_equal(actual: object, expected: object, message: str) -> None:
     if actual != expected:
         raise AttestationVerificationError(message)
+
+
+def _verify_multi_rank_failure_event(
+    *,
+    sandbox: PathSandbox,
+    attestation: RecoveryAttestationV1,
+    event: MultiRankFailureEvent | None,
+    checks: list[AttestationVerificationCheck],
+) -> None:
+    expected_path = "failure-event.json" if event is not None else None
+    _require_equal(
+        attestation.distributed_failure_event_path,
+        expected_path,
+        "multi-rank failure-event path mismatch",
+    )
+    if event is None:
+        if (sandbox.root / "failure-event.json").exists():
+            raise AttestationVerificationError(
+                "clean restart contains unexpected multi-rank failure evidence"
+            )
+        checks.append(
+            _passed(
+                "consistency.no-multi-rank-fault",
+                "Clean restart contains no multi-rank failure claim or artifact.",
+            )
+        )
+        return
+    try:
+        event_path = sandbox.resolve_relative("failure-event.json", must_exist=True)
+    except PathContainmentError as error:
+        raise AttestationVerificationError(
+            "multi-rank failure-event path is missing or unsafe"
+        ) from error
+    persisted = _read_model(event_path, MultiRankFailureEvent)
+    _require_equal(persisted, event, "multi-rank failure event differs from result")
+    _require_equal(
+        sha256_file(event_path),
+        attestation.distributed_failure_event_sha256,
+        "multi-rank failure-event hash mismatch",
+    )
+    checks.append(
+        _passed(
+            "consistency.multi-rank-fault",
+            "Typed rank termination and peer collective-failure evidence agree.",
+        )
+    )
 
 
 def _verify_hf_result(
@@ -544,6 +591,26 @@ def _verify_distributed_result(
         ),
         (result.backend, attestation.distributed_backend, "distributed backend mismatch"),
         (result.world_size, attestation.distributed_world_size, "distributed world size mismatch"),
+        (result.fault_scenario, attestation.fault_scenario, "distributed fault mismatch"),
+        (
+            result.fault_target_rank,
+            attestation.distributed_fault_target_rank,
+            "distributed target rank mismatch",
+        ),
+        (
+            tuple(item.worker_pid for item in result.failure_event.rank_processes)
+            if result.failure_event is not None
+            else None,
+            attestation.distributed_fault_worker_pids,
+            "distributed fault PID set mismatch",
+        ),
+        (
+            result.failure_event.peer_failure.observer_rank
+            if result.failure_event is not None
+            else None,
+            attestation.distributed_peer_failure_observer_rank,
+            "distributed peer observer mismatch",
+        ),
         (original_pids, attestation.original_worker_pids, "checkpoint rank PID set mismatch"),
         (recovery_pids, attestation.recovery_worker_pids, "recovery rank PID set mismatch"),
         (original_pids[0], attestation.original_worker_pid, "checkpoint rank-zero PID mismatch"),
@@ -592,6 +659,12 @@ def _verify_distributed_result(
             "consistency.result",
             "Distributed result, topology, exact Gate, process groups, and trajectory agree.",
         )
+    )
+    _verify_multi_rank_failure_event(
+        sandbox=sandbox,
+        attestation=attestation,
+        event=result.failure_event,
+        checks=checks,
     )
 
     try:
@@ -702,6 +775,26 @@ def _verify_deepspeed_result(
         (result.zero_stage, attestation.distributed_zero_stage, "DeepSpeed ZeRO stage mismatch"),
         (result.backend, attestation.distributed_backend, "DeepSpeed backend mismatch"),
         (result.world_size, attestation.distributed_world_size, "DeepSpeed world size mismatch"),
+        (result.fault_scenario, attestation.fault_scenario, "DeepSpeed fault mismatch"),
+        (
+            result.fault_target_rank,
+            attestation.distributed_fault_target_rank,
+            "DeepSpeed target rank mismatch",
+        ),
+        (
+            tuple(item.worker_pid for item in result.failure_event.rank_processes)
+            if result.failure_event is not None
+            else None,
+            attestation.distributed_fault_worker_pids,
+            "DeepSpeed fault PID set mismatch",
+        ),
+        (
+            result.failure_event.peer_failure.observer_rank
+            if result.failure_event is not None
+            else None,
+            attestation.distributed_peer_failure_observer_rank,
+            "DeepSpeed peer observer mismatch",
+        ),
         (original_pids, attestation.original_worker_pids, "DeepSpeed checkpoint PID set mismatch"),
         (recovery_pids, attestation.recovery_worker_pids, "DeepSpeed recovery PID set mismatch"),
         (original_pids[0], attestation.original_worker_pid, "DeepSpeed rank-zero PID mismatch"),
@@ -750,6 +843,12 @@ def _verify_deepspeed_result(
             "consistency.result",
             "DeepSpeed result, topology, exact Gate, process groups, and trajectory agree.",
         )
+    )
+    _verify_multi_rank_failure_event(
+        sandbox=sandbox,
+        attestation=attestation,
+        event=result.failure_event,
+        checks=checks,
     )
 
     try:

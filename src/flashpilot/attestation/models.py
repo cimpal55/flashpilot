@@ -128,6 +128,7 @@ class RecoveryAttestationV1(StrictAttestationModel):
         "process-kill",
         "managed_preemption",
         "checkpoint_restart",
+        "rank_process_termination",
     ] = "process_termination"
     preemption_signal: Literal["SIGTERM"] | None = None
     grace_period_seconds: int | None = Field(default=None, ge=1, le=3_600)
@@ -141,6 +142,13 @@ class RecoveryAttestationV1(StrictAttestationModel):
     distributed_zero_stage: Literal[2] | None = None
     original_worker_pids: tuple[int, ...] | None = Field(default=None, min_length=2, max_length=2)
     recovery_worker_pids: tuple[int, ...] | None = Field(default=None, min_length=2, max_length=2)
+    distributed_fault_target_rank: Literal[0, 1] | None = None
+    distributed_fault_worker_pids: tuple[int, ...] | None = Field(
+        default=None, min_length=2, max_length=2
+    )
+    distributed_peer_failure_observer_rank: Literal[0, 1] | None = None
+    distributed_failure_event_path: Literal["failure-event.json"] | None = None
+    distributed_failure_event_sha256: str | None = Field(default=None, pattern=SHA256_PATTERN)
     original_worker_pid: int = Field(gt=0)
     recovery_worker_pid: int = Field(gt=0)
     control_digest: str = Field(pattern=SHA256_PATTERN)
@@ -202,10 +210,17 @@ class RecoveryAttestationV1(StrictAttestationModel):
             self.original_worker_pids,
             self.recovery_worker_pids,
         )
+        distributed_fault_fields = (
+            self.distributed_fault_target_rank,
+            self.distributed_fault_worker_pids,
+            self.distributed_peer_failure_observer_rank,
+            self.distributed_failure_event_path,
+            self.distributed_failure_event_sha256,
+        )
         if self.framework == "pytorch-distributed":
             if (
                 self.adapter != "pytorch-fsdp"
-                or self.fault_scenario != "checkpoint_restart"
+                or self.fault_scenario not in {"checkpoint_restart", "rank_process_termination"}
                 or any(value is None for value in distributed_fields)
                 or self.distributed_strategy != "fsdp"
                 or self.distributed_implementation != "fully_shard"
@@ -224,11 +239,16 @@ class RecoveryAttestationV1(StrictAttestationModel):
                 or self.recovery_worker_pid != recovery[0]
             ):
                 raise ValueError("distributed attestation process groups are invalid")
+            self._validate_distributed_fault_fields(
+                original=original,
+                recovery=recovery,
+                fields=distributed_fault_fields,
+            )
             return self
         if self.framework == "deepspeed":
             if (
                 self.adapter != "deepspeed-engine"
-                or self.fault_scenario != "checkpoint_restart"
+                or self.fault_scenario not in {"checkpoint_restart", "rank_process_termination"}
                 or any(value is None for value in distributed_fields)
                 or self.distributed_strategy != "zero"
                 or self.distributed_implementation != "zero-stage-2"
@@ -247,8 +267,16 @@ class RecoveryAttestationV1(StrictAttestationModel):
                 or self.recovery_worker_pid != recovery[0]
             ):
                 raise ValueError("DeepSpeed attestation process groups are invalid")
+            self._validate_distributed_fault_fields(
+                original=original,
+                recovery=recovery,
+                fields=distributed_fault_fields,
+            )
             return self
-        if any(value is not None for value in distributed_fields) or self.distributed_zero_stage:
+        if (
+            any(value is not None for value in distributed_fields + distributed_fault_fields)
+            or self.distributed_zero_stage
+        ):
             raise ValueError("non-distributed attestation cannot contain topology fields")
         if self.framework == "native-pytorch" and (
             self.adapter != "native-pytorch" or self.fault_scenario != "process_termination"
@@ -263,6 +291,30 @@ class RecoveryAttestationV1(StrictAttestationModel):
         ):
             raise ValueError("Lightning attestation framework, adapter, and fault must agree")
         return self
+
+    def _validate_distributed_fault_fields(
+        self,
+        *,
+        original: tuple[int, ...],
+        recovery: tuple[int, ...],
+        fields: tuple[object | None, ...],
+    ) -> None:
+        if self.fault_scenario == "checkpoint_restart":
+            if any(value is not None for value in fields):
+                raise ValueError("clean distributed restart cannot contain fault evidence")
+            return
+        if any(value is None for value in fields):
+            raise ValueError("rank termination attestation requires complete fault evidence")
+        assert self.distributed_fault_target_rank is not None
+        assert self.distributed_fault_worker_pids is not None
+        assert self.distributed_peer_failure_observer_rank is not None
+        fault = tuple(self.distributed_fault_worker_pids)
+        if (
+            len(set(fault)) != 2
+            or set(fault) & (set(original) | set(recovery))
+            or self.distributed_peer_failure_observer_rank != 1 - self.distributed_fault_target_rank
+        ):
+            raise ValueError("rank termination attestation process evidence is invalid")
 
 
 class AttestationVerificationCheck(StrictAttestationModel):

@@ -3636,6 +3636,194 @@ The attestation artifact contained all three verified attestations and was
 `6395270926548943a0e1c9b9ec665d66681aa358c605593558dfd166546b509d`.
 Hosted values are measurements for this workflow run only.
 
+## V1.0 item 3 - targeted multi-rank process termination
+
+Scope is limited to the third V1.0 production-infrastructure item. The two
+already-qualified distributed commands now accept exactly
+`fault=rank-termination` with required target rank 0 or 1. Both fault ranks
+must load the validated committed checkpoint, the parent kills the selected
+child process, the peer must persist typed Gloo collective-failure evidence,
+the complete failed group must stop, and a fresh same-world-size group must
+pass the original exact trajectory checks plus 12 fault checks. Elastic
+membership, scheduler retries, multi-node execution, CUDA/NCCL, typed
+policy-as-code expansion, signing, OIDC, registry, and later V1.0 items were
+not started.
+
+### Real Windows FSDP target matrix
+
+The final current-tree commands were:
+
+```text
+.\.venv\Scripts\flashpilot.exe qualify distributed-pytorch --fault rank-termination --target-rank 0 --run-dir runs\multirank-acceptance-fsdp-rank-0
+.\.venv\Scripts\flashpilot.exe qualify distributed-pytorch --fault rank-termination --target-rank 1 --run-dir runs\multirank-acceptance-fsdp-rank-1
+```
+
+Actual CLI output:
+
+```text
+VERIFIED
+Strategy: fsdp via fully_shard
+Backend/world size: gloo/2
+Fault scenario: rank_process_termination
+Terminated rank: 0
+Recovery Gate: 36/36
+Recovery RTO: 4.403852 seconds
+Verified persisted bytes: 293950
+
+VERIFIED
+Strategy: fsdp via fully_shard
+Backend/world size: gloo/2
+Fault scenario: rank_process_termination
+Terminated rank: 1
+Recovery Gate: 36/36
+Recovery RTO: 4.634837 seconds
+Verified persisted bytes: 293950
+```
+
+The rank-0 scenario recorded failed-group PIDs `(36228, 37156)`, exit codes
+`(1, 17)`, peer observer rank 1, no forced cleanup, zero-step RPO, and a
+0.49255280001671053-second checkpoint commit. Its attestation SHA-256 was
+`2a0c4612fe2545210f81f21dd5b59f42eac3ab087a2aa49b4bceddbc80cdbe39`.
+The rank-1 scenario recorded PIDs `(34772, 27212)`, exit codes `(17, 1)`, peer
+observer rank 0, no forced cleanup, zero-step RPO, and a
+0.21059050000621937-second checkpoint commit. Its attestation SHA-256 was
+`4829dd490031280f4d9c149474f5a1dc43506b6e0e0b244f204c21a6b2744029`.
+Direct verification of both current-tree attestations returned 36/36 and
+`Unsigned integrity verification passed; no publisher signature was checked.`
+These are measurements for the two local invocations, not performance or
+storage-savings claims.
+
+An initial rank-0 development run failed closed because Windows Gloo had not
+reported the peer failure within the original observation window. The final
+implementation sets a fault-phase-only 10-second process-group timeout while
+leaving all clean FSDP timeouts unchanged. The next rank-0 and rank-1 runs
+both produced independent peer evidence and passed. This unsuccessful run was
+not relabeled as recovery proof.
+
+DeepSpeed remains product-rejected on Windows before worker launch. Its two
+real target-rank scenarios are enabled in the Ubuntu workflow; their
+authoritative Linux acceptance is recorded below. No DeepSpeed fault bytes,
+PIDs, or timing values are claimed from the local Windows diagnostics.
+
+### Focused and complete local gates
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_multirank.py tests\unit\test_distributed.py tests\unit\test_deepspeed.py tests\unit\test_ci.py tests\unit\test_packaging.py -q
+........................................................................ [ 93%]
+.....                                                                    [100%]
+77 passed in 3.81s
+
+After the final timestamp and pre-fault evidence audit, the same focused
+command returned:
+
+........................................................................ [ 92%]
+......                                                                   [100%]
+78 passed in 2.19s
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_distributed_qualification.py -q
+...                                                                      [100%]
+3 passed in 64.99s (0:01:04)
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_deepspeed_qualification.py -q
+sss                                                                      [100%]
+3 skipped in 1.36s
+```
+
+The exact required repository commands then returned:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+211 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+.................sss................s................................... [ 20%]
+........................................................................ [ 41%]
+........................................................................ [ 61%]
+........................................................................ [ 82%]
+.....s.......................................................            [100%]
+344 passed, 5 skipped in 328.71s (0:05:28)
+```
+
+The three DeepSpeed tests were skipped because real ZeRO-2 qualification
+requires Linux; the other expected skips were real POSIX SIGTERM and the
+existing Windows non-administrator directory-symlink privilege case. No test,
+tolerance, Gate check, or skip condition was weakened.
+
+An optional isolated wheel build could not create its requested `C:\tmp`
+output directory under the current sandbox ACL and then exposed the build
+frontend's Windows code-page decode failure while reporting isolated pip's
+error. No product or test behavior was changed for that host issue. The
+non-isolated build using the already validated environment succeeded:
+
+```text
+Successfully built flashpilot-0.2.0-py3-none-any.whl
+required_entries={
+  'flashpilot/multirank/models.py': True,
+  'flashpilot/multirank/orchestration.py': True,
+  'flashpilot/multirank/gate.py': True,
+  'share/flashpilot/schemas/multi-rank-failure-event-v1.schema.json': True,
+  'share/flashpilot/schemas/multi-rank-fault-ready-v1.schema.json': True,
+  'share/flashpilot/schemas/multi-rank-peer-failure-v1.schema.json': True
+}
+file_count=207
+```
+
+Both workflow YAML documents parsed successfully. Their qualification steps
+are identical, global permissions remain `contents: read`, the quality matrix
+remains Python 3.11/3.12, and the qualification job contains four explicit
+rank-termination steps: FSDP and DeepSpeed, each targeting ranks 0 and 1.
+
+### Hosted Ubuntu acceptance
+
+GitHub Actions pull-request run 29768094351 executed commit `3e5b707` on
+Ubuntu. All three jobs passed:
+
+```text
+Quality (Python 3.11): Ruff PASS; format PASS (211 files); 348 passed, 1 skipped in 371.02s
+Quality (Python 3.12): Ruff PASS; format PASS (211 files); 348 passed, 1 skipped in 367.11s
+qualify-checkpoint: PASS
+```
+
+The one hosted skip was the Windows-only DeepSpeed CLI rejection test. The
+Linux DeepSpeed integrations, POSIX SIGTERM integration, and directory-symlink
+containment test executed. The qualification job passed the existing HF,
+clean FSDP, clean DeepSpeed, preemption, static-audit, and typed-policy steps,
+as well as all four new fault steps. The always-on diagnostic artifact was
+92,874 bytes; the success-only attestation artifact was 11,940 bytes and
+contained eight verified attestations.
+
+The uploaded strict results measured:
+
+| Runtime and target | Gate | Failed-group PIDs | Exit codes | Peer | Forced cleanup | RPO | Commit seconds | Recovery RTO seconds | Verified bytes |
+| --- | ---: | --- | --- | ---: | --- | ---: | ---: | ---: | ---: |
+| FSDP rank 0 | 36/36 | 2498, 2499 | -9, 17 | 1 | false, false | 0 | 0.0917260610000028 | 2.452286 | 293,945 |
+| FSDP rank 1 | 36/36 | 2596, 2597 | 17, -9 | 0 | false, false | 0 | 0.05862994000000299 | 2.432176 | 293,945 |
+| DeepSpeed rank 0 | 42/42 | 2877, 2878 | -9, 17 | 1 | false, false | 0 | 0.015568677000004527 | 5.866897 | 217,119 |
+| DeepSpeed rank 1 | 42/42 | 3057, 3058 | 17, -9 | 0 | false, false | 0 | 0.013267632999998114 | 6.116368 | 217,119 |
+
+Every final verdict was `VERIFIED`. Each selected target had the platform
+kill exit `-9`; each peer independently emitted typed
+`gloo_collective_error` evidence and exited 17. Neither group needed forced
+parent cleanup. The four uploaded `failure-event.json` files exactly matched
+the SHA-256 values bound into their corresponding attestations:
+
+```text
+FSDP rank 0:     0040e29ef05f8933a10106fc30bf346b2ce4fc55cee85c5c1ef698b80ba5a4e2
+FSDP rank 1:     20c1754c68c1a5d187a5f665bc88e7ac55a4d721b64f1773c467d1d17279d484
+DeepSpeed rank 0: 648f42b5062164f2dcc604dd86d12c8e7a2732dc82f49ff5d96e4d0168956787
+DeepSpeed rank 1: e4972670d46fa025635e1b0dcf242802cff222bf8e3c8c74387e2ba7bbe6e29f
+```
+
+These are measurements from this hosted run only. The byte figures are
+logical checkpoint sizes reported after the corresponding deterministic Gate
+passed; they are not storage-savings or performance claims. Same-world-size
+CPU/Gloo recovery is qualified. Elastic membership, job-manager retry,
+multi-node execution, CUDA/NCCL, and in-process process-group healing remain
+outside this milestone.
+
 ## V1.0 item 2 - two-rank DeepSpeed ZeRO-2 qualification
 
 Scope is limited to the second V1.0 production-infrastructure item. The new
