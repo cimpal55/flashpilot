@@ -643,3 +643,8 @@ Codex did not begin DeepSpeed, multi-rank failure injection, elastic recovery,
 CUDA/NCCL, signing, OIDC, registry publication, organization policy, GPT work,
 or additional adapters. Verified bytes are reported only after the distributed
 Recovery Gate passes.
+
+GitHub Actions run 29758530327 subsequently passed both Python quality jobs
+and the complete Ubuntu qualification job. The hosted FSDP command passed all
+24 checks with six distinct processes, successful POSIX directory fsync, and a
+verified-only unsigned attestation.

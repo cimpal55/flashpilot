@@ -3609,5 +3609,29 @@ SKIPPED [1] tests\unit\test_paths.py:33: directory symlinks are unavailable: [Wi
 
 Both checked workflow YAML files parsed locally. The active workflow retains
 global `contents: read`, and the reusable example retains job-scoped
-`contents: read`. The hosted Ubuntu qualification step is configured but is
-not claimed as passed until its pull-request run completes.
+`contents: read`.
+
+### Hosted Ubuntu acceptance
+
+GitHub Actions pull-request run 29758530327 executed commit `853935e` on
+Ubuntu with Python 3.11 and 3.12. All three jobs passed:
+
+```text
+Quality (Python 3.11): PASS in 4m34s; Ruff PASS; format PASS; 304 passed in 182.30s
+Quality (Python 3.12): PASS in 4m14s; Ruff PASS; format PASS; 304 passed in 138.05s
+qualify-checkpoint: PASS in 2m27s
+```
+
+The hosted distributed command completed `VERIFIED` with FSDP2/Gloo world
+size 2, Recovery Gate 24/24, a 0.044714-second checkpoint commit, a
+3.544138-second recovery RTO, and 293,933 verified logical bytes. The six
+worker PIDs were distinct. POSIX directory fsync was supported and succeeded.
+The real HF qualification, managed SIGTERM certification, static audit, typed
+policy, diagnostics, and success-only attestation upload also passed.
+
+The diagnostic artifact was 26,785 bytes with SHA-256
+`b10215d1207000f2c3faacfa0b1baa83de38feb5ca592feb561aa7a3176a1ac4`.
+The attestation artifact contained all three verified attestations and was
+3,940 bytes with SHA-256
+`6395270926548943a0e1c9b9ec665d66681aa358c605593558dfd166546b509d`.
+Hosted values are measurements for this workflow run only.
