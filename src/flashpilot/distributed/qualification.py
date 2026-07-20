@@ -447,7 +447,10 @@ def run_distributed_qualification(
                 else "Qualification performs a clean checkpoint restart without fault injection."
             ),
             "Elastic resharding, world-size changes, and automatic job-manager retries are not qualified.",
-            "The attestation remains unsigned until the later signing milestone.",
+            (
+                "The attestation payload has no embedded signature; detached Ed25519 "
+                "verification requires an explicitly trusted public key."
+            ),
         ),
     )
     write_json_artifact(run_root=sandbox.root, relative_path="result.json", value=result)

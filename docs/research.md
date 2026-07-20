@@ -299,3 +299,25 @@ conditions, call functions, execute code, discover evidence, or override an
 underlying Recovery Gate. General authorization, shared policy services,
 organization inheritance, and remote policy distribution remain later or
 external concerns.
+
+## Detached Ed25519 signing boundary
+
+RFC 8032 defines Ed25519 as the EdDSA instance over edwards25519 and specifies
+64-byte signatures. FlashPilot uses it only to authenticate a fixed
+domain-separated message containing the exact attestation file bytes. Source:
+[RFC 8032](https://datatracker.ietf.org/doc/html/rfc8032).
+
+The `cryptography` project exposes `Ed25519PrivateKey.sign` and
+`Ed25519PublicKey.verify`, and its serialization API supports unencrypted PKCS8
+private keys plus SubjectPublicKeyInfo public keys. FlashPilot delegates the
+primitive and key parsing to that maintained implementation rather than
+implementing cryptography locally. Sources: [cryptography Ed25519
+documentation](https://cryptography.io/en/41.0.4/hazmat/primitives/asymmetric/ed25519/),
+[cryptography key serialization](https://cryptography.io/en/44.0.1/hazmat/primitives/asymmetric/serialization/).
+
+Sigstore keyless signing uses short-lived certificates from Fulcio based on an
+OIDC identity and records signing events in Rekor. That is valuable publisher
+provenance, but it crosses the plan's separate OIDC milestone. The current
+Ed25519 sidecar therefore claims only that exact bytes verify under a public
+key the caller already trusts; it does not claim who controls that key. Source:
+[Sigstore signing overview](https://docs.sigstore.dev/cosign/signing/overview/).

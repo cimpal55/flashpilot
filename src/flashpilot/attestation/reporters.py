@@ -36,6 +36,17 @@ def render_attestation_junit(result: AttestationVerificationResult) -> str:
         "property",
         {"name": "attestation_sha256", "value": result.attestation_sha256},
     )
+    ElementTree.SubElement(
+        properties,
+        "property",
+        {"name": "signature_status", "value": result.signature_status},
+    )
+    if result.signing_key_sha256 is not None:
+        ElementTree.SubElement(
+            properties,
+            "property",
+            {"name": "signing_key_sha256", "value": result.signing_key_sha256},
+        )
     for check in result.checks:
         case = ElementTree.SubElement(
             suite,
@@ -72,5 +83,12 @@ def render_attestation_summary(
     table.add_row("Exact policy", f"atol={attestation.atol}, rtol={attestation.rtol}")
     table.add_row("RPO / RTO", f"{attestation.rpo_steps} steps / {attestation.rto_seconds:.3f}s")
     table.add_row("Persisted bytes", f"{attestation.verified_persisted_bytes:,}")
-    table.add_row("Signature", "unsigned (integrity only; no publisher authentication)")
+    if verification.signature_status == "verified":
+        assert verification.signing_key_sha256 is not None
+        table.add_row(
+            "Signature",
+            f"verified Ed25519 (trusted key {verification.signing_key_sha256})",
+        )
+    else:
+        table.add_row("Signature", "unsigned (integrity only; no publisher authentication)")
     console.print(Panel(table, border_style="green"))

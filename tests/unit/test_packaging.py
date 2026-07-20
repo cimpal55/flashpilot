@@ -57,10 +57,19 @@ def test_deepspeed_extra_is_linux_optional_and_development_tested() -> None:
     assert all("deepspeed" not in dependency for dependency in project["dependencies"])
 
 
+def test_ed25519_uses_a_bounded_direct_cryptography_dependency() -> None:
+    dependencies = _pyproject()["project"]["dependencies"]
+
+    assert "cryptography>=46,<50" in dependencies
+    assert all("sigstore" not in dependency for dependency in dependencies)
+    assert "**/ed25519-private.pem" in Path(".gitignore").read_text(encoding="utf-8")
+
+
 def test_release_data_files_cover_public_portable_artifacts() -> None:
     data_files = _pyproject()["tool"]["setuptools"]["data-files"]
 
     assert "schemas/ci-policy-v1.schema.json" in data_files["share/flashpilot/schemas"]
+    assert "schemas/attestation-signature-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert "schemas/qualification-policy-v1.schema.json" in data_files["share/flashpilot/schemas"]
     assert (
         "schemas/qualification-policy-evaluation-v1.schema.json"

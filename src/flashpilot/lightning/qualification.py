@@ -372,7 +372,10 @@ def run_lightning_qualification(
         limitations=(
             "Qualification covers the included CPU LightningModule, not arbitrary modules.",
             "The RNG bridge is explicit module checkpoint state required by this contract.",
-            "The attestation is unsigned and provides integrity, not publisher authentication.",
+            (
+                "The attestation payload has no embedded signature; detached Ed25519 "
+                "verification requires an explicitly trusted public key."
+            ),
         ),
     )
     write_json_artifact(run_root=sandbox.root, relative_path="result.json", value=result)

@@ -5,11 +5,18 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from flashpilot.attestation.models import EvidenceManifestV1, RecoveryAttestationV1
+from flashpilot.attestation.models import (
+    AttestationSignatureV1,
+    EvidenceManifestV1,
+    RecoveryAttestationV1,
+)
 
 
 def attestation_schema_documents() -> dict[str, dict[str, object]]:
     return {
+        "attestation-signature-v1.schema.json": AttestationSignatureV1.model_json_schema(
+            mode="serialization"
+        ),
         "evidence-manifest-v1.schema.json": EvidenceManifestV1.model_json_schema(
             mode="serialization"
         ),

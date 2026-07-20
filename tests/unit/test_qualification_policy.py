@@ -71,6 +71,7 @@ def _evidence_for(requirement: QualificationPolicyRequirement) -> QualificationP
             source_artifact="audit.json",
             source_sha256="a" * 64,
             attestation_status="not-applicable",
+            attestation_signature_status="not-applicable",
             evidence=evidence,
         )
 
@@ -103,6 +104,9 @@ def _evidence_for(requirement: QualificationPolicyRequirement) -> QualificationP
         source_sha256="a" * 64,
         attestation_status="verified",
         attestation_sha256="b" * 64,
+        attestation_signature_status="verified",
+        signing_key_sha256="c" * 64,
+        signature_artifact_sha256="d" * 64,
         evidence=evidence,
     )
 
@@ -158,6 +162,11 @@ def test_checked_in_qualification_policy_is_exact_closed_nine_run_matrix() -> No
     assert policy.unknown_state == "fail"
     assert policy.evidence_binding == "explicit"
     assert len(policy.requirements) == 9
+    assert all(
+        requirement.require_signed_attestation is True
+        for requirement in policy.requirements
+        if not isinstance(requirement, StaticAuditPolicyRequirement)
+    )
     assert tuple(item.requirement_id for item in policy.requirements) == (
         "hf-process-termination",
         "fsdp-checkpoint-restart",
@@ -263,6 +272,7 @@ def test_complete_explicit_matrix_passes_all_typed_requirements() -> None:
 
     assert evaluation.passed is True
     assert evaluation.failed_requirement_ids == ()
+    assert len(evaluation.checks) == 153
     assert all(check.status is CICheckStatus.PASS for check in evaluation.checks)
 
 
@@ -289,6 +299,7 @@ def test_unknown_state_and_underlying_unknown_check_fail_closed() -> None:
         source_artifact="audit.json",
         source_sha256="a" * 64,
         attestation_status="not-applicable",
+        attestation_signature_status="not-applicable",
         evidence=CIRunEvidence(
             kind="static-audit",
             status=CIStatus.UNKNOWN,
@@ -348,6 +359,7 @@ def test_runtime_bounds_exactness_and_attestation_fail_independently() -> None:
         source_artifact="result.json",
         source_sha256="a" * 64,
         attestation_status="missing",
+        attestation_signature_status="missing",
         evidence=weakened,
     )
 
@@ -362,7 +374,45 @@ def test_runtime_bounds_exactness_and_attestation_fail_independently() -> None:
         "policy.hf-process-termination.max-rpo",
         "policy.hf-process-termination.max-rto",
         "policy.hf-process-termination.attestation",
+        "policy.hf-process-termination.signed-attestation",
     )
+
+
+def test_signed_attestation_requirement_fails_exactly_for_valid_unsigned_evidence() -> None:
+    requirement = _loaded_policy().requirements[0]
+    bound = _evidence_for(requirement)
+    unsigned = QualificationPolicyEvidence(
+        source_artifact="result.json",
+        source_sha256=bound.source_sha256,
+        attestation_status="verified",
+        attestation_sha256=bound.attestation_sha256,
+        attestation_signature_status="unsigned",
+        evidence=bound.evidence,
+    )
+
+    evaluation = evaluate_qualification_policy(
+        policy=QualificationPolicyV1(policy_id="signed", requirements=(requirement,)),
+        policy_sha256="c" * 64,
+        evidence_by_requirement={requirement.requirement_id: unsigned},
+    )
+
+    assert evaluation.requirements[0].failed_check_ids == (
+        "policy.hf-process-termination.signed-attestation",
+    )
+
+
+def test_policy_evidence_rejects_signature_status_and_hash_contradictions() -> None:
+    requirement = _loaded_policy().requirements[0]
+    bound = _evidence_for(requirement)
+    values = bound.model_dump(mode="python")
+    values["signature_artifact_sha256"] = None
+    with pytest.raises(ValidationError, match="requires key and artifact hashes"):
+        QualificationPolicyEvidence.model_validate(values)
+
+    values = bound.model_dump(mode="python")
+    values["attestation_signature_status"] = "unsigned"
+    with pytest.raises(ValidationError, match="cannot claim signature hashes"):
+        QualificationPolicyEvidence.model_validate(values)
 
 
 def test_unlisted_evidence_binding_is_rejected_without_scanning() -> None:

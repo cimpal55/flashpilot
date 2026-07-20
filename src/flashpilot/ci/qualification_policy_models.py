@@ -32,6 +32,7 @@ class RuntimePolicyRequirement(StrictQualificationPolicyModel):
     required_status: Literal["VERIFIED"] = "VERIFIED"
     require_exact_recovery: Literal[True] = True
     require_attestation: Literal[True] = True
+    require_signed_attestation: bool = False
 
 
 class NativePolicyRequirement(RuntimePolicyRequirement):
@@ -157,6 +158,7 @@ class QualificationPolicyV1(StrictQualificationPolicyModel):
                     "required_status",
                     "require_exact_recovery",
                     "require_attestation",
+                    "require_signed_attestation",
                 },
             )
             selectors.append(json.dumps(selector, sort_keys=True, separators=(",", ":")))
@@ -173,6 +175,9 @@ class QualificationPolicyEvidence(StrictQualificationPolicyModel):
     source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     attestation_status: Literal["verified", "missing", "not-applicable"]
     attestation_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    attestation_signature_status: Literal["verified", "unsigned", "missing", "not-applicable"]
+    signing_key_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    signature_artifact_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     evidence: CIRunEvidence
 
     @model_validator(mode="after")
@@ -186,6 +191,23 @@ class QualificationPolicyEvidence(StrictQualificationPolicyModel):
             raise ValueError("non-verified attestation status cannot carry an attestation hash")
         if self.evidence.kind == "static-audit" and self.attestation_status != "not-applicable":
             raise ValueError("static audit policy evidence cannot claim an attestation")
+        signature_hashes = (self.signing_key_sha256, self.signature_artifact_sha256)
+        if self.attestation_status == "not-applicable":
+            if self.attestation_signature_status != "not-applicable":
+                raise ValueError("static audit signature status must be not-applicable")
+        elif self.attestation_status == "missing":
+            if self.attestation_signature_status != "missing":
+                raise ValueError("missing attestation cannot claim a signature status")
+        elif self.attestation_signature_status not in {"verified", "unsigned"}:
+            raise ValueError("verified attestation requires a closed signature status")
+        if self.attestation_signature_status == "verified" and any(
+            value is None for value in signature_hashes
+        ):
+            raise ValueError("verified signature status requires key and artifact hashes")
+        if self.attestation_signature_status != "verified" and any(
+            value is not None for value in signature_hashes
+        ):
+            raise ValueError("non-verified signature status cannot claim signature hashes")
         return self
 
 

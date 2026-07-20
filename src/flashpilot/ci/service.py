@@ -408,15 +408,21 @@ def emit_ci_outputs(
     *,
     run_root: Path,
     policy: CIPolicyV1 | None = None,
+    public_key_path: Path | None = None,
+    require_signed: bool = False,
 ) -> CIArtifactResult:
     root = PathSandbox.create(run_root).root
     attestation_exists = (root / "recovery.attestation.json").exists()
     result = read_run_result(root)
     evidence = normalize_run_evidence(result)
     if isinstance(result, StaticAuditResult):
+        if require_signed or public_key_path is not None:
+            raise CIEvidenceError("static audit cannot use recovery-attestation signing options")
         junit_text = render_audit_junit(result)
         summary_text = render_job_summary(evidence)
     else:
+        if (require_signed or public_key_path is not None) and not attestation_exists:
+            raise CIEvidenceError("signed-attestation verification requires an attestation")
         junit_text = render_qualification_junit(evidence)
         summary_text = render_job_summary(evidence)
     junit = _write_or_verify_text(
@@ -446,7 +452,11 @@ def emit_ci_outputs(
         )
 
         try:
-            verify_recovery_attestation(root / "recovery.attestation.json")
+            verify_recovery_attestation(
+                root / "recovery.attestation.json",
+                public_key_path=public_key_path,
+                require_signed=require_signed,
+            )
         except (
             AttestationVerificationError,
             OSError,
@@ -455,7 +465,13 @@ def emit_ci_outputs(
         ) as error:
             raise CIEvidenceError("existing recovery attestation is invalid or tampered") from error
     evaluation = (
-        evaluate_ci_policy(run_root=root, evidence=evidence, policy=policy)
+        evaluate_ci_policy(
+            run_root=root,
+            evidence=evidence,
+            policy=policy,
+            public_key_path=public_key_path,
+            require_signed=require_signed,
+        )
         if policy is not None
         else None
     )

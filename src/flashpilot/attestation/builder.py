@@ -262,7 +262,10 @@ def emit_recovery_attestation(
         verified_persisted_bytes=storage.repaired_recurring_bytes,
         limitations=(
             "This is a machine-verifiable experiment record, not legal certification.",
-            "The attestation is unsigned and provides integrity, not publisher authentication.",
+            (
+                "The attestation payload has no embedded signature; detached Ed25519 "
+                "verification requires an explicitly trusted public key."
+            ),
             "Physical NAND writes, write amplification, and SSD lifetime were not measured.",
         ),
     )

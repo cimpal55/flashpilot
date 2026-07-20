@@ -22,6 +22,7 @@ classifiers = [
     "Topic :: Software Development :: Quality Assurance",
 ]
 dependencies = [
+    "cryptography>=46,<50",
     "numpy>=1.26,<3",
     "openai>=2,<3",
     "pydantic>=2.7,<3",
@@ -72,6 +73,7 @@ where = ["src"]
     "demo/failure_analysis_fixture.metadata.json",
 ]
 "share/flashpilot/schemas" = [
+    "schemas/attestation-signature-v1.schema.json",
     "schemas/ci-policy-v1.schema.json",
     "schemas/conversion-artifact-v1.schema.json",
     "schemas/conversion-case-v1.schema.json",

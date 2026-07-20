@@ -511,7 +511,10 @@ def run_deepspeed_qualification(
             ),
             "Elastic or universal recovery, world-size changes, and job-manager retries are not qualified.",
             "DeepSpeed qualification is Linux-only; Windows fails closed before worker launch.",
-            "The attestation remains unsigned until the later signing milestone.",
+            (
+                "The attestation payload has no embedded signature; detached Ed25519 "
+                "verification requires an explicitly trusted public key."
+            ),
         ),
     )
     write_json_artifact(run_root=sandbox.root, relative_path="result.json", value=result)

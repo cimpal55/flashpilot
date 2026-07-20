@@ -25,8 +25,9 @@ The published-package form is `python -m pip install flashpilot`. Dependency
 resolution may use the configured package index or local cache. After
 installation, the fixture demo requires no API key, application network access,
 model download, or dataset download. It writes authoritative `result.json`,
-deterministic Markdown/HTML, JUnit, job summary, and a verified unsigned
-attestation.
+deterministic Markdown/HTML, JUnit, job summary, and a verified integrity
+attestation. The attestation can subsequently receive a detached Ed25519
+signature without changing the verified payload.
 
 Use `flashpilot demo --provider fixture` for the full-size demo profile.
 
@@ -525,9 +526,30 @@ the entire explicitly bound production matrix instead of treating one
 allowlisted fault as proof that every required scenario ran:
 
 ```powershell
+flashpilot generate-signing-key .\runs\qualification-signing-key
+@(
+  ".\runs\ci-hf",
+  ".\runs\ci-distributed",
+  ".\runs\ci-distributed-fault-rank-0",
+  ".\runs\ci-distributed-fault-rank-1",
+  ".\runs\ci-deepspeed",
+  ".\runs\ci-deepspeed-fault-rank-0",
+  ".\runs\ci-deepspeed-fault-rank-1",
+  ".\runs\ci-preemption"
+) | ForEach-Object {
+  flashpilot sign-attestation "$($_)\recovery.attestation.json" `
+    --private-key .\runs\qualification-signing-key\ed25519-private.pem
+}
+```
+
+The checked-in production policy requires all eight runtime attestations to
+verify with one explicitly trusted key:
+
+```powershell
 .\.venv\Scripts\flashpilot.exe enforce-policy `
   --policy .\examples\ci\qualification-policy.yml `
   --output-dir .\runs\ci-policy `
+  --public-key .\runs\qualification-signing-key\ed25519-public.pem `
   --run hf-process-termination=.\runs\ci-hf `
   --run fsdp-checkpoint-restart=.\runs\ci-distributed `
   --run fsdp-rank-termination-0=.\runs\ci-distributed-fault-rank-0 `
@@ -541,7 +563,8 @@ allowlisted fault as proof that every required scenario ran:
 
 Every requirement is a discriminated typed selector for an existing result
 kind. Runtime requirements fix framework, adapter, profile, fault, exact
-zero-tolerance recovery, RPO/RTO bounds, and verified attestation. Distributed
+zero-tolerance recovery, RPO/RTO bounds, verified attestation, and a verified
+detached signature. Distributed
 requirements also fix strategy, implementation, Gloo world size 2, ZeRO stage
 where applicable, and target rank. Missing, duplicate, unlisted, UNKNOWN,
 non-exact, over-bound, unattested, malformed, or tampered evidence fails
@@ -558,8 +581,11 @@ configuration`.
 [.github/workflows/flashpilot-qualification.yml](.github/workflows/flashpilot-qualification.yml)
 is the active pull-request and manual hosted workflow, sourced from
 [examples/github-actions/flashpilot-qualification.yml](examples/github-actions/flashpilot-qualification.yml).
-It publishes diagnostics on failure and uploads `recovery.attestation.json`
-only after qualification and typed policy both succeed. Its quality matrix runs
+It publishes diagnostics on failure and uploads attestation payloads, detached
+signatures, and the ephemeral run public key only after qualification and typed
+policy all succeed. The private key is created under runner temporary storage,
+removed with `if: always()`, and never uploaded. This validates the signing
+machinery; it does not establish a durable publisher identity. Its quality matrix runs
 Python 3.11 and 3.12; on Linux, the development extra installs Lightning and
 DeepSpeed so the full suite exercises both optional qualification paths on
 both interpreters.
@@ -573,6 +599,14 @@ and containment validation before loading. GPT receives bounded redacted JSON,
 never raw tensors, dataset samples, secrets, arbitrary files, absolute local
 paths, the injection label, expected diagnosis, or a repair preset. API keys are
 read only from the environment and are never printed or persisted.
+
+Detached signatures cover the domain-separated exact bytes of
+`recovery.attestation.json`. Verification fails closed unless the caller
+supplies the expected Ed25519 public key; the sidecar does not embed or choose
+its own trust root. The local key generator refuses overwrites and does not
+print private-key bytes. POSIX private files are created with mode `0600`;
+Windows file ACL protection is explicitly best-effort. Keep production private
+keys outside the repository and establish public-key trust out of band.
 
 ## Prior art and positioning
 
@@ -608,7 +642,7 @@ schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
 Future work may add elastic membership, multi-node/CUDA fault scenarios,
-signed attestations, OIDC provenance, and broader platform validation. Those
+OIDC provenance, and broader platform validation. Those
 later roadmap items are not implied by the bounded typed production matrix.
 
 ## Repository and license

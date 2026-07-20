@@ -55,6 +55,8 @@ def evaluate_ci_policy(
     run_root: Path,
     evidence: CIRunEvidence,
     policy: CIPolicyV1,
+    public_key_path: Path | None = None,
+    require_signed: bool = False,
 ) -> CIPolicyEvaluation:
     """Evaluate fixed policy fields; arbitrary expressions are impossible."""
 
@@ -134,7 +136,11 @@ def evaluate_ci_policy(
         attestation_valid = not policy.require_attestation
         if policy.require_attestation and is_verified:
             try:
-                attestation_valid = verify_recovery_attestation(attestation_path).valid
+                attestation_valid = verify_recovery_attestation(
+                    attestation_path,
+                    public_key_path=public_key_path,
+                    require_signed=require_signed,
+                ).valid
             except (AttestationVerificationError, OSError, UnicodeError, ValueError) as error:
                 raise CIPolicyError(
                     "required attestation is missing, invalid, or tampered"

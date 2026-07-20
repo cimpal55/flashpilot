@@ -1,0 +1,59 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "ed25519",
+      "default": "ed25519",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "public_key_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Public Key Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "flashpilot-attestation-signature-v1",
+      "default": "flashpilot-attestation-signature-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "signature": {
+      "maxLength": 88,
+      "minLength": 88,
+      "pattern": "^[A-Za-z0-9+/]{86}==$",
+      "title": "Signature",
+      "type": "string"
+    },
+    "signature_encoding": {
+      "const": "base64",
+      "default": "base64",
+      "title": "Signature Encoding",
+      "type": "string"
+    },
+    "signature_scope": {
+      "const": "domain-separated-exact-file-bytes",
+      "default": "domain-separated-exact-file-bytes",
+      "title": "Signature Scope",
+      "type": "string"
+    },
+    "signed_artifact_path": {
+      "const": "recovery.attestation.json",
+      "default": "recovery.attestation.json",
+      "title": "Signed Artifact Path",
+      "type": "string"
+    },
+    "signed_artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Signed Artifact Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "signed_artifact_sha256",
+    "public_key_sha256",
+    "signature"
+  ],
+  "title": "AttestationSignatureV1",
+  "type": "object"
+}
