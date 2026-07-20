@@ -116,10 +116,13 @@ def _native_gate_evidence(
         status=CIStatus.VERIFIED if gate.passed else CIStatus.FAILED,
         qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
         framework="native-pytorch",
+        adapter="native-pytorch",
         checks=checks,
         fault="process_termination",
         rpo_steps=gate.achieved_rollback_steps,
         rto_seconds=rto,
+        atol=gate.comparison_policy.atol,
+        rtol=gate.comparison_policy.rtol,
     )
 
 
@@ -146,10 +149,13 @@ def _hf_evidence(result: HFQualificationResult) -> CIRunEvidence:
         status=CIStatus.VERIFIED if result.gate.passed else CIStatus.FAILED,
         qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
         framework="huggingface-trainer",
+        adapter="huggingface-trainer",
         checks=checks,
         fault="process_termination",
         rpo_steps=result.gate.achieved_rpo_steps,
         rto_seconds=rto,
+        atol=result.gate.atol,
+        rtol=result.gate.rtol,
     )
 
 
@@ -172,10 +178,13 @@ def _lightning_evidence(result: LightningQualificationResult) -> CIRunEvidence:
         status=CIStatus.VERIFIED if result.gate.passed else CIStatus.FAILED,
         qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
         framework="pytorch-lightning",
+        adapter="pytorch-lightning",
         checks=checks,
         fault="process_termination",
         rpo_steps=result.gate.achieved_rpo_steps,
         rto_seconds=rto,
+        atol=result.gate.atol,
+        rtol=result.gate.rtol,
     )
 
 
@@ -195,10 +204,13 @@ def _preemption_evidence(result: HFPreemptionCertificationResult) -> CIRunEviden
         status=CIStatus.VERIFIED if result.gate.passed else CIStatus.FAILED,
         qualification_profile=QualificationProfile.PREEMPTION_SAFE_TRAINING,
         framework="huggingface-trainer",
+        adapter="huggingface-trainer",
         checks=checks,
         fault="managed_preemption",
         rpo_steps=result.gate.achieved_rpo_steps,
         rto_seconds=result.recovery_rto_seconds,
+        atol=result.gate.atol,
+        rtol=result.gate.rtol,
     )
 
 
@@ -218,10 +230,18 @@ def _distributed_evidence(result: DistributedQualificationResult) -> CIRunEviden
         status=CIStatus.VERIFIED if result.gate.passed else CIStatus.FAILED,
         qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
         framework="pytorch-distributed",
+        adapter=result.adapter,
+        strategy=result.strategy,
+        implementation=result.implementation,
+        backend=result.backend,
+        world_size=result.world_size,
         checks=checks,
         fault=result.fault_scenario,
+        fault_target_rank=result.fault_target_rank,
         rpo_steps=result.gate.achieved_rpo_steps,
         rto_seconds=result.recovery_rto_seconds,
+        atol=result.gate.atol,
+        rtol=result.gate.rtol,
     )
 
 
@@ -241,10 +261,19 @@ def _deepspeed_evidence(result: DeepSpeedQualificationResult) -> CIRunEvidence:
         status=CIStatus.VERIFIED if result.gate.passed else CIStatus.FAILED,
         qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
         framework="deepspeed",
+        adapter=result.adapter,
+        strategy=result.strategy,
+        implementation=result.implementation,
+        backend=result.backend,
+        world_size=result.world_size,
+        zero_stage=result.zero_stage,
         checks=checks,
         fault=result.fault_scenario,
+        fault_target_rank=result.fault_target_rank,
         rpo_steps=result.gate.achieved_rpo_steps,
         rto_seconds=result.recovery_rto_seconds,
+        atol=result.gate.atol,
+        rtol=result.gate.rtol,
     )
 
 
@@ -268,7 +297,9 @@ def normalize_run_evidence(result: object) -> CIRunEvidence:
     raise CIEvidenceError("unsupported run evidence type")
 
 
-def _read_run_result(run_root: Path) -> object:
+def read_run_result(run_root: Path) -> object:
+    """Read one strict audit or qualification result from an explicit run root."""
+
     candidates = (run_root / "result.json", run_root / "audit.json")
     source = next((candidate for candidate in candidates if candidate.is_file()), None)
     if source is None or source.is_symlink():
@@ -380,7 +411,7 @@ def emit_ci_outputs(
 ) -> CIArtifactResult:
     root = PathSandbox.create(run_root).root
     attestation_exists = (root / "recovery.attestation.json").exists()
-    result = _read_run_result(root)
+    result = read_run_result(root)
     evidence = normalize_run_evidence(result)
     if isinstance(result, StaticAuditResult):
         junit_text = render_audit_junit(result)

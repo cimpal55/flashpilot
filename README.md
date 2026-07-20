@@ -520,10 +520,40 @@ parsing console logs. Re-evaluate a completed run through the same local core:
 
 The YAML policy is a closed Pydantic schema: exact profile, `unknown_state=fail`,
 an allowlisted process-termination fault, maximum RPO/RTO, and optional required
-attestation. It has no expression, command, import, or arbitrary scripting
-field. Exit codes are stable: `0=verified/pass`, `2=warning or unknown review`,
-`3=qualification or enforced-policy failure`, `4=invalid/tampered evidence`,
-and `5=unsupported configuration`.
+attestation for one run. V1.0 adds a separate closed suite policy that proves
+the entire explicitly bound production matrix instead of treating one
+allowlisted fault as proof that every required scenario ran:
+
+```powershell
+.\.venv\Scripts\flashpilot.exe enforce-policy `
+  --policy .\examples\ci\qualification-policy.yml `
+  --output-dir .\runs\ci-policy `
+  --run hf-process-termination=.\runs\ci-hf `
+  --run fsdp-checkpoint-restart=.\runs\ci-distributed `
+  --run fsdp-rank-termination-0=.\runs\ci-distributed-fault-rank-0 `
+  --run fsdp-rank-termination-1=.\runs\ci-distributed-fault-rank-1 `
+  --run deepspeed-checkpoint-restart=.\runs\ci-deepspeed `
+  --run deepspeed-rank-termination-0=.\runs\ci-deepspeed-fault-rank-0 `
+  --run deepspeed-rank-termination-1=.\runs\ci-deepspeed-fault-rank-1 `
+  --run hf-managed-preemption=.\runs\ci-preemption `
+  --run hf-static-audit=.\runs\ci-audit
+```
+
+Every requirement is a discriminated typed selector for an existing result
+kind. Runtime requirements fix framework, adapter, profile, fault, exact
+zero-tolerance recovery, RPO/RTO bounds, and verified attestation. Distributed
+requirements also fix strategy, implementation, Gloo world size 2, ZeRO stage
+where applicable, and target rank. Missing, duplicate, unlisted, UNKNOWN,
+non-exact, over-bound, unattested, malformed, or tampered evidence fails
+closed. Evidence is supplied only through repeated explicit `--run` bindings;
+there is no directory scan, expression, command, import, or arbitrary scripting
+field.
+
+The command writes `policy-evaluation.json`, JUnit, Markdown, and SARIF under a
+separate output directory and never mutates a bound run. Exit codes remain
+stable: `0=verified/pass`, `2=warning or unknown review`, `3=qualification or
+enforced-policy failure`, `4=invalid/tampered evidence`, and `5=unsupported
+configuration`.
 
 [.github/workflows/flashpilot-qualification.yml](.github/workflows/flashpilot-qualification.yml)
 is the active pull-request and manual hosted workflow, sourced from
@@ -578,8 +608,8 @@ schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
 Future work may add elastic membership, multi-node/CUDA fault scenarios,
-typed policy-as-code, and broader platform validation. Those later roadmap
-items are not implied by the bounded two-rank process-termination matrix.
+signed attestations, OIDC provenance, and broader platform validation. Those
+later roadmap items are not implied by the bounded typed production matrix.
 
 ## Repository and license
 

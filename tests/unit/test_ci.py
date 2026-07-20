@@ -70,6 +70,7 @@ def _failed_qualification() -> CIRunEvidence:
         status=CIStatus.FAILED,
         qualification_profile=QualificationProfile.EXACT_TRAINING_RESUME,
         framework="huggingface-trainer",
+        adapter="huggingface-trainer",
         checks=(
             CICheck(
                 check_id="checkpoint.optimizer",
@@ -87,6 +88,8 @@ def _failed_qualification() -> CIRunEvidence:
         fault="process_termination",
         rpo_steps=0,
         rto_seconds=4.0,
+        atol=0.0,
+        rtol=0.0,
     )
 
 
@@ -259,6 +262,14 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
     assert attestation_upload["if"] == "success()"
     assert attestation_upload["with"]["path"] == "runs/**/recovery.attestation.json"
     assert "runs/**/results.sarif" in diagnostic_upload["with"]["path"]
+    assert "runs/**/audit.json" in diagnostic_upload["with"]["path"]
+    assert "runs/**/policy-evaluation.json" in diagnostic_upload["with"]["path"]
+    assert "examples/ci/qualification-policy.yml" in diagnostic_upload["with"]["path"]
+    assert "schemas/qualification-policy-v1.schema.json" in diagnostic_upload["with"]["path"]
+    assert (
+        "schemas/qualification-policy-evaluation-v1.schema.json"
+        in diagnostic_upload["with"]["path"]
+    )
     serialized = active_path.read_text(encoding="utf-8")
     for required in (
         "flashpilot audit-checkpoint",
@@ -273,6 +284,17 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
         "--signal SIGTERM",
         "--grace-period 300",
         "flashpilot emit-junit",
+        "flashpilot enforce-policy",
+        "--policy examples/ci/qualification-policy.yml",
+        "--run hf-process-termination=runs/ci-hf",
+        "--run fsdp-checkpoint-restart=runs/ci-distributed",
+        "--run fsdp-rank-termination-0=runs/ci-distributed-fault-rank-0",
+        "--run fsdp-rank-termination-1=runs/ci-distributed-fault-rank-1",
+        "--run deepspeed-checkpoint-restart=runs/ci-deepspeed",
+        "--run deepspeed-rank-termination-0=runs/ci-deepspeed-fault-rank-0",
+        "--run deepspeed-rank-termination-1=runs/ci-deepspeed-fault-rank-1",
+        "--run hf-managed-preemption=runs/ci-preemption",
+        "--run hf-static-audit=runs/ci-audit",
     ):
         assert required in serialized
     for forbidden in ("OPENAI_API_KEY", "live-contract", "live-failure", "self-hosted"):

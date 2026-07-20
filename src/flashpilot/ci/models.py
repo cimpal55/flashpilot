@@ -15,6 +15,33 @@ CIFault = Literal[
     "checkpoint_restart",
     "rank_process_termination",
 ]
+CIKind = Literal[
+    "static-audit",
+    "native-qualification",
+    "hf-qualification",
+    "hf-preemption-certification",
+    "lightning-qualification",
+    "distributed-qualification",
+    "deepspeed-qualification",
+]
+CIFramework = Literal[
+    "native-pytorch",
+    "huggingface-trainer",
+    "pytorch-lightning",
+    "pytorch-distributed",
+    "deepspeed",
+    "unknown",
+]
+CIAdapter = Literal[
+    "native-pytorch",
+    "huggingface-trainer",
+    "pytorch-lightning",
+    "pytorch-fsdp",
+    "deepspeed-engine",
+]
+CIStrategy = Literal["fsdp", "zero"]
+CIImplementation = Literal["fully_shard", "zero-stage-2"]
+CIBackend = Literal["gloo"]
 
 
 class StrictCIModel(BaseModel):
@@ -70,29 +97,23 @@ class CICheck(StrictCIModel):
 
 class CIRunEvidence(StrictCIModel):
     schema_version: Literal["flashpilot-ci-run-evidence-v1"] = "flashpilot-ci-run-evidence-v1"
-    kind: Literal[
-        "static-audit",
-        "native-qualification",
-        "hf-qualification",
-        "hf-preemption-certification",
-        "lightning-qualification",
-        "distributed-qualification",
-        "deepspeed-qualification",
-    ]
+    kind: CIKind
     status: CIStatus
     qualification_profile: QualificationProfile
-    framework: Literal[
-        "native-pytorch",
-        "huggingface-trainer",
-        "pytorch-lightning",
-        "pytorch-distributed",
-        "deepspeed",
-        "unknown",
-    ]
+    framework: CIFramework
+    adapter: CIAdapter | None = None
+    strategy: CIStrategy | None = None
+    implementation: CIImplementation | None = None
+    backend: CIBackend | None = None
+    world_size: int | None = Field(default=None, ge=1)
+    zero_stage: Literal[2] | None = None
     checks: tuple[CICheck, ...] = Field(min_length=1)
     fault: CIFault | None = None
+    fault_target_rank: Literal[0, 1] | None = None
     rpo_steps: int | None = Field(default=None, ge=0)
     rto_seconds: float | None = Field(default=None, gt=0.0)
+    atol: float | None = Field(default=None, ge=0.0)
+    rtol: float | None = Field(default=None, ge=0.0)
 
     @model_validator(mode="after")
     def validate_evidence(self) -> Self:
@@ -100,12 +121,78 @@ class CIRunEvidence(StrictCIModel):
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("CI check identifiers must be unique")
         if self.kind == "static-audit":
-            if self.fault is not None or self.rpo_steps is not None or self.rto_seconds is not None:
+            runtime_values = (
+                self.adapter,
+                self.strategy,
+                self.implementation,
+                self.backend,
+                self.world_size,
+                self.zero_stage,
+                self.fault,
+                self.fault_target_rank,
+                self.rpo_steps,
+                self.rto_seconds,
+                self.atol,
+                self.rtol,
+            )
+            if any(value is not None for value in runtime_values):
                 raise ValueError("static audit cannot claim runtime qualification metrics")
             if self.status is CIStatus.VERIFIED:
                 raise ValueError("static audit can never become VERIFIED")
-        elif self.fault is None or self.rpo_steps is None or self.rto_seconds is None:
-            raise ValueError("qualification evidence requires fault, RPO, and RTO")
+        elif any(
+            value is None
+            for value in (
+                self.adapter,
+                self.fault,
+                self.rpo_steps,
+                self.rto_seconds,
+                self.atol,
+                self.rtol,
+            )
+        ):
+            raise ValueError(
+                "qualification evidence requires identity, fault, RPO, RTO, and tolerances"
+            )
+        if self.kind == "distributed-qualification":
+            if (
+                self.framework != "pytorch-distributed"
+                or self.adapter != "pytorch-fsdp"
+                or self.strategy != "fsdp"
+                or self.implementation != "fully_shard"
+                or self.backend != "gloo"
+                or self.world_size != 2
+                or self.zero_stage is not None
+            ):
+                raise ValueError("distributed CI evidence has an unsupported topology identity")
+        elif self.kind == "deepspeed-qualification":
+            if (
+                self.framework != "deepspeed"
+                or self.adapter != "deepspeed-engine"
+                or self.strategy != "zero"
+                or self.implementation != "zero-stage-2"
+                or self.backend != "gloo"
+                or self.world_size != 2
+                or self.zero_stage != 2
+            ):
+                raise ValueError("DeepSpeed CI evidence has an unsupported topology identity")
+        elif any(
+            value is not None
+            for value in (
+                self.strategy,
+                self.implementation,
+                self.backend,
+                self.world_size,
+                self.zero_stage,
+            )
+        ):
+            raise ValueError("non-distributed CI evidence cannot claim a distributed topology")
+        if self.fault == "rank_process_termination":
+            if self.kind not in {"distributed-qualification", "deepspeed-qualification"}:
+                raise ValueError("rank termination is valid only for distributed qualification")
+            if self.fault_target_rank not in (0, 1):
+                raise ValueError("rank termination requires exact target rank 0 or 1")
+        elif self.fault_target_rank is not None:
+            raise ValueError("only rank termination may identify a target rank")
         passing_statuses = {CICheckStatus.PASS, CICheckStatus.NOT_APPLICABLE}
         if self.status in {CIStatus.VERIFIED, CIStatus.PASS} and any(
             check.status not in passing_statuses for check in self.checks

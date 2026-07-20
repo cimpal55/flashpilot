@@ -235,10 +235,10 @@ The stable command boundary is:
 
 The generic `qualify native-pytorch` command reuses the frozen native
 red-to-green core; `qualify hf-trainer`, `demo`, and static audit use their same
-existing services. The GitHub Actions file lives under `examples/`, not the
-active `.github/workflows` directory. Diagnostic artifacts use `if: always()`;
-attestation upload uses `if: success()` and therefore cannot publish a failed
-run as verified.
+existing services. The reusable workflow source remains under `examples/` and
+is synchronized with the active `.github/workflows` qualification job.
+Diagnostic artifacts use `if: always()`; attestation upload uses
+`if: success()` and therefore cannot publish a failed run as verified.
 
 The standard HF RNG pickle cannot always be read by PyTorch's default
 `weights_only=True` allowlist because it contains NumPy reconstruction globals.
@@ -246,6 +246,48 @@ The callback therefore emits a strict JSON RNG metadata bridge bound to the
 actual `rng_state.pth` SHA-256. Static audit verifies that hash and the three
 typed RNG-presence claims without unpickling the payload or weakening the safe
 loader. Fixtures without the bridge retain the previous weights-only path.
+
+## V1.0 typed qualification-suite policy
+
+`QualificationPolicyV1` is a closed, 64-KiB-bounded YAML schema over existing
+strict audit and qualification result kinds. It is deliberately not a generic
+policy engine. There are no expressions, imports, functions, commands, rule
+evaluation, plugins, repository scans, path discovery, or dynamic framework
+selectors. Pydantic discriminates one of seven exact requirement models:
+static audit, native, Hugging Face, managed HF preemption, Lightning, FSDP, or
+DeepSpeed.
+
+The checked-in production policy contains nine unique selectors: HF process
+termination; clean FSDP; FSDP rank 0 and rank 1 termination; clean DeepSpeed
+ZeRO-2; DeepSpeed rank 0 and rank 1 termination; managed SIGTERM; and HF static
+audit. Every run is supplied through an explicit
+`requirement-id=run-directory` CLI binding. Missing evidence becomes an exact
+failed requirement; duplicate or unlisted bindings are rejected. No filesystem
+enumeration is used to infer a run or satisfy a selector.
+
+`CIRunEvidence` now carries the already-validated adapter, strategy,
+implementation, backend, world size, ZeRO stage, fault target, and comparison
+tolerances needed for exact selector matching. This is a projection of strict
+result models, not a second recovery verdict. A runtime selector also requires
+the existing deterministic status to be `VERIFIED`, every underlying check to
+be non-failing, `atol=0.0`, `rtol=0.0`, bounded RPO/RTO, and an integrity-verified
+local attestation. Static audit requires `PASS` and forbids an attestation.
+UNKNOWN always fails.
+
+The complete checked-in matrix evaluates 145 stable checks. Its aggregate
+`PASS` is derived from all nine per-requirement verdicts. The command writes a
+strict `policy-evaluation.json` plus JUnit, Markdown, and SARIF into a separate
+closed output directory. It hashes each exact source result and the policy
+source, records verified attestation hashes, refuses to write inside a bound
+run, and does not mutate attested evidence. Existing malformed or tampered
+evidence exits through the integrity path before policy evaluation.
+
+The active hosted job runs this suite policy after all qualifications and the
+static audit. Its always-on artifact includes the policy source, both public
+schemas, normalized evaluation, source results, JUnit, Markdown, and SARIF.
+The success-only attestation upload remains unchanged. This milestone does not
+add authorization policy, organization inheritance, remote policy retrieval,
+signatures, OIDC, or a registry.
 
 ## Frozen v0.1 architecture
 

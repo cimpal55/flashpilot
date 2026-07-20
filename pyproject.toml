@@ -101,10 +101,15 @@ where = ["src"]
     "schemas/persistence-contract-v1.schema.json",
     "schemas/persistence-item-v1.schema.json",
     "schemas/qualification-profile-v1.schema.json",
+    "schemas/qualification-policy-evaluation-v1.schema.json",
+    "schemas/qualification-policy-v1.schema.json",
     "schemas/randomized-fault-timing-v1.schema.json",
     "schemas/recovery-attestation-v1.schema.json",
 ]
-"share/flashpilot/examples/ci" = ["examples/ci/policy.yml"]
+"share/flashpilot/examples/ci" = [
+    "examples/ci/policy.yml",
+    "examples/ci/qualification-policy.yml",
+]
 "share/flashpilot/examples/github-actions" = [
     "examples/github-actions/flashpilot-qualification.yml",
 ]

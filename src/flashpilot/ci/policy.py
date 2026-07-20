@@ -106,7 +106,7 @@ def evaluate_ci_policy(
                 _check(
                     "policy.required-fault",
                     evidence.fault in policy.required_faults,
-                    "Qualification executed every required fault class.",
+                    "Qualification fault class is allowed by the per-run policy.",
                     ",".join(policy.required_faults),
                     str(evidence.fault),
                 ),

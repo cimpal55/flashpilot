@@ -106,7 +106,12 @@ class SarifTool(StrictSarifModel):
 
 
 class SarifArtifactLocation(StrictSarifModel):
-    uri: Literal["audit.json", "result.json", "comparison.json"]
+    uri: Literal[
+        "audit.json",
+        "result.json",
+        "comparison.json",
+        "policy-evaluation.json",
+    ]
 
 
 class SarifRegion(StrictSarifModel):
@@ -240,7 +245,12 @@ def build_sarif_for_checks(
     kind: str,
     framework: str,
     checks: tuple[CICheck, ...],
-    source_uri: Literal["audit.json", "result.json", "comparison.json"],
+    source_uri: Literal[
+        "audit.json",
+        "result.json",
+        "comparison.json",
+        "policy-evaluation.json",
+    ],
 ) -> FlashPilotSarifLog:
     """Build one SARIF run from already-derived typed check evidence."""
 
@@ -336,7 +346,12 @@ def render_sarif_checks(
     kind: str,
     framework: str,
     checks: tuple[CICheck, ...],
-    source_uri: Literal["audit.json", "result.json", "comparison.json"],
+    source_uri: Literal[
+        "audit.json",
+        "result.json",
+        "comparison.json",
+        "policy-evaluation.json",
+    ],
 ) -> str:
     return _render_log(
         build_sarif_for_checks(

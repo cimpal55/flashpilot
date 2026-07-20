@@ -717,3 +717,33 @@ scenarios achieved zero-step RPO, produced separate peer Gloo-failure
 evidence, stopped both failed-group processes without forced cleanup, and
 restored through fresh two-rank groups. The downloaded failure-event bytes
 matched the SHA-256 values bound into all four success-only attestations.
+
+## V1.0 item 4 - typed qualification policy-as-code
+
+Codex implemented only the fourth V1.0 item:
+
+- separated whole-suite enforcement from the existing backward-compatible
+  single-run `CIPolicyV1` allowlist;
+- added a 64-KiB-bounded `QualificationPolicyV1` YAML model with seven closed
+  discriminated requirement types and no expression or execution surface;
+- checked in a nine-requirement production matrix for HF, FSDP and DeepSpeed
+  clean and both-rank fault cases, managed SIGTERM, and static audit;
+- required explicit `requirement-id=run-directory` bindings and rejected
+  duplicate or unlisted evidence without scanning for runs;
+- projected strict result identity through framework, adapter, profile, fault,
+  distributed topology, target rank, RPO/RTO, and exact tolerances;
+- required every runtime result to be deterministically `VERIFIED`, retain
+  only non-failing Gate checks, and pass the existing local attestation
+  verifier; static audit remains non-verifying;
+- emitted a source-hash-bound 145-check `policy-evaluation.json`, JUnit,
+  Markdown, and SARIF under a separate closed directory without mutating bound
+  runs;
+- packaged the policy source and both public schemas, and integrated the exact
+  matrix into the synchronized active/example hosted workflows.
+
+Codex did not add Rego, Cedar, a generic policy engine, scripts, expressions,
+policy plugins, repository scanning, remote policy retrieval, organization
+inheritance, waivers, signing, OIDC, a registry, new framework behavior, GPT
+work, or repair behavior. The P0 adapter and six-action repair surface remain
+unchanged. Hosted acceptance is recorded after the pull-request workflow
+executes the complete real matrix.

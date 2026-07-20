@@ -273,3 +273,29 @@ parent-owned process is killed, the other proves collective impact separately,
 all failed processes stop, and distinct ranks resume exactly from immutable
 checkpoint evidence. It does not claim a new fault-tolerance algorithm,
 elastic orchestration, or general cluster recovery.
+
+## Typed qualification policy boundary
+
+Open Policy Agent is a general-purpose policy engine whose Rego language
+evaluates rules over arbitrary structured input. That expressiveness is useful
+for broad admission, infrastructure, and service policy, but embedding it here
+would introduce a rule language and a much larger decision surface than the
+nine fixed FlashPilot qualification requirements need. Source: [OPA policy
+language](https://www.openpolicyagent.org/docs/policy-language).
+
+Cedar is designed for authorization decisions expressed in terms of
+principals, actions, resources, and context. FlashPilot's question is different:
+whether explicitly named local recovery evidence satisfies a fixed technical
+qualification contract. Adopting an authorization language would not replace
+the deterministic result and attestation verification required here. Source:
+[Cedar language overview](https://docs.cedarpolicy.com/).
+
+FlashPilot therefore does not claim a new general policy language or policy
+evaluation algorithm. Its V1.0 contribution is narrower: a closed Pydantic/YAML
+data model with discriminated requirement types, explicit evidence bindings,
+stable check IDs, fail-closed aggregate derivation, and portable JSON Schema,
+JUnit, Markdown, and SARIF projections. The evaluator cannot express arbitrary
+conditions, call functions, execute code, discover evidence, or override an
+underlying Recovery Gate. General authorization, shared policy services,
+organization inheritance, and remote policy distribution remain later or
+external concerns.

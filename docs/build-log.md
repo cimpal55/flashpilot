@@ -3636,6 +3636,128 @@ The attestation artifact contained all three verified attestations and was
 `6395270926548943a0e1c9b9ec665d66681aa358c605593558dfd166546b509d`.
 Hosted values are measurements for this workflow run only.
 
+## V1.0 item 4 - typed qualification policy-as-code
+
+Scope is limited to the fourth V1.0 production-infrastructure item. The
+existing single-run `CIPolicyV1` remains backward compatible. A new closed
+`QualificationPolicyV1` proves an explicitly bound suite rather than treating
+one allowlisted result as evidence that every required scenario ran. Signing,
+OIDC, a registry, organization-level policy, remote policy retrieval, waivers,
+elastic recovery, new frameworks, GPT work, and repair changes were not
+started.
+
+The checked-in `examples/ci/qualification-policy.yml` contains nine unique
+requirements:
+
+```text
+hf-process-termination
+fsdp-checkpoint-restart
+fsdp-rank-termination-0
+fsdp-rank-termination-1
+deepspeed-checkpoint-restart
+deepspeed-rank-termination-0
+deepspeed-rank-termination-1
+hf-managed-preemption
+hf-static-audit
+```
+
+Runtime requirements fix `VERIFIED`, exact `atol=0.0`/`rtol=0.0`, RPO/RTO
+bounds, verified local attestation, framework, adapter, profile, and fault.
+Distributed requirements additionally fix strategy, implementation, Gloo
+world size 2, target rank, and DeepSpeed ZeRO stage 2. Static audit fixes
+`PASS` and forbids an attestation. Missing evidence produces an exact failed
+requirement; duplicate and unlisted bindings are rejected. The CLI accepts
+only repeated `requirement-id=run-directory` bindings and does not scan a
+repository or parent directory.
+
+The pure complete-matrix evaluation returned:
+
+```text
+requirements=9
+checks=145
+failed_requirements=0
+passed=True
+```
+
+The implementation writes deterministic `policy-evaluation.json`, JUnit,
+Markdown, and SARIF to a separate closed output directory. Each source result,
+verified attestation, and the policy source are SHA-256 bound. An output path
+inside a bound run is rejected, existing unexpected output is rejected, and a
+real attested native bundle retained the same directory fingerprint before and
+after policy enforcement. Removing its attestation produced exit 3 and exact
+`policy.native-process-termination.attestation` failure evidence. Tampering
+with the attestation produced exit 4 before evaluation and did not create an
+output directory.
+
+Intermediate focused validation returned:
+
+```text
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_qualification_policy.py tests\unit\test_ci.py tests\unit\test_sarif.py tests\unit\test_packaging.py -q
+....................................................                     [100%]
+52 passed in 2.66s
+
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_repair_loop.py -q
+...........................                                              [100%]
+27 passed in 34.72s
+
+.\.venv\Scripts\python.exe -m pytest tests\unit -q
+........................................................................ [ 24%]
+........................................................................ [ 48%]
+........................................................................ [ 73%]
+....s................................................................... [ 97%]
+.......                                                                  [100%]
+294 passed, 1 skipped in 27.21s
+```
+
+The unit skip is the unchanged Windows non-administrator directory-symlink
+privilege case. No product test, tolerance, Recovery Gate, attestation check,
+or skip condition was weakened.
+
+Final local acceptance used Python 3.12.13 and returned:
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+216 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest -q
+.................sss................s................................... [ 19%]
+........................................................................ [ 38%]
+........................................................................ [ 57%]
+........................................................................ [ 77%]
+........s............................................................... [ 96%]
+.............                                                            [100%]
+368 passed, 5 skipped in 319.60s (0:05:19)
+```
+
+The five skips are the three unchanged Linux-only real DeepSpeed cases, the
+unchanged POSIX SIGTERM case, and the unchanged Windows non-administrator
+directory-symlink privilege case. The first local full-suite attempt exceeded
+an initially undersized 120-second command timeout while still running. Two
+subsequent full-suite attempts each completed with 367 passes and one
+intermittent Windows FSDP/Gloo rank-process failure; one failed for target rank
+1 and one for target rank 0 because peer collective-failure evidence was not
+persisted. The exact rank-1 case immediately passed on its focused rerun, and
+the complete FSDP module passed all three tests in 70.89 seconds. A preserved
+diagnostic sequence also observed Windows `Path.resolve(strict=False)` fail
+closed while two ranks created sibling artifacts, followed by a peer timeout.
+No containment rule, timeout, test, or orchestration behavior was changed for
+this policy milestone. The final clean default invocation above passed every
+applicable test; intermittent Windows multi-process path resolution remains a
+host-specific risk to monitor independently of the typed policy evaluator.
+
+Local workflow parsing confirmed that the active and example qualification
+step arrays are identical, the typed policy has nine explicit bindings,
+diagnostics remain `if: always()`, attestation upload remains `if: success()`,
+permissions remain `contents: read`, and the quality matrix remains Python
+3.11/3.12. A wheel built with
+`python -m build --wheel --no-isolation --outdir build\typed-policy-wheel`
+contains all four new policy modules, both public schemas, and the checked-in
+policy example. Hosted acceptance follows below after the pull-request workflow
+executes the Linux-only cases.
+
 ## V1.0 item 3 - targeted multi-rank process termination
 
 Scope is limited to the third V1.0 production-infrastructure item. The two

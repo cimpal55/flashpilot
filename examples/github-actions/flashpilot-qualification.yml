@@ -7,6 +7,7 @@ on:
       - "src/flashpilot/**"
       - "examples/hf_trainer/**"
       - "examples/ci/policy.yml"
+      - "examples/ci/qualification-policy.yml"
 
 jobs:
   qualify-checkpoint:
@@ -117,6 +118,21 @@ jobs:
           --run-dir runs/ci-hf
           --policy examples/ci/policy.yml
 
+      - name: Enforce the complete typed qualification-suite policy
+        run: >-
+          flashpilot enforce-policy
+          --policy examples/ci/qualification-policy.yml
+          --output-dir runs/ci-policy
+          --run hf-process-termination=runs/ci-hf
+          --run fsdp-checkpoint-restart=runs/ci-distributed
+          --run fsdp-rank-termination-0=runs/ci-distributed-fault-rank-0
+          --run fsdp-rank-termination-1=runs/ci-distributed-fault-rank-1
+          --run deepspeed-checkpoint-restart=runs/ci-deepspeed
+          --run deepspeed-rank-termination-0=runs/ci-deepspeed-fault-rank-0
+          --run deepspeed-rank-termination-1=runs/ci-deepspeed-fault-rank-1
+          --run hf-managed-preemption=runs/ci-preemption
+          --run hf-static-audit=runs/ci-audit
+
       - name: Publish FlashPilot Markdown job summary
         if: always()
         shell: bash
@@ -134,10 +150,15 @@ jobs:
           name: flashpilot-ci-evidence
           if-no-files-found: error
           path: |
+            examples/ci/qualification-policy.yml
+            schemas/qualification-policy-v1.schema.json
+            schemas/qualification-policy-evaluation-v1.schema.json
             runs/**/junit.xml
             runs/**/job-summary.md
             runs/**/report.md
             runs/**/result.json
+            runs/**/audit.json
+            runs/**/policy-evaluation.json
             runs/**/failure-event.json
             runs/**/phases/fault/*.json
             runs/**/preemption/commit.json
