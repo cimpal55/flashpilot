@@ -1122,3 +1122,88 @@ The organization layer is local and single-scope per invocation. Remote policy
 distribution, authenticated scope identity, multi-policy inheritance,
 delegation, approvals, waivers, revocation, key rotation, a hosted service, and
 general authorization remain explicitly out of scope.
+## Storage telemetry is supporting evidence, enforced by type
+
+FlashPilot records optional NVMe/SMART counters around a measured window. The
+master plan constrains this to "supporting evidence, not the product core", so
+that constraint is encoded structurally rather than left to documentation and
+review.
+
+`StorageTelemetryEvidenceV1` carries `evidence_class: "supporting-only"` and
+`influences_verdict: Literal[False]`. Both are frozen literals, so a consumer —
+a reporter, a CI policy, the report UI — can assert mechanically that the
+artifact is not permitted to affect a verdict, and no future edit can silently
+flip it without changing the schema.
+
+The attribution problem is handled the same way. Host counters are device-wide:
+any other process writing to the same device during the window is included in
+the delta. `StorageTelemetryDelta.attribution` therefore has exactly one
+permitted value, `device-wide-not-attributable`, so a delta can never be
+serialised as "bytes written by this run".
+
+Three further rules follow from "never fabricate metrics":
+
+1. A byte figure must derive from a measured unit delta. A validator rejects any
+   `host_write_bytes_lower_bound` that is not the unit delta multiplied by the
+   NVMe data-unit size, and rejects a byte figure with no unit delta at all.
+2. A counter that moves backwards indicates a wrap, a firmware reset, or a
+   different device. The delta is dropped rather than clamped to zero, because a
+   clamped zero would look like a genuinely measured quiet window.
+3. Counter parsing accepts only unambiguous non-negative integers. Floats with a
+   fractional part, booleans, negatives, and free text are dropped rather than
+   approximated.
+
+Windows exposes no host-write byte counter comparable to NVMe data units, so on
+Windows no write volume is recorded at all rather than substituting a proxy
+counter that would not mean the same thing.
+
+There is no field in which NAND wear, write amplification, endurance, or drive
+lifetime could be recorded. Those claims are not made, are not measurable from
+these counters, and are listed explicitly in the artifact's own limitations.
+
+Unavailability is the normal case: the collectors require elevated rights on
+both platforms. Absence is recorded as an explicit reason rather than an error,
+and never blocks or degrades a qualification run.
+
+### Storage telemetry hardening
+
+Five corrections were applied before this could be considered production-ready.
+
+**No byte figure at all.** NVMe Data Units Written counts rounded units of
+1000 x 512 bytes. Both ends of an observation window are independently rounded,
+so a unit difference establishes neither a byte count nor a strict lower bound.
+The `host_write_bytes_lower_bound` field was therefore removed rather than
+renamed: the delta is published as a rounded unit count alongside
+`counter_granularity_bytes`, and left uninterpreted. A test asserts no
+byte-valued field exists, because the strongest guarantee against a misleading
+number is having nowhere to put one.
+
+**A real observation window.** Reading both samples back to back measured only
+the cost of reading them. `collect-storage-telemetry --duration-seconds N` now
+holds the window open for a bounded interval (1 to 3600 seconds). The recorded
+`window_seconds` is the actual gap between the two samples, not the requested
+duration. No caller-supplied command runs inside the window.
+
+**A real output cap.** `subprocess.run(capture_output=True)` buffers the entire
+stream before any slicing, which bounds what is retained but not what a broken
+or hostile tool can make the process allocate. Collection now streams through
+`Popen`, aborts once the cap is exceeded, reports `output-limit-exceeded`, and
+terminates the child, escalating to kill if it does not exit.
+
+**Atomic, contained artifact writes.** A plain write follows a symlink planted
+at the target and can leave a truncated file behind. Writes now go through the
+project's existing `PathSandbox`, reject symlinked targets, write to a
+temporary file, fsync, and atomically replace. An existing artifact with
+different content is refused outright rather than silently overwritten, since
+two disagreeing artifacts for one run must not be resolved by preferring the
+newer one.
+
+**Device binding, or nothing.** The Windows collector previously read the first
+physical disk on the system, which need not be the disk holding the run. It now
+resolves volume to partition to physical disk for the drive backing `run_dir`
+and refuses ambiguity. If the link cannot be proven — a UNC path, a
+non-existent directory, more than one candidate disk — the result is
+`device-not-bound` rather than a proxy reading. Resolution requires the
+directory to exist, because resolving a missing path would fall back to the
+current working drive and silently bind to an unrelated device. Collection of
+`Wear` was dropped entirely, since the project makes no wear claim.

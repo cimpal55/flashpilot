@@ -114,6 +114,7 @@ where = ["src"]
     "schemas/qualification-policy-v1.schema.json",
     "schemas/randomized-fault-timing-v1.schema.json",
     "schemas/recovery-attestation-v1.schema.json",
+    "schemas/storage-telemetry-v1.schema.json",
 ]
 "share/flashpilot/examples/ci" = [
     "examples/ci/organization-policy.yml",
