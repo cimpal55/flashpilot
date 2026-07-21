@@ -1,0 +1,770 @@
+{
+  "$defs": {
+    "DeepSpeedPolicyRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "const": "deepspeed-engine",
+          "title": "Adapter",
+          "type": "string"
+        },
+        "backend": {
+          "const": "gloo",
+          "title": "Backend",
+          "type": "string"
+        },
+        "fault": {
+          "enum": [
+            "checkpoint_restart",
+            "rank_process_termination"
+          ],
+          "title": "Fault",
+          "type": "string"
+        },
+        "fault_target_rank": {
+          "anyOf": [
+            {
+              "enum": [
+                0,
+                1
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fault Target Rank"
+        },
+        "framework": {
+          "const": "deepspeed",
+          "title": "Framework",
+          "type": "string"
+        },
+        "implementation": {
+          "const": "zero-stage-2",
+          "title": "Implementation",
+          "type": "string"
+        },
+        "kind": {
+          "const": "deepspeed-qualification",
+          "title": "Kind",
+          "type": "string"
+        },
+        "max_rpo_steps": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Max Rpo Steps",
+          "type": "integer"
+        },
+        "max_rto_seconds": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 86400.0,
+          "title": "Max Rto Seconds",
+          "type": "number"
+        },
+        "qualification_profile": {
+          "const": "exact-training-resume",
+          "title": "Qualification Profile",
+          "type": "string"
+        },
+        "require_attestation": {
+          "const": true,
+          "default": true,
+          "title": "Require Attestation",
+          "type": "boolean"
+        },
+        "require_exact_recovery": {
+          "const": true,
+          "default": true,
+          "title": "Require Exact Recovery",
+          "type": "boolean"
+        },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
+        "required_status": {
+          "const": "VERIFIED",
+          "default": "VERIFIED",
+          "title": "Required Status",
+          "type": "string"
+        },
+        "requirement_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "strategy": {
+          "const": "zero",
+          "title": "Strategy",
+          "type": "string"
+        },
+        "world_size": {
+          "const": 2,
+          "title": "World Size",
+          "type": "integer"
+        },
+        "zero_stage": {
+          "const": 2,
+          "title": "Zero Stage",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "qualification_profile",
+        "max_rpo_steps",
+        "max_rto_seconds",
+        "kind",
+        "framework",
+        "adapter",
+        "strategy",
+        "implementation",
+        "zero_stage",
+        "backend",
+        "world_size",
+        "fault"
+      ],
+      "title": "DeepSpeedPolicyRequirement",
+      "type": "object"
+    },
+    "DistributedPolicyRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "const": "pytorch-fsdp",
+          "title": "Adapter",
+          "type": "string"
+        },
+        "backend": {
+          "const": "gloo",
+          "title": "Backend",
+          "type": "string"
+        },
+        "fault": {
+          "enum": [
+            "checkpoint_restart",
+            "rank_process_termination"
+          ],
+          "title": "Fault",
+          "type": "string"
+        },
+        "fault_target_rank": {
+          "anyOf": [
+            {
+              "enum": [
+                0,
+                1
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fault Target Rank"
+        },
+        "framework": {
+          "const": "pytorch-distributed",
+          "title": "Framework",
+          "type": "string"
+        },
+        "implementation": {
+          "const": "fully_shard",
+          "title": "Implementation",
+          "type": "string"
+        },
+        "kind": {
+          "const": "distributed-qualification",
+          "title": "Kind",
+          "type": "string"
+        },
+        "max_rpo_steps": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Max Rpo Steps",
+          "type": "integer"
+        },
+        "max_rto_seconds": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 86400.0,
+          "title": "Max Rto Seconds",
+          "type": "number"
+        },
+        "qualification_profile": {
+          "const": "exact-training-resume",
+          "title": "Qualification Profile",
+          "type": "string"
+        },
+        "require_attestation": {
+          "const": true,
+          "default": true,
+          "title": "Require Attestation",
+          "type": "boolean"
+        },
+        "require_exact_recovery": {
+          "const": true,
+          "default": true,
+          "title": "Require Exact Recovery",
+          "type": "boolean"
+        },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
+        "required_status": {
+          "const": "VERIFIED",
+          "default": "VERIFIED",
+          "title": "Required Status",
+          "type": "string"
+        },
+        "requirement_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "strategy": {
+          "const": "fsdp",
+          "title": "Strategy",
+          "type": "string"
+        },
+        "world_size": {
+          "const": 2,
+          "title": "World Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "qualification_profile",
+        "max_rpo_steps",
+        "max_rto_seconds",
+        "kind",
+        "framework",
+        "adapter",
+        "strategy",
+        "implementation",
+        "backend",
+        "world_size",
+        "fault"
+      ],
+      "title": "DistributedPolicyRequirement",
+      "type": "object"
+    },
+    "HFPolicyRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "const": "huggingface-trainer",
+          "title": "Adapter",
+          "type": "string"
+        },
+        "fault": {
+          "const": "process_termination",
+          "title": "Fault",
+          "type": "string"
+        },
+        "framework": {
+          "const": "huggingface-trainer",
+          "title": "Framework",
+          "type": "string"
+        },
+        "kind": {
+          "const": "hf-qualification",
+          "title": "Kind",
+          "type": "string"
+        },
+        "max_rpo_steps": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Max Rpo Steps",
+          "type": "integer"
+        },
+        "max_rto_seconds": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 86400.0,
+          "title": "Max Rto Seconds",
+          "type": "number"
+        },
+        "qualification_profile": {
+          "const": "exact-training-resume",
+          "title": "Qualification Profile",
+          "type": "string"
+        },
+        "require_attestation": {
+          "const": true,
+          "default": true,
+          "title": "Require Attestation",
+          "type": "boolean"
+        },
+        "require_exact_recovery": {
+          "const": true,
+          "default": true,
+          "title": "Require Exact Recovery",
+          "type": "boolean"
+        },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
+        "required_status": {
+          "const": "VERIFIED",
+          "default": "VERIFIED",
+          "title": "Required Status",
+          "type": "string"
+        },
+        "requirement_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "qualification_profile",
+        "max_rpo_steps",
+        "max_rto_seconds",
+        "kind",
+        "framework",
+        "adapter",
+        "fault"
+      ],
+      "title": "HFPolicyRequirement",
+      "type": "object"
+    },
+    "HFPreemptionPolicyRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "const": "huggingface-trainer",
+          "title": "Adapter",
+          "type": "string"
+        },
+        "fault": {
+          "const": "managed_preemption",
+          "title": "Fault",
+          "type": "string"
+        },
+        "framework": {
+          "const": "huggingface-trainer",
+          "title": "Framework",
+          "type": "string"
+        },
+        "kind": {
+          "const": "hf-preemption-certification",
+          "title": "Kind",
+          "type": "string"
+        },
+        "max_rpo_steps": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Max Rpo Steps",
+          "type": "integer"
+        },
+        "max_rto_seconds": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 86400.0,
+          "title": "Max Rto Seconds",
+          "type": "number"
+        },
+        "qualification_profile": {
+          "const": "preemption-safe-training",
+          "title": "Qualification Profile",
+          "type": "string"
+        },
+        "require_attestation": {
+          "const": true,
+          "default": true,
+          "title": "Require Attestation",
+          "type": "boolean"
+        },
+        "require_exact_recovery": {
+          "const": true,
+          "default": true,
+          "title": "Require Exact Recovery",
+          "type": "boolean"
+        },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
+        "required_status": {
+          "const": "VERIFIED",
+          "default": "VERIFIED",
+          "title": "Required Status",
+          "type": "string"
+        },
+        "requirement_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "qualification_profile",
+        "max_rpo_steps",
+        "max_rto_seconds",
+        "kind",
+        "framework",
+        "adapter",
+        "fault"
+      ],
+      "title": "HFPreemptionPolicyRequirement",
+      "type": "object"
+    },
+    "LightningPolicyRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "const": "pytorch-lightning",
+          "title": "Adapter",
+          "type": "string"
+        },
+        "fault": {
+          "const": "process_termination",
+          "title": "Fault",
+          "type": "string"
+        },
+        "framework": {
+          "const": "pytorch-lightning",
+          "title": "Framework",
+          "type": "string"
+        },
+        "kind": {
+          "const": "lightning-qualification",
+          "title": "Kind",
+          "type": "string"
+        },
+        "max_rpo_steps": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Max Rpo Steps",
+          "type": "integer"
+        },
+        "max_rto_seconds": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 86400.0,
+          "title": "Max Rto Seconds",
+          "type": "number"
+        },
+        "qualification_profile": {
+          "const": "exact-training-resume",
+          "title": "Qualification Profile",
+          "type": "string"
+        },
+        "require_attestation": {
+          "const": true,
+          "default": true,
+          "title": "Require Attestation",
+          "type": "boolean"
+        },
+        "require_exact_recovery": {
+          "const": true,
+          "default": true,
+          "title": "Require Exact Recovery",
+          "type": "boolean"
+        },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
+        "required_status": {
+          "const": "VERIFIED",
+          "default": "VERIFIED",
+          "title": "Required Status",
+          "type": "string"
+        },
+        "requirement_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "qualification_profile",
+        "max_rpo_steps",
+        "max_rto_seconds",
+        "kind",
+        "framework",
+        "adapter",
+        "fault"
+      ],
+      "title": "LightningPolicyRequirement",
+      "type": "object"
+    },
+    "NativePolicyRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "const": "native-pytorch",
+          "title": "Adapter",
+          "type": "string"
+        },
+        "fault": {
+          "const": "process_termination",
+          "title": "Fault",
+          "type": "string"
+        },
+        "framework": {
+          "const": "native-pytorch",
+          "title": "Framework",
+          "type": "string"
+        },
+        "kind": {
+          "const": "native-qualification",
+          "title": "Kind",
+          "type": "string"
+        },
+        "max_rpo_steps": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Max Rpo Steps",
+          "type": "integer"
+        },
+        "max_rto_seconds": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 86400.0,
+          "title": "Max Rto Seconds",
+          "type": "number"
+        },
+        "qualification_profile": {
+          "const": "exact-training-resume",
+          "title": "Qualification Profile",
+          "type": "string"
+        },
+        "require_attestation": {
+          "const": true,
+          "default": true,
+          "title": "Require Attestation",
+          "type": "boolean"
+        },
+        "require_exact_recovery": {
+          "const": true,
+          "default": true,
+          "title": "Require Exact Recovery",
+          "type": "boolean"
+        },
+        "require_signed_attestation": {
+          "default": false,
+          "title": "Require Signed Attestation",
+          "type": "boolean"
+        },
+        "required_status": {
+          "const": "VERIFIED",
+          "default": "VERIFIED",
+          "title": "Required Status",
+          "type": "string"
+        },
+        "requirement_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "qualification_profile",
+        "max_rpo_steps",
+        "max_rto_seconds",
+        "kind",
+        "framework",
+        "adapter",
+        "fault"
+      ],
+      "title": "NativePolicyRequirement",
+      "type": "object"
+    },
+    "QualificationProfile": {
+      "enum": [
+        "exact-training-resume",
+        "model-only-inference",
+        "checkpoint-conversion-equivalence",
+        "preemption-safe-training"
+      ],
+      "title": "QualificationProfile",
+      "type": "string"
+    },
+    "StaticAuditPolicyRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "framework": {
+          "enum": [
+            "native-pytorch",
+            "huggingface-trainer"
+          ],
+          "title": "Framework",
+          "type": "string"
+        },
+        "kind": {
+          "const": "static-audit",
+          "title": "Kind",
+          "type": "string"
+        },
+        "qualification_profile": {
+          "$ref": "#/$defs/QualificationProfile"
+        },
+        "require_attestation": {
+          "const": false,
+          "default": false,
+          "title": "Require Attestation",
+          "type": "boolean"
+        },
+        "required_status": {
+          "const": "PASS",
+          "default": "PASS",
+          "title": "Required Status",
+          "type": "string"
+        },
+        "requirement_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "kind",
+        "framework",
+        "qualification_profile"
+      ],
+      "title": "StaticAuditPolicyRequirement",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "all_requirements_must_pass": {
+      "const": true,
+      "default": true,
+      "title": "All Requirements Must Pass",
+      "type": "boolean"
+    },
+    "missing_evidence": {
+      "const": "fail",
+      "default": "fail",
+      "title": "Missing Evidence",
+      "type": "string"
+    },
+    "organization_id": {
+      "maxLength": 80,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "title": "Organization Id",
+      "type": "string"
+    },
+    "policy_id": {
+      "maxLength": 80,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "title": "Policy Id",
+      "type": "string"
+    },
+    "repository_policy_binding": {
+      "const": "explicit-local-source",
+      "default": "explicit-local-source",
+      "title": "Repository Policy Binding",
+      "type": "string"
+    },
+    "require_signed_runtime_attestations": {
+      "const": true,
+      "default": true,
+      "title": "Require Signed Runtime Attestations",
+      "type": "boolean"
+    },
+    "requirement_inventory": {
+      "const": "exact",
+      "default": "exact",
+      "title": "Requirement Inventory",
+      "type": "string"
+    },
+    "requirements": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "deepspeed-qualification": "#/$defs/DeepSpeedPolicyRequirement",
+            "distributed-qualification": "#/$defs/DistributedPolicyRequirement",
+            "hf-preemption-certification": "#/$defs/HFPreemptionPolicyRequirement",
+            "hf-qualification": "#/$defs/HFPolicyRequirement",
+            "lightning-qualification": "#/$defs/LightningPolicyRequirement",
+            "native-qualification": "#/$defs/NativePolicyRequirement",
+            "static-audit": "#/$defs/StaticAuditPolicyRequirement"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/StaticAuditPolicyRequirement"
+          },
+          {
+            "$ref": "#/$defs/NativePolicyRequirement"
+          },
+          {
+            "$ref": "#/$defs/HFPolicyRequirement"
+          },
+          {
+            "$ref": "#/$defs/HFPreemptionPolicyRequirement"
+          },
+          {
+            "$ref": "#/$defs/LightningPolicyRequirement"
+          },
+          {
+            "$ref": "#/$defs/DistributedPolicyRequirement"
+          },
+          {
+            "$ref": "#/$defs/DeepSpeedPolicyRequirement"
+          }
+        ]
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Requirements",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "flashpilot-organization-qualification-policy-v1",
+      "default": "flashpilot-organization-qualification-policy-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope_binding": {
+      "const": "explicit",
+      "default": "explicit",
+      "title": "Scope Binding",
+      "type": "string"
+    },
+    "unknown_state": {
+      "const": "fail",
+      "default": "fail",
+      "title": "Unknown State",
+      "type": "string"
+    },
+    "unlisted_evidence": {
+      "const": "fail",
+      "default": "fail",
+      "title": "Unlisted Evidence",
+      "type": "string"
+    }
+  },
+  "required": [
+    "organization_id",
+    "policy_id",
+    "requirements"
+  ],
+  "title": "OrganizationQualificationPolicyV1",
+  "type": "object"
+}

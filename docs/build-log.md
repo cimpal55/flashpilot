@@ -4505,3 +4505,114 @@ GitHub artifact SHA-256
 The private signing key was removed before upload. These workflow artifacts do
 not publish to or exercise the new optional local registry; the workflow and
 product qualification behavior were unchanged.
+
+## V1.0 item 8 - organization-level qualification policy
+
+Date: 2026-07-21
+
+Scope is limited to the eighth V1.0 production-infrastructure item. The new
+layer constrains an explicitly supplied repository qualification policy and
+then re-runs the existing suite verifier over the same explicit run bindings.
+It does not change qualification, checkpointing, framework, GPT, repair,
+attestation, signature, registry, or Recovery Gate behavior, and item 9 was not
+started.
+
+### Implementation evidence
+
+The new `OrganizationQualificationPolicyV1` is closed Pydantic/YAML data. It
+fixes explicit scope and local repository-policy binding, exact typed scenario
+inventory, UNKNOWN/missing/unlisted fail-closed behavior,
+all-requirements-must-pass, and signed runtime attestations. It reuses the
+existing seven discriminated requirement types. No expression, script,
+function, command, arbitrary check ID, repository scan, remote source, plugin,
+inheritance tree, waiver, or exception field exists.
+
+Organization and repository requirements match by a shared canonical typed
+selector. Human-facing requirement IDs and the two numeric RPO/RTO bounds are
+excluded from selector identity. The repository may equal or tighten each
+organization maximum; it cannot weaken a bound, signature requirement,
+exactness requirement, attestation requirement, or scenario inventory.
+Static audit remains non-attesting.
+
+`flashpilot enforce-organization-policy` accepts only an organization source,
+repository source, canonical explicit scope label, explicit repeated
+`requirement-id=run-directory` bindings, a separate output root, and the
+existing explicit trusted Ed25519 public key. It invokes the unchanged
+repository suite enforcer and therefore verifies source results, deterministic
+checks, recovery attestations, detached signatures, and key fingerprints
+instead of trusting a detached PASS artifact.
+
+The terminal `organization-policy-evaluation.json` embeds the complete
+repository evaluation and SHA-256 binds its exact deterministic bytes, both
+policy sources, the explicit scope label, every organization check, and the
+aggregate verdict. Deterministic JUnit, Markdown, and SARIF are written beside
+a nested repository-policy evaluation. Existing files must match exact output;
+unknown files, symlinks, output inside a bound run, malformed policy, and
+tampered evidence fail closed.
+
+The synchronized example and active workflows now enforce the checked-in
+nine-scenario organization baseline after the existing 153-check repository
+suite. Their GitHub OIDC subject advances to the terminal organization
+evaluation, which embeds and hash-binds the repository evaluation. Job
+permissions, private-key cleanup, explicit evidence bindings, always-on
+diagnostics, and success-only evidence uploads remain unchanged.
+
+### Commands and actual local output
+
+```text
+.\.venv\Scripts\python.exe -m ruff check .
+All checks passed!
+
+.\.venv\Scripts\python.exe -m ruff format --check .
+228 files already formatted
+
+.\.venv\Scripts\python.exe -m pytest tests\unit\test_organization_policy.py tests\unit\test_qualification_policy.py tests\unit\test_ci.py tests\unit\test_sarif.py tests\unit\test_packaging.py -q
+73 passed in 3.00s
+
+git diff --check
+No whitespace errors.
+
+.\.venv\Scripts\python.exe -c "...yaml.safe_load..."
+YAML validation passed: .github\workflows\flashpilot-qualification.yml, examples\github-actions\flashpilot-qualification.yml, examples\ci\organization-policy.yml
+
+.\.venv\Scripts\python.exe -m pytest -q
+411 passed, 5 skipped in 311.13s (0:05:11)
+
+.\.venv\Scripts\python.exe -m build --no-isolation
+Successfully built flashpilot-0.2.0.tar.gz and flashpilot-0.2.0-py3-none-any.whl
+
+.\.venv\Scripts\python.exe -m twine check .\dist\flashpilot-0.2.0-py3-none-any.whl .\dist\flashpilot-0.2.0.tar.gz
+Both distributions: PASSED
+```
+
+The five unchanged local skips were three Linux-only DeepSpeed cases, one
+POSIX-only external-SIGTERM case, and one Windows directory-symlink privilege
+case. No skip, timeout, tolerance, policy check, signature check, or Recovery
+Gate was changed. The wheel listing confirmed all four organization-policy
+modules, the checked example policy, and both public schemas. Before the final
+full production-matrix test was added, preliminary validations also passed 72
+focused tests and 410 full-suite tests with the same five platform skips.
+
+### Acceptance status and remaining risks
+
+- PASS: exact closed organization selector inventory is enforced.
+- PASS: UNKNOWN, missing, unlisted, malformed, and tampered inputs fail closed.
+- PASS: all runtime organization requirements require signed attestations.
+- PASS: repository RPO/RTO bounds can only equal or tighten the baseline.
+- PASS: repository suite evidence is fully reverified from explicit bindings.
+- PASS: the terminal evaluation embeds and hash-binds repository policy output.
+- PASS: JSON Schema, JUnit, Markdown, SARIF, CLI, package, and workflow coverage
+  are present and locally validated.
+- PASS: all existing local regression tests and package checks pass.
+- PENDING: exact-head hosted Linux qualification and organization-policy/OIDC
+  acceptance will be recorded after the feature commit is pushed.
+
+The explicit scope label is contextual and not authenticated repository
+identity. Policy sources are local and caller-selected; FlashPilot does not
+distribute them. The feature supports one scope and repository suite per
+invocation and provides no remote service, inheritance graph, delegation,
+waiver, exception, revocation, or key rotation. Organization policy is not a
+new Recovery Gate and cannot upgrade underlying evidence. The optional compact
+registry is not used because it omits source evidence required for complete
+suite reverification. Windows directory fsync remains best-effort. No live API
+call or package publication occurred.

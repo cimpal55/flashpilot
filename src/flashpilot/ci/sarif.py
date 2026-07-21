@@ -111,6 +111,7 @@ class SarifArtifactLocation(StrictSarifModel):
         "result.json",
         "comparison.json",
         "policy-evaluation.json",
+        "organization-policy-evaluation.json",
     ]
 
 
@@ -250,6 +251,7 @@ def build_sarif_for_checks(
         "result.json",
         "comparison.json",
         "policy-evaluation.json",
+        "organization-policy-evaluation.json",
     ],
 ) -> FlashPilotSarifLog:
     """Build one SARIF run from already-derived typed check evidence."""
@@ -351,6 +353,7 @@ def render_sarif_checks(
         "result.json",
         "comparison.json",
         "policy-evaluation.json",
+        "organization-policy-evaluation.json",
     ],
 ) -> str:
     return _render_log(

@@ -275,7 +275,12 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
     assert "runs/**/recovery.attestation.signature.json" in attestation_upload["with"]["path"]
     assert "runs/ci-signing/ed25519-public.pem" in attestation_upload["with"]["path"]
     assert "examples/ci/qualification-policy.yml" in attestation_upload["with"]["path"]
+    assert "examples/ci/organization-policy.yml" in attestation_upload["with"]["path"]
     assert "runs/ci-policy/policy-evaluation.json" in attestation_upload["with"]["path"]
+    assert (
+        "runs/ci-organization/organization-policy-evaluation.json"
+        in attestation_upload["with"]["path"]
+    )
     assert (
         "runs/ci-provenance/github-oidc-provenance.sigstore.json"
         in attestation_upload["with"]["path"]
@@ -286,6 +291,8 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
     assert "runs/**/results.sarif" in diagnostic_upload["with"]["path"]
     assert "runs/**/audit.json" in diagnostic_upload["with"]["path"]
     assert "runs/**/policy-evaluation.json" in diagnostic_upload["with"]["path"]
+    assert "runs/**/organization-policy-evaluation.json" in diagnostic_upload["with"]["path"]
+    assert "examples/ci/organization-policy.yml" in diagnostic_upload["with"]["path"]
     assert "examples/ci/qualification-policy.yml" in diagnostic_upload["with"]["path"]
     assert "schemas/attestation-signature-v1.schema.json" in diagnostic_upload["with"]["path"]
     assert "schemas/qualification-policy-v1.schema.json" in diagnostic_upload["with"]["path"]
@@ -311,6 +318,10 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
         "flashpilot sign-attestation",
         "flashpilot enforce-policy",
         "--policy examples/ci/qualification-policy.yml",
+        "flashpilot enforce-organization-policy",
+        "--organization-policy examples/ci/organization-policy.yml",
+        "--repository-policy examples/ci/qualification-policy.yml",
+        "--scope-id flashpilot-main",
         "--public-key runs/ci-signing/ed25519-public.pem",
         "--run hf-process-termination=runs/ci-hf",
         "--run fsdp-checkpoint-restart=runs/ci-distributed",
@@ -322,8 +333,8 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
         "--run hf-managed-preemption=runs/ci-preemption",
         "--run hf-static-audit=runs/ci-audit",
         "uses: actions/attest@v4",
-        "subject-path: runs/ci-policy/policy-evaluation.json",
-        "gh attestation verify runs/ci-policy/policy-evaluation.json",
+        "subject-path: runs/ci-organization/organization-policy-evaluation.json",
+        "gh attestation verify runs/ci-organization/organization-policy-evaluation.json",
         '--repo "${GITHUB_REPOSITORY}"',
         '--signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/flashpilot-qualification.yml"',
         '--signer-digest "${GITHUB_WORKFLOW_SHA}"',
@@ -353,12 +364,17 @@ def test_active_github_actions_workflow_preserves_qualification_and_quality_guar
         for index, step in enumerate(steps)
         if step.get("name") == "Enforce the complete typed qualification-suite policy"
     )
+    organization_step_index = next(
+        index
+        for index, step in enumerate(steps)
+        if step.get("name") == "Enforce the closed organization qualification baseline"
+    )
     oidc_step_index = steps.index(oidc_step)
-    assert oidc_step_index > policy_step_index
+    assert policy_step_index < organization_step_index < oidc_step_index
     assert oidc_step == {
-        "name": "Attest the verified suite with GitHub OIDC provenance",
+        "name": "Attest the terminal organization policy with GitHub OIDC provenance",
         "if": "success()",
         "id": "oidc-provenance",
         "uses": "actions/attest@v4",
-        "with": {"subject-path": "runs/ci-policy/policy-evaluation.json"},
+        "with": {"subject-path": "runs/ci-organization/organization-policy-evaluation.json"},
     }

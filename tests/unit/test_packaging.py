@@ -92,6 +92,14 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
         in data_files["share/flashpilot/schemas"]
     )
     assert (
+        "schemas/organization-qualification-policy-v1.schema.json"
+        in data_files["share/flashpilot/schemas"]
+    )
+    assert (
+        "schemas/organization-policy-evaluation-v1.schema.json"
+        in data_files["share/flashpilot/schemas"]
+    )
+    assert (
         "schemas/conversion-qualification-v1.schema.json" in data_files["share/flashpilot/schemas"]
     )
     assert (
@@ -132,6 +140,7 @@ def test_release_data_files_cover_public_portable_artifacts() -> None:
         "schemas/randomized-fault-timing-v1.schema.json" in data_files["share/flashpilot/schemas"]
     )
     assert data_files["share/flashpilot/examples/ci"] == [
+        "examples/ci/organization-policy.yml",
         "examples/ci/policy.yml",
         "examples/ci/qualification-policy.yml",
     ]

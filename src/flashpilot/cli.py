@@ -52,6 +52,11 @@ from flashpilot.ci.exits import (
     EXIT_QUALIFICATION_FAILED,
     EXIT_UNSUPPORTED,
 )
+from flashpilot.ci.organization_policy import (
+    OrganizationPolicyError,
+    OrganizationPolicyEvidenceError,
+    enforce_organization_policy,
+)
 from flashpilot.ci.policy import CIPolicyError, load_ci_policy
 from flashpilot.ci.qualification_policy import (
     QualificationPolicyError,
@@ -1507,6 +1512,83 @@ def enforce_policy(
         for check in requirement.checks:
             if check.status.value == "FAIL":
                 typer.echo(f"FAILED REQUIREMENT {check.check_id}: {check.summary}", err=True)
+    if result.exit_code:
+        raise typer.Exit(code=result.exit_code)
+
+
+@app.command("enforce-organization-policy")
+def enforce_organization_policy_command(
+    organization_policy: Annotated[
+        Path,
+        typer.Option(help="Closed FlashPilot organization qualification-policy YAML."),
+    ],
+    repository_policy: Annotated[
+        Path,
+        typer.Option(help="Explicit local repository qualification-suite policy YAML."),
+    ],
+    scope_id: Annotated[
+        str,
+        typer.Option(help="Explicit lowercase organization scope label for this evaluation."),
+    ],
+    output_dir: Annotated[
+        Path,
+        typer.Option(help="New or matching organization-policy artifact directory."),
+    ],
+    run: Annotated[
+        list[str],
+        typer.Option(
+            "--run",
+            help="Explicit repeated repository requirement-id=run-directory binding.",
+        ),
+    ],
+    public_key: Annotated[
+        Path | None,
+        typer.Option(help="Explicitly trusted Ed25519 public key for signed requirements."),
+    ] = None,
+) -> None:
+    """Enforce one closed organization baseline over one verified repository suite."""
+
+    try:
+        bindings = parse_policy_run_bindings(run)
+        result = enforce_organization_policy(
+            organization_policy_path=organization_policy,
+            repository_policy_path=repository_policy,
+            scope_id=scope_id,
+            run_bindings=bindings,
+            output_dir=output_dir,
+            public_key_path=public_key,
+        )
+    except (OrganizationPolicyError, QualificationPolicyError) as error:
+        typer.echo(f"Unsupported organization policy: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
+    except (
+        OrganizationPolicyEvidenceError,
+        QualificationPolicyEvidenceError,
+        OSError,
+        UnicodeError,
+        ValueError,
+    ) as error:
+        typer.echo(f"INVALID OR TAMPERED ORGANIZATION POLICY EVIDENCE: {error}", err=True)
+        raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
+    evaluation = result.evaluation
+    typer.echo("ORGANIZATION POLICY " + ("PASS" if evaluation.passed else "FAIL"))
+    typer.echo(f"Organization: {evaluation.organization_id}")
+    typer.echo(f"Policy ID: {evaluation.policy_id}")
+    typer.echo(f"Scope: {evaluation.scope_id}")
+    typer.echo(
+        f"Requirements: {len(evaluation.requirements) - sum(not item.passed for item in evaluation.requirements)}"
+        f"/{len(evaluation.requirements)}"
+    )
+    typer.echo(f"Evaluation: {result.evaluation_path.resolve()}")
+    typer.echo(
+        f"Repository evaluation: {result.repository_policy_result.evaluation_path.resolve()}"
+    )
+    typer.echo(f"JUnit XML: {result.junit_path.resolve()}")
+    typer.echo(f"Job summary: {result.job_summary_path.resolve()}")
+    typer.echo(f"SARIF: {result.sarif_path.resolve()}")
+    for check in evaluation.all_checks:
+        if check.status.value == "FAIL":
+            typer.echo(f"FAILED REQUIREMENT {check.check_id}: {check.summary}", err=True)
     if result.exit_code:
         raise typer.Exit(code=result.exit_code)
 

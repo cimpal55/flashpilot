@@ -8,7 +8,8 @@
             "audit.json",
             "result.json",
             "comparison.json",
-            "policy-evaluation.json"
+            "policy-evaluation.json",
+            "organization-policy-evaluation.json"
           ],
           "title": "Uri",
           "type": "string"

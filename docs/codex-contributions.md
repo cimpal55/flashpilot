@@ -861,3 +861,35 @@ qualification job, all signed-policy and OIDC steps, private-key cleanup, and
 both artifact uploads. The hosted FSDP target-rank-0 case passed without retry.
 The OIDC subject was the unchanged terminal policy evaluation; no workflow step
 published to or read from the optional local registry.
+
+## V1.0 item 8 - organization-level qualification policy
+
+Codex implemented only the eighth V1.0 production-infrastructure item:
+
+- added strict organization-policy and evaluation models that reuse the seven
+  existing closed repository-suite requirement types;
+- fixed organization behavior to explicit scope and local policy-source
+  binding, exact selector inventory, UNKNOWN/missing/unlisted fail-closed,
+  all-requirements-must-pass, and signed runtime attestations;
+- factored the existing canonical selector so repository and organization
+  policies compare identical typed scenario identities;
+- allowed repository policies only to equal or tighten the organization RPO
+  and RTO bounds while preserving exactness and signature requirements;
+- made organization enforcement re-run the existing suite verifier from the
+  explicit repository policy, trusted Ed25519 key, and exact run bindings;
+- embedded and SHA-256 bound the complete repository evaluation, both policy
+  hashes, explicit scope label, every organization check, and aggregate verdict
+  in `organization-policy-evaluation.json`;
+- added deterministic JUnit, Markdown, and SARIF output, closed output-root
+  behavior, two public schemas, one checked-in production baseline, packaging,
+  and focused fail-closed tests;
+- updated both synchronized hosted workflows to gate success on organization
+  policy and use the terminal organization evaluation as the GitHub OIDC
+  provenance subject.
+
+Codex did not add a generic policy engine, Rego/Cedar interpreter, expression
+or script execution, repository scan, remote policy retrieval, authenticated
+scope identity, inheritance tree, delegation, waiver, exception, revocation,
+key rotation, hosted service, registry-policy coupling, framework behavior,
+GPT work, repair behavior, or Recovery Gate change. Item 9 and all later work
+were not started.

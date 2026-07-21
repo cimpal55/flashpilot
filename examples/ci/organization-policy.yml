@@ -1,0 +1,147 @@
+schema_version: flashpilot-organization-qualification-policy-v1
+organization_id: flashpilot-reference-organization
+policy_id: flashpilot-v1-production-baseline
+scope_binding: explicit
+repository_policy_binding: explicit-local-source
+requirement_inventory: exact
+unknown_state: fail
+missing_evidence: fail
+unlisted_evidence: fail
+all_requirements_must_pass: true
+require_signed_runtime_attestations: true
+requirements:
+  - requirement_id: hf-process-termination
+    kind: hf-qualification
+    framework: huggingface-trainer
+    adapter: huggingface-trainer
+    qualification_profile: exact-training-resume
+    fault: process_termination
+    max_rpo_steps: 0
+    max_rto_seconds: 60
+    required_status: VERIFIED
+    require_exact_recovery: true
+    require_attestation: true
+    require_signed_attestation: true
+  - requirement_id: fsdp-checkpoint-restart
+    kind: distributed-qualification
+    framework: pytorch-distributed
+    adapter: pytorch-fsdp
+    strategy: fsdp
+    implementation: fully_shard
+    backend: gloo
+    world_size: 2
+    qualification_profile: exact-training-resume
+    fault: checkpoint_restart
+    fault_target_rank: null
+    max_rpo_steps: 0
+    max_rto_seconds: 60
+    required_status: VERIFIED
+    require_exact_recovery: true
+    require_attestation: true
+    require_signed_attestation: true
+  - requirement_id: fsdp-rank-termination-0
+    kind: distributed-qualification
+    framework: pytorch-distributed
+    adapter: pytorch-fsdp
+    strategy: fsdp
+    implementation: fully_shard
+    backend: gloo
+    world_size: 2
+    qualification_profile: exact-training-resume
+    fault: rank_process_termination
+    fault_target_rank: 0
+    max_rpo_steps: 0
+    max_rto_seconds: 60
+    required_status: VERIFIED
+    require_exact_recovery: true
+    require_attestation: true
+    require_signed_attestation: true
+  - requirement_id: fsdp-rank-termination-1
+    kind: distributed-qualification
+    framework: pytorch-distributed
+    adapter: pytorch-fsdp
+    strategy: fsdp
+    implementation: fully_shard
+    backend: gloo
+    world_size: 2
+    qualification_profile: exact-training-resume
+    fault: rank_process_termination
+    fault_target_rank: 1
+    max_rpo_steps: 0
+    max_rto_seconds: 60
+    required_status: VERIFIED
+    require_exact_recovery: true
+    require_attestation: true
+    require_signed_attestation: true
+  - requirement_id: deepspeed-checkpoint-restart
+    kind: deepspeed-qualification
+    framework: deepspeed
+    adapter: deepspeed-engine
+    strategy: zero
+    implementation: zero-stage-2
+    zero_stage: 2
+    backend: gloo
+    world_size: 2
+    qualification_profile: exact-training-resume
+    fault: checkpoint_restart
+    fault_target_rank: null
+    max_rpo_steps: 0
+    max_rto_seconds: 120
+    required_status: VERIFIED
+    require_exact_recovery: true
+    require_attestation: true
+    require_signed_attestation: true
+  - requirement_id: deepspeed-rank-termination-0
+    kind: deepspeed-qualification
+    framework: deepspeed
+    adapter: deepspeed-engine
+    strategy: zero
+    implementation: zero-stage-2
+    zero_stage: 2
+    backend: gloo
+    world_size: 2
+    qualification_profile: exact-training-resume
+    fault: rank_process_termination
+    fault_target_rank: 0
+    max_rpo_steps: 0
+    max_rto_seconds: 120
+    required_status: VERIFIED
+    require_exact_recovery: true
+    require_attestation: true
+    require_signed_attestation: true
+  - requirement_id: deepspeed-rank-termination-1
+    kind: deepspeed-qualification
+    framework: deepspeed
+    adapter: deepspeed-engine
+    strategy: zero
+    implementation: zero-stage-2
+    zero_stage: 2
+    backend: gloo
+    world_size: 2
+    qualification_profile: exact-training-resume
+    fault: rank_process_termination
+    fault_target_rank: 1
+    max_rpo_steps: 0
+    max_rto_seconds: 120
+    required_status: VERIFIED
+    require_exact_recovery: true
+    require_attestation: true
+    require_signed_attestation: true
+  - requirement_id: hf-managed-preemption
+    kind: hf-preemption-certification
+    framework: huggingface-trainer
+    adapter: huggingface-trainer
+    qualification_profile: preemption-safe-training
+    fault: managed_preemption
+    max_rpo_steps: 0
+    max_rto_seconds: 60
+    required_status: VERIFIED
+    require_exact_recovery: true
+    require_attestation: true
+    require_signed_attestation: true
+  - requirement_id: hf-static-audit
+    kind: static-audit
+    framework: huggingface-trainer
+    qualification_profile: exact-training-resume
+    required_status: PASS
+    require_attestation: false

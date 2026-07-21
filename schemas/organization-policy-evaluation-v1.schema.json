@@ -1,0 +1,660 @@
+{
+  "$defs": {
+    "CICheck": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actual"
+        },
+        "check_id": {
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Check Id",
+          "type": "string"
+        },
+        "expected": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected"
+        },
+        "status": {
+          "$ref": "#/$defs/CICheckStatus"
+        },
+        "summary": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "status",
+        "summary"
+      ],
+      "title": "CICheck",
+      "type": "object"
+    },
+    "CICheckStatus": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "UNKNOWN",
+        "FAIL",
+        "NOT_APPLICABLE"
+      ],
+      "title": "CICheckStatus",
+      "type": "string"
+    },
+    "CIRunEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "anyOf": [
+            {
+              "enum": [
+                "native-pytorch",
+                "huggingface-trainer",
+                "pytorch-lightning",
+                "pytorch-fsdp",
+                "deepspeed-engine"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter"
+        },
+        "atol": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Atol"
+        },
+        "backend": {
+          "anyOf": [
+            {
+              "const": "gloo",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Backend"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/CICheck"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "fault": {
+          "anyOf": [
+            {
+              "enum": [
+                "process_termination",
+                "managed_preemption",
+                "checkpoint_restart",
+                "rank_process_termination"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fault"
+        },
+        "fault_target_rank": {
+          "anyOf": [
+            {
+              "enum": [
+                0,
+                1
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fault Target Rank"
+        },
+        "framework": {
+          "enum": [
+            "native-pytorch",
+            "huggingface-trainer",
+            "pytorch-lightning",
+            "pytorch-distributed",
+            "deepspeed",
+            "unknown"
+          ],
+          "title": "Framework",
+          "type": "string"
+        },
+        "implementation": {
+          "anyOf": [
+            {
+              "enum": [
+                "fully_shard",
+                "zero-stage-2"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Implementation"
+        },
+        "kind": {
+          "enum": [
+            "static-audit",
+            "native-qualification",
+            "hf-qualification",
+            "hf-preemption-certification",
+            "lightning-qualification",
+            "distributed-qualification",
+            "deepspeed-qualification"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "qualification_profile": {
+          "$ref": "#/$defs/QualificationProfile"
+        },
+        "rpo_steps": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rpo Steps"
+        },
+        "rto_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rto Seconds"
+        },
+        "rtol": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rtol"
+        },
+        "schema_version": {
+          "const": "flashpilot-ci-run-evidence-v1",
+          "default": "flashpilot-ci-run-evidence-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/CIStatus"
+        },
+        "strategy": {
+          "anyOf": [
+            {
+              "enum": [
+                "fsdp",
+                "zero"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Strategy"
+        },
+        "world_size": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "World Size"
+        },
+        "zero_stage": {
+          "anyOf": [
+            {
+              "const": 2,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Zero Stage"
+        }
+      },
+      "required": [
+        "kind",
+        "status",
+        "qualification_profile",
+        "framework",
+        "checks"
+      ],
+      "title": "CIRunEvidence",
+      "type": "object"
+    },
+    "CIStatus": {
+      "enum": [
+        "VERIFIED",
+        "PASS",
+        "WARN",
+        "UNKNOWN",
+        "FAILED"
+      ],
+      "title": "CIStatus",
+      "type": "string"
+    },
+    "OrganizationRequirementEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/CICheck"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "failed_check_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Check Ids",
+          "type": "array"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "repository_requirement_id": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repository Requirement Id"
+        },
+        "requirement_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "passed",
+        "checks",
+        "failed_check_ids"
+      ],
+      "title": "OrganizationRequirementEvaluation",
+      "type": "object"
+    },
+    "QualificationPolicyEvaluationV1": {
+      "additionalProperties": false,
+      "properties": {
+        "failed_requirement_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Requirement Ids",
+          "type": "array"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "policy_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "policy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Sha256",
+          "type": "string"
+        },
+        "requirements": {
+          "items": {
+            "$ref": "#/$defs/QualificationRequirementEvaluation"
+          },
+          "minItems": 1,
+          "title": "Requirements",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "flashpilot-qualification-policy-evaluation-v1",
+          "default": "flashpilot-qualification-policy-evaluation-v1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_id",
+        "policy_sha256",
+        "passed",
+        "requirements",
+        "failed_requirement_ids"
+      ],
+      "title": "QualificationPolicyEvaluationV1",
+      "type": "object"
+    },
+    "QualificationPolicyEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "attestation_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attestation Sha256"
+        },
+        "attestation_signature_status": {
+          "enum": [
+            "verified",
+            "unsigned",
+            "missing",
+            "not-applicable"
+          ],
+          "title": "Attestation Signature Status",
+          "type": "string"
+        },
+        "attestation_status": {
+          "enum": [
+            "verified",
+            "missing",
+            "not-applicable"
+          ],
+          "title": "Attestation Status",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/CIRunEvidence"
+        },
+        "schema_version": {
+          "const": "flashpilot-qualification-policy-evidence-v1",
+          "default": "flashpilot-qualification-policy-evidence-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "signature_artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signature Artifact Sha256"
+        },
+        "signing_key_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signing Key Sha256"
+        },
+        "source_artifact": {
+          "enum": [
+            "result.json",
+            "audit.json"
+          ],
+          "title": "Source Artifact",
+          "type": "string"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_artifact",
+        "source_sha256",
+        "attestation_status",
+        "attestation_signature_status",
+        "evidence"
+      ],
+      "title": "QualificationPolicyEvidence",
+      "type": "object"
+    },
+    "QualificationProfile": {
+      "enum": [
+        "exact-training-resume",
+        "model-only-inference",
+        "checkpoint-conversion-equivalence",
+        "preemption-safe-training"
+      ],
+      "title": "QualificationProfile",
+      "type": "string"
+    },
+    "QualificationRequirementEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/CICheck"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QualificationPolicyEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "failed_check_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Check Ids",
+          "type": "array"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "requirement_id": {
+          "maxLength": 80,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "passed",
+        "checks",
+        "failed_check_ids"
+      ],
+      "title": "QualificationRequirementEvaluation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/CICheck"
+      },
+      "minItems": 1,
+      "title": "Checks",
+      "type": "array"
+    },
+    "failed_check_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Failed Check Ids",
+      "type": "array"
+    },
+    "organization_id": {
+      "maxLength": 80,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "title": "Organization Id",
+      "type": "string"
+    },
+    "organization_policy_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Organization Policy Sha256",
+      "type": "string"
+    },
+    "passed": {
+      "title": "Passed",
+      "type": "boolean"
+    },
+    "policy_id": {
+      "maxLength": 80,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "title": "Policy Id",
+      "type": "string"
+    },
+    "repository_policy_evaluation": {
+      "$ref": "#/$defs/QualificationPolicyEvaluationV1"
+    },
+    "repository_policy_evaluation_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Repository Policy Evaluation Sha256",
+      "type": "string"
+    },
+    "repository_policy_id": {
+      "maxLength": 80,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "title": "Repository Policy Id",
+      "type": "string"
+    },
+    "repository_policy_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Repository Policy Sha256",
+      "type": "string"
+    },
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/OrganizationRequirementEvaluation"
+      },
+      "minItems": 1,
+      "title": "Requirements",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "flashpilot-organization-policy-evaluation-v1",
+      "default": "flashpilot-organization-policy-evaluation-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "maxLength": 80,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "title": "Scope Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "organization_id",
+    "policy_id",
+    "scope_id",
+    "organization_policy_sha256",
+    "repository_policy_id",
+    "repository_policy_sha256",
+    "repository_policy_evaluation_sha256",
+    "repository_policy_evaluation",
+    "passed",
+    "checks",
+    "requirements",
+    "failed_check_ids"
+  ],
+  "title": "OrganizationPolicyEvaluationV1",
+  "type": "object"
+}

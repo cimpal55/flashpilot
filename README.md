@@ -578,20 +578,56 @@ stable: `0=verified/pass`, `2=warning or unknown review`, `3=qualification or
 enforced-policy failure`, `4=invalid/tampered evidence`, and `5=unsupported
 configuration`.
 
+V1.0 organization policy adds one deliberately narrow layer above that suite.
+The central policy names the exact scenario inventory, requires signed runtime
+attestations, and fixes maximum RPO/RTO bounds. A repository policy may tighten
+those numeric bounds but cannot omit or add a scenario, weaken signature or
+exactness requirements, or change a typed selector:
+
+```powershell
+.\.venv\Scripts\flashpilot.exe enforce-organization-policy `
+  --organization-policy .\examples\ci\organization-policy.yml `
+  --repository-policy .\examples\ci\qualification-policy.yml `
+  --scope-id flashpilot-main `
+  --output-dir .\runs\ci-organization `
+  --public-key .\runs\qualification-signing-key\ed25519-public.pem `
+  --run hf-process-termination=.\runs\ci-hf `
+  --run fsdp-checkpoint-restart=.\runs\ci-distributed `
+  --run fsdp-rank-termination-0=.\runs\ci-distributed-fault-rank-0 `
+  --run fsdp-rank-termination-1=.\runs\ci-distributed-fault-rank-1 `
+  --run deepspeed-checkpoint-restart=.\runs\ci-deepspeed `
+  --run deepspeed-rank-termination-0=.\runs\ci-deepspeed-fault-rank-0 `
+  --run deepspeed-rank-termination-1=.\runs\ci-deepspeed-fault-rank-1 `
+  --run hf-managed-preemption=.\runs\ci-preemption `
+  --run hf-static-audit=.\runs\ci-audit
+```
+
+The command re-runs the existing repository suite verifier; it does not trust
+an independently supplied PASS document. Its terminal
+`organization-policy-evaluation.json` embeds and SHA-256 binds that complete
+repository evaluation, along with both policy-source hashes, the explicit
+scope label, every organization check, and the derived aggregate verdict.
+The layer remains closed data: there are no expressions, scripts, policy
+plugins, repository scans, remote policy retrieval, inheritance trees,
+exceptions, or waivers. The scope label is operator-provided context, not an
+authenticated repository identity.
+
 [.github/workflows/flashpilot-qualification.yml](.github/workflows/flashpilot-qualification.yml)
 is the active pull-request and manual hosted workflow, sourced from
 [examples/github-actions/flashpilot-qualification.yml](examples/github-actions/flashpilot-qualification.yml).
 It publishes diagnostics on failure and uploads attestation payloads, detached
-signatures, the ephemeral run public key, the final suite-policy evaluation,
-and GitHub OIDC provenance only after qualification and typed policy all
-succeed. The private key is created under runner temporary storage, removed
+signatures, the ephemeral run public key, both policy sources, the terminal
+organization-policy evaluation, and GitHub OIDC provenance only after
+qualification and both typed policy layers succeed. The private key is created
+under runner temporary storage, removed
 with `if: always()`, and never uploaded. Its quality matrix runs Python 3.11
 and 3.12; on Linux, the development extra installs Lightning and DeepSpeed so
 the full suite exercises both optional qualification paths on both
 interpreters.
 
 The workflow uses `actions/attest@v4` to create SLSA provenance for the exact
-`runs/ci-policy/policy-evaluation.json` bytes. That evaluation already binds
+`runs/ci-organization/organization-policy-evaluation.json` bytes. That terminal
+evaluation embeds and hash-binds the repository policy evaluation, which binds
 the production policy hash plus every runtime result, recovery attestation,
 detached signature, and trusted-key fingerprint. The workflow immediately
 verifies the saved Sigstore bundle with the GitHub CLI while requiring the
@@ -600,7 +636,7 @@ ref, GitHub OIDC issuer, and a GitHub-hosted runner. A consumer can repeat the
 core offline-bundle check after downloading the success artifact:
 
 ```powershell
-gh attestation verify .\runs\ci-policy\policy-evaluation.json `
+gh attestation verify .\runs\ci-organization\organization-policy-evaluation.json `
   --bundle .\runs\ci-provenance\github-oidc-provenance.sigstore.json `
   --repo cimpal55/flashpilot `
   --signer-workflow cimpal55/flashpilot/.github/workflows/flashpilot-qualification.yml `
@@ -612,8 +648,8 @@ gh attestation verify .\runs\ci-policy\policy-evaluation.json `
 Add `--signer-digest`, `--source-digest`, and `--source-ref` with the expected
 workflow commit, source commit, and Git ref to reproduce the workflow's full
 identity constraint. GitHub provenance authenticates who produced the fixed
-policy-evaluation artifact; it cannot create or upgrade a FlashPilot recovery
-verdict.
+organization-policy-evaluation artifact; it cannot create or upgrade a
+FlashPilot recovery verdict.
 
 ## Optional local attestation history
 
@@ -650,8 +686,9 @@ service or a second recovery oracle. Stored entries preserve the exact signed
 statement but not the source checkpoint/evidence bundle, so later history
 verification proves signature and chain integrity, not a fresh Recovery Gate
 run. Trust in the registry root and admission key remains an operator concern;
-there is no deletion, pruning, revocation, key rotation, organization policy,
-network API, database, or hosted registry.
+there is no deletion, pruning, revocation, key rotation, network API, database,
+or hosted registry. Organization-policy enforcement is a separate explicit
+suite operation and neither discovers nor trusts compact registry history.
 
 ## Security model
 
@@ -672,7 +709,7 @@ Windows file ACL protection is explicitly best-effort. Keep production private
 keys outside the repository and establish public-key trust out of band.
 
 Hosted qualification additionally uses GitHub's OIDC-backed Sigstore flow for
-the final suite-policy evaluation. Only job-scoped `id-token: write` and
+the terminal organization-policy evaluation. Only job-scoped `id-token: write` and
 `attestations: write` are added to the qualification job; the repository and
 quality-job default remains `contents: read`. The saved bundle and local
 verification result contain no private key or repository secret. This
@@ -721,10 +758,11 @@ distributed training, CUDA, NeMo, TensorFlow, or JAX. Fixture replay is tied to 
 schema and evidence contract; novel failures require a new guarded live
 analysis. Physical storage effects are not measured.
 
-Future work may add elastic membership, multi-node/CUDA fault scenarios,
-organization-level qualification policy, and broader platform validation.
-Those later roadmap items are not implied by the bounded typed production
-matrix or the local attestation history.
+Future work may add elastic membership, multi-node/CUDA fault scenarios, and
+broader platform validation. The implemented organization policy is local,
+explicit, and exact-inventory only; remote distribution, authenticated scope
+identity, inheritance trees, waivers, exceptions, and a hosted policy service
+remain unimplemented.
 
 ## Repository and license
 

@@ -760,6 +760,8 @@ eight deterministic Recovery Gates
 -> eight exact-byte Ed25519 signatures under one ephemeral public key
 -> nine-requirement / 153-check closed suite policy
 -> policy-evaluation.json with source, attestation, signature, key, and policy hashes
+-> 71-check exact organization baseline over the reverified repository suite
+-> organization-policy-evaluation.json embedding and binding the suite evaluation
 -> actions/attest@v4 GitHub OIDC + Sigstore SLSA provenance
 -> gh attestation verify with repository/workflow/commit/ref/issuer/runner constraints
 -> success-only evidence upload
@@ -777,3 +779,43 @@ path validation, registry publication, history queries, or a second policy
 language. GitHub provenance can authenticate the terminal deterministic
 artifact but cannot convert UNKNOWN, FAILED, unsigned, or policy-rejected
 evidence into VERIFIED.
+
+## V1.0 item 8: organization qualification policy
+
+The organization layer is a strict downstream composition of the existing
+repository suite evaluator:
+
+```text
+closed organization baseline YAML
++ closed repository suite-policy YAML
++ explicit requirement-id=run-directory bindings
++ explicit trusted Ed25519 public key
+-> re-run existing repository suite verification
+-> compare exact typed selector inventory
+-> require equal-or-tighter RPO/RTO bounds
+-> require exact recovery and signed runtime evidence
+-> embed and hash-bind repository policy evaluation
+-> organization-policy-evaluation.json
+-> JUnit + Markdown + SARIF
+```
+
+`organization_policy_models.py` defines only fixed data shapes;
+`organization_policy.py` performs safe loading, exact selector matching,
+repository re-verification, deterministic evaluation, and closed-root writes;
+`organization_policy_reporters.py` projects the authoritative model; and
+`organization_policy_schema.py` generates the two public schemas.
+
+The command never scans a repository or evidence parent, loads remote policy,
+executes policy text, or evaluates a user expression. One invocation binds one
+explicit scope label and one explicit repository policy. The label is not an
+authenticated repository identity. The policy cannot alter an existing Gate,
+tolerance, attestation, signature, or result, and it cannot issue a recovery
+attestation. It reports organization-policy PASS only when both the central
+baseline checks and the complete reverified repository suite pass.
+
+The hosted workflow uses the organization evaluation as its terminal GitHub
+OIDC provenance subject. The embedded repository evaluation retains the full
+hash chain to source results and signed recovery attestations. The optional
+local attestation registry is not an input to organization enforcement because
+its compact entries intentionally omit the source evidence needed for a fresh
+suite verification.

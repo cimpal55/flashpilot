@@ -121,6 +121,28 @@ QualificationPolicyRequirement = Annotated[
     Field(discriminator="kind"),
 ]
 
+_SELECTOR_EXCLUDED_FIELDS = {
+    "requirement_id",
+    "max_rpo_steps",
+    "max_rto_seconds",
+    "required_status",
+    "require_exact_recovery",
+    "require_attestation",
+    "require_signed_attestation",
+}
+
+
+def qualification_requirement_selector(
+    requirement: QualificationPolicyRequirement,
+) -> str:
+    """Return the canonical closed selector shared by suite and organization policy."""
+
+    selector = requirement.model_dump(
+        mode="json",
+        exclude=_SELECTOR_EXCLUDED_FIELDS,
+    )
+    return json.dumps(selector, sort_keys=True, separators=(",", ":"))
+
 
 class QualificationPolicyV1(StrictQualificationPolicyModel):
     schema_version: Literal["flashpilot-qualification-policy-v1"] = (
@@ -147,21 +169,9 @@ class QualificationPolicyV1(StrictQualificationPolicyModel):
         identifiers = tuple(requirement.requirement_id for requirement in requirements)
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("qualification policy requirement IDs must be unique")
-        selectors = []
-        for requirement in requirements:
-            selector = requirement.model_dump(
-                mode="json",
-                exclude={
-                    "requirement_id",
-                    "max_rpo_steps",
-                    "max_rto_seconds",
-                    "required_status",
-                    "require_exact_recovery",
-                    "require_attestation",
-                    "require_signed_attestation",
-                },
-            )
-            selectors.append(json.dumps(selector, sort_keys=True, separators=(",", ":")))
+        selectors = [
+            qualification_requirement_selector(requirement) for requirement in requirements
+        ]
         if len(selectors) != len(set(selectors)):
             raise ValueError("qualification policy selectors must be unique")
         return requirements

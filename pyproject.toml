@@ -103,6 +103,8 @@ where = ["src"]
     "schemas/multi-rank-failure-event-v1.schema.json",
     "schemas/multi-rank-fault-ready-v1.schema.json",
     "schemas/multi-rank-peer-failure-v1.schema.json",
+    "schemas/organization-policy-evaluation-v1.schema.json",
+    "schemas/organization-qualification-policy-v1.schema.json",
     "schemas/partial-write-fuzz-v1.schema.json",
     "schemas/previous-valid-fallback-v1.schema.json",
     "schemas/persistence-contract-v1.schema.json",
@@ -114,6 +116,7 @@ where = ["src"]
     "schemas/recovery-attestation-v1.schema.json",
 ]
 "share/flashpilot/examples/ci" = [
+    "examples/ci/organization-policy.yml",
     "examples/ci/policy.yml",
     "examples/ci/qualification-policy.yml",
 ]
