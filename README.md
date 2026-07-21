@@ -22,7 +22,7 @@ native-PyTorch workflow through real termination, new-process restore, exact
 trajectory comparison, evidence-bounded GPT-5.6 diagnosis, one typed repair,
 and deterministic re-verification.
 
-## Three supported v0.2 paths
+## Three supported paths
 
 ### 1. 60-second fixture demo
 
@@ -79,9 +79,9 @@ same documented contract explicitly. Omitting `--script` selects the installed
 package's offline worker entry. A base installation without the HF extra exits
 `5` with actionable `pip install 'flashpilot[hf]'` guidance.
 
-## V0.3 PyTorch Lightning qualification
+## PyTorch Lightning qualification
 
-The V0.3 roadmap adds one explicit, optional PyTorch Lightning
+FlashPilot includes one explicit, optional PyTorch Lightning
 qualification adapter. It does not join the frozen native repair adapter and
 does not use plugin discovery or framework auto-detection:
 
@@ -103,10 +103,9 @@ before bytes or an attestation are emitted. The real Lightning
 `weights_only=True` scenario remains loadable but fails exact resume because it
 omits optimizer, scheduler, RNG-bridge, and loss-history state.
 
-## V0.3 checkpoint conversion equivalence
+## Checkpoint conversion equivalence
 
-The second V0.3 roadmap item qualifies four fixed, local CPU conversion
-contracts together:
+Four fixed, local CPU conversion contracts are qualified together:
 
 ```powershell
 flashpilot qualify conversions `
@@ -136,10 +135,9 @@ A passing conversion result is equivalence evidence, not crash-recovery
 verification. It emits neither a recovery attestation nor storage-savings
 claims.
 
-## V0.3 partial-write fuzz qualification
+## Partial-write fuzz qualification
 
-The third V0.3 roadmap item runs a deterministic six-case matrix for every
-requested iteration:
+A deterministic six-case matrix runs for every requested iteration:
 
 ```powershell
 flashpilot fuzz-checkpoint `
@@ -162,10 +160,10 @@ relative artifact paths, JSON, Markdown, JUnit, and a job summary. This is
 commit-integrity evidence, not randomized crash timing or recovery proof, so it
 emits no recovery attestation, byte metric, or storage-savings claim.
 
-## V0.3 previous-valid checkpoint fallback
+## Previous-valid checkpoint fallback
 
-The fourth V0.3 roadmap item qualifies deterministic fallback after the newest
-committed checkpoint becomes corrupt:
+Deterministic fallback is qualified after the newest committed checkpoint
+becomes corrupt:
 
 ```powershell
 flashpilot qualify previous-valid-fallback `
@@ -189,9 +187,9 @@ checkpoint and rejected newest evidence are fingerprinted before and after
 recovery. A verified fallback reports neither storage savings nor checkpoint
 bytes and currently emits no recovery attestation.
 
-## V0.3 repeated randomized fault timing
+## Repeated randomized fault timing
 
-The fifth V0.3 roadmap item repeats the unchanged native `safe_full` crash and
+Repeated randomized fault timing reruns the unchanged native `safe_full` crash and
 recovery experiment at a reproducible, seeded set of completed-step boundaries:
 
 ```powershell
@@ -215,7 +213,7 @@ The result includes relative paths, JSON, Markdown, JUnit, and a job summary.
 It does not call GPT, execute repair, emit an attestation, or calculate or
 report checkpoint bytes or storage savings.
 
-## V0.3 SARIF dashboard output
+## SARIF dashboard output
 
 FlashPilot now writes `results.sarif` beside its typed JSON, Markdown, and
 JUnit evidence for static audits; native, Hugging Face, and Lightning
@@ -238,7 +236,7 @@ The included GitHub Actions workflow uploads SARIF as an ordinary diagnostic
 artifact under its existing `contents: read` permission. It does not request
 `security-events: write` or automatically publish Code Scanning results.
 
-## V0.4 managed-preemption certification
+## Managed-preemption certification
 
 V0.4 adds one narrow POSIX certification path for the included offline CPU
 Hugging Face Trainer workload:
@@ -273,7 +271,7 @@ The hosted Ubuntu workflow is configured to execute the real signal path. A
 local or hosted run certifies only the included process/workload contract; it does not claim
 that Kubernetes, Slurm, or a cloud provider control plane was exercised.
 
-## V1.0 two-rank FSDP restart qualification
+## Two-rank FSDP restart qualification
 
 The first V1.0 qualification item exercises real PyTorch FSDP2 collectives and
 Distributed Checkpoint sharding on two local CPU ranks:
@@ -302,7 +300,7 @@ the bounded rank-termination option is documented below. Neither surface tests
 elastic resharding, CUDA/NCCL, or network filesystems. Verified bytes and the
 unsigned attestation are emitted only after the deterministic Gate passes.
 
-## V1.0 two-rank DeepSpeed ZeRO-2 restart qualification
+## Two-rank DeepSpeed ZeRO-2 restart qualification
 
 On Linux, install the explicit optional dependency and run the fixed CPU/Gloo
 contract:
@@ -334,7 +332,7 @@ the baseline for the bounded rank-termination option below. Elastic or
 universal checkpoints, ZeRO stages 1/3, CUDA/NCCL, downloaded models or
 datasets, and network filesystems remain outside the qualified surface.
 
-## V1.0 multi-rank failure qualification
+## Multi-rank failure qualification
 
 The third V1.0 item adds one explicit fault to both supported two-rank
 runtimes. Select either rank; run both commands to qualify the complete target
