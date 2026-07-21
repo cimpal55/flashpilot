@@ -329,6 +329,24 @@ select.btn {
   border-bottom: 1px solid var(--line-soft);
   align-items: center;
 }
+/* Rows that double as tamper toggles keep the table look but act as buttons. */
+button.evidence-row-btn {
+  width: 100%;
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+button.evidence-row-btn:hover {
+  background: var(--panel-raised);
+}
+button.evidence-row-btn[aria-pressed="true"] {
+  background: var(--no-go-wash);
+  box-shadow: inset 3px 0 0 var(--no-go);
+}
 .evidence-row.is-head {
   color: var(--ink-faint);
   letter-spacing: 0.1em;
@@ -364,6 +382,118 @@ select.btn {
   overflow: auto;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
+}
+
+/* ---- Loss chart --------------------------------------------------------- */
+
+.traj-chart {
+  margin: 0 0 var(--s-4);
+}
+.traj-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.chart-grid {
+  stroke: var(--line-soft);
+  stroke-width: 1;
+}
+.chart-tick {
+  fill: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.chart-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-line-control {
+  stroke: var(--data);
+}
+.chart-line-resumed {
+  stroke: var(--state);
+  stroke-dasharray: 1 0;
+}
+.chart-dot {
+  stroke: var(--bg);
+  stroke-width: 1;
+}
+.chart-dot-control {
+  fill: var(--data);
+}
+.chart-dot-resumed {
+  fill: var(--state);
+}
+.chart-divergence {
+  stroke: var(--no-go);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.chart-divergence-label {
+  fill: var(--no-go);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  margin-top: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--ink-muted);
+}
+.legend-item::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.legend-control::before {
+  background: var(--data);
+}
+.legend-resumed::before {
+  background: var(--state);
+}
+.legend-note {
+  margin-left: auto;
+  color: var(--ink-faint);
+}
+
+/* ---- Portable artifact -------------------------------------------------- */
+
+.artifact-details {
+  margin-top: var(--s-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+}
+.artifact-details summary {
+  cursor: pointer;
+  padding: var(--s-2) var(--s-3);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+.artifact-details summary:hover {
+  color: var(--ink);
+}
+.artifact-raw {
+  margin: 0;
+  padding: var(--s-3);
+  border-top: 1px solid var(--line-soft);
+  max-height: 380px;
+  overflow: auto;
+  font-size: var(--step--1);
+  color: var(--ink-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* ---- ProvenanceHashes --------------------------------------------------- */

@@ -91,3 +91,27 @@ complete fallback stack.
 **Why.** "Renders with network disabled" is an acceptance criterion. Verified:
 with no font requests served, every surface still renders with correct hierarchy
 and spacing. CI additionally rejects any other external origin.
+
+## D-UI-9 — The downloadable attestation is the original bytes, cross-checked
+
+**Decision.** `bundles.js` carries `recovery.attestation.json` as base64 of the
+raw file. The report surface hashes those bytes in-browser, compares the digest
+to the `attestation_sha256` the CI suite independently recorded in
+`attestation.junit.xml`, and serves the same bytes for download.
+
+**Why.** A re-serialized `JSON.stringify(attestation)` would hash differently
+and quietly break the "portable, independently re-verifiable artifact" claim.
+Byte-exactness also enables a real cross-check between two artifacts produced
+by different code paths — measured live: browser-computed `74391573ea31…`
+matches the JUnit record for `hf-complete`.
+
+## D-UI-10 — A requested mutation must never be silently inert
+
+**Decision.** The tamper primitive flips one bit of the first byte; for a
+zero-length file (the corpus contains real 0-byte stderr logs) it appends a
+single byte instead, so the size check catches it.
+
+**Why.** The original bit-flip was a no-op on empty files: the row would claim
+to be tampered while still verifying INTACT. That is exactly the class of
+quiet false-pass the fail-closed rules exist to prevent — the demo's
+credibility rests on every advertised mutation actually being detected.

@@ -211,3 +211,41 @@ deleted after capture; it is not part of the committed sample corpus.
 5. **No `--serve` (M-I) and no real-world probe (M-G).** Both were out of scope
    for this pass. M-I is a pure directory copy of `report-ui/` into
    `src/flashpilot/report/_static/` when the core branch is quiet.
+
+---
+
+## 2026-07-21 (second pass) — presentation upgrades on the same branch
+
+Four additions, all UI-layer, still zero Python core changes (the only Python
+edit is `tools/build_samples.py`, the UI's own generator).
+
+**U-1 Loss-trajectory chart.** The recorded `loss_history` values plotted as
+two SVG lines (no charting library) with the divergence step marked. Rendered
+inside `trajectoryLanes`, so the report and compare surfaces both get it.
+Measured live: FAIL run marks "diverges · step 5"; PASS run shows two exactly
+overlapping lines and no marker; the Lightning weights-only run (resumed series
+shorter than control) renders 4-of-8 points without error.
+
+**U-2 Portable-artifact panel.** `bundles.js` now embeds the raw bytes of
+`recovery.attestation.json`; the report surface hashes them in-browser,
+cross-checks the digest against the `attestation_sha256` recorded independently
+in `attestation.junit.xml`, and offers a byte-exact download. Measured live for
+`hf-complete`: computed `74391573ea31…` — matches the JUnit record. See
+D-UI-9.
+
+**U-3 Per-row tamper.** Every evidence row is now a button toggling an
+in-memory one-byte corruption of that specific file; the global probes remain.
+Measured live: tampering `model.safetensors` alone → TAMPERED with that path
+named; adding the 0-byte `control.stderr.log` → Tampered 2 (the empty-file
+case appends a byte so the size check catches it — see D-UI-10, which fixes a
+silent-no-op bug in the original probe); untoggling both → INTACT; the global
+"Flip one bit" button stays in sync with the first row's pressed state.
+
+**U-5 Link-unfurl metadata.** `og:title`/`og:description`/`theme-color` added
+to `index.html` so the Pages link presents properly on Devpost and in chat.
+
+Re-checked after the changes: `python tools/verify_samples.py` exit 0
+(79 files); zero console errors; mobile overflow 0 px on the five affected
+routes; evidence-row buttons are keyboard-focusable with the global focus ring.
+Screenshot capture was attempted again and still fails in this environment —
+the human visual pass noted in the first entry remains outstanding.

@@ -63,6 +63,119 @@ function formatCell(value) {
   return /^[0-9a-f]{64}$/i.test(text) ? shortHash(text) : text;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function svgEl(tag, attrs = {}, ...children) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value !== null && value !== undefined) el.setAttribute(key, String(value));
+  }
+  el.append(...children);
+  return el;
+}
+
+/**
+ * The recorded loss values as two lines. This is the plot the whole argument
+ * hangs on: the resumed run either lies on the control line or it does not.
+ * Values are the CLI's recorded loss_history, plotted verbatim.
+ */
+function lossChart(run) {
+  const { control, recovery, divergenceStep } = run.trajectory;
+  if (!Array.isArray(control) || control.length < 2) return null;
+  const series = [control, recovery ?? []];
+  const all = series.flat().filter((v) => Number.isFinite(v));
+  if (all.length < 2) return null;
+
+  const W = 640;
+  const HEIGHT = 230;
+  const pad = { l: 62, r: 14, t: 14, b: 30 };
+  let yMin = Math.min(...all);
+  let yMax = Math.max(...all);
+  if (yMin === yMax) {
+    yMin -= 1e-6;
+    yMax += 1e-6;
+  }
+  const span = yMax - yMin;
+  yMin -= span * 0.08;
+  yMax += span * 0.08;
+  const steps = control.length;
+  const x = (i) => pad.l + (i / (steps - 1)) * (W - pad.l - pad.r);
+  const y = (v) => pad.t + (1 - (v - yMin) / (yMax - yMin)) * (HEIGHT - pad.t - pad.b);
+
+  const pointsOf = (values) => values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+
+  const svg = svgEl("svg", {
+    viewBox: `0 0 ${W} ${HEIGHT}`,
+    role: "img",
+    "aria-label":
+      divergenceStep === null
+        ? `Loss per step: the resumed line lies exactly on the control line for all ${steps} steps.`
+        : `Loss per step: the resumed line leaves the control line at step ${divergenceStep + 1}.`,
+  });
+
+  // Gridlines + y labels at min / mid / max of the plotted range.
+  for (const v of [yMin + span * 0.08, (yMin + yMax) / 2, yMax - span * 0.08]) {
+    svg.append(
+      svgEl("line", { x1: pad.l, x2: W - pad.r, y1: y(v), y2: y(v), class: "chart-grid" }),
+      svgEl("text", { x: pad.l - 8, y: y(v) + 3, class: "chart-tick", "text-anchor": "end" }, v.toFixed(4)),
+    );
+  }
+  // x labels: step numbers.
+  for (let i = 0; i < steps; i += 1) {
+    svg.append(
+      svgEl("text", { x: x(i), y: HEIGHT - 10, class: "chart-tick", "text-anchor": "middle" }, String(i + 1)),
+    );
+  }
+
+  if (divergenceStep !== null && divergenceStep < steps) {
+    svg.append(
+      svgEl("line", {
+        x1: x(divergenceStep),
+        x2: x(divergenceStep),
+        y1: pad.t,
+        y2: HEIGHT - pad.b,
+        class: "chart-divergence",
+      }),
+      svgEl(
+        "text",
+        {
+          x: x(divergenceStep) + 6,
+          y: pad.t + 12,
+          class: "chart-divergence-label",
+          "text-anchor": divergenceStep > steps / 2 ? "end" : "start",
+          dx: divergenceStep > steps / 2 ? -12 : 0,
+        },
+        `diverges · step ${divergenceStep + 1}`,
+      ),
+    );
+  }
+
+  svg.append(svgEl("polyline", { points: pointsOf(control), class: "chart-line chart-line-control" }));
+  if (recovery?.length) {
+    svg.append(svgEl("polyline", { points: pointsOf(recovery), class: "chart-line chart-line-resumed" }));
+  }
+  for (const [values, cls] of [[control, "chart-dot-control"], [recovery ?? [], "chart-dot-resumed"]]) {
+    values.forEach((v, i) => {
+      const dot = svgEl("circle", { cx: x(i), cy: y(v), r: 3.2, class: `chart-dot ${cls}` });
+      dot.append(svgEl("title", {}, `step ${i + 1}: ${v}`));
+      svg.append(dot);
+    });
+  }
+
+  return h(
+    "figure",
+    { class: `traj-chart ${stateClass(divergenceStep === null ? "pass" : "fail")}` },
+    svg,
+    h(
+      "figcaption",
+      { class: "chart-legend" },
+      h("span", { class: "legend-item legend-control", text: "control" }),
+      h("span", { class: "legend-item legend-resumed", text: "resumed" }),
+      h("span", { class: "legend-note", text: "recorded loss per step, plotted verbatim" }),
+    ),
+  );
+}
+
 /** TrajectoryLanes — control above, recovery below, divergence made visible. */
 export function trajectoryLanes(run) {
   const { control, recovery, divergenceStep } = run.trajectory;
@@ -111,6 +224,7 @@ export function trajectoryLanes(run) {
   return h(
     "div",
     {},
+    lossChart(run),
     h("div", { class: "lanes" }, laneFor("control", control), laneFor("resumed", recovery ?? [])),
     h(
       "div",
@@ -134,15 +248,19 @@ function divergenceLine(control, recovery, step) {
   );
 }
 
-/** EvidenceRow table with a live re-verification status column. */
-export function evidenceTable(manifest) {
+/** EvidenceRow table with a live re-verification status column.
+ *
+ * When `onToggleRow` is provided, each row is a button that toggles an
+ * in-memory single-byte corruption of that specific file — the judge picks
+ * the target instead of trusting a canned demo. */
+export function evidenceTable(manifest, { onToggleRow = null, tampered = null } = {}) {
   const entries = Array.isArray(manifest?.entries) ? manifest.entries : [];
   const statusCells = new Map();
 
   const head = h(
     "div",
     { class: "evidence-row is-head" },
-    h("span", { text: "path" }),
+    h("span", { text: onToggleRow ? "path (click a row to tamper it)" : "path" }),
     h("span", { text: "sha-256 (manifest)" }),
     h("span", { class: "size", text: "size" }),
     h("span", { class: "status", text: "re-verify" }),
@@ -151,13 +269,23 @@ export function evidenceTable(manifest) {
   const rows = entries.map((entry) => {
     const status = h("span", { class: "status state-void", text: "pending" });
     statusCells.set(entry.path, status);
-    return h(
-      "div",
-      { class: "evidence-row" },
+    const cells = [
       h("span", { class: "path", text: entry.path }),
       h("span", { class: "sha", title: entry.sha256, text: shortHash(entry.sha256, 12, 8) }),
       h("span", { class: "size", text: formatBytes(entry.size_bytes) }),
       status,
+    ];
+    if (!onToggleRow) return h("div", { class: "evidence-row" }, ...cells);
+    return h(
+      "button",
+      {
+        type: "button",
+        class: "evidence-row evidence-row-btn",
+        "aria-pressed": String(Boolean(tampered?.has(entry.path))),
+        title: "Toggle a one-byte in-memory corruption of this file",
+        onClick: () => onToggleRow(entry.path),
+      },
+      ...cells,
     );
   });
 

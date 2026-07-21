@@ -2,8 +2,9 @@
  * process reality, metrics, provenance and the trust boundary. */
 
 import { h, shortHash } from "../lib/dom.js";
-import { panel, pill, verdictStamp, metric, metricGrid, taxonomyPill } from "../components/kit.js";
+import { panel, pill, verdictStamp, metric, metricGrid, taxonomyPill, btn } from "../components/kit.js";
 import { gateReadout, trajectoryLanes, provenanceHashes, trustPanel, processReadout } from "../components/blocks.js";
+import { sha256Hex } from "../lib/hash.js";
 
 export function renderReport(run) {
   return h(
@@ -41,6 +42,7 @@ export function renderReport(run) {
     run.digests.length ? panel("State digests", {}, digestTable(run)) : null,
     panel("Contract taxonomy", {}, taxonomyLegend(run)),
     panel("Provenance", {}, provenanceHashes(run)),
+    portableArtifact(run),
     trustPanel(run),
     run.limitations.length ? panel("Stated limitations", {}, limitationList(run)) : null,
   );
@@ -100,6 +102,99 @@ function verdictSummary(run) {
         state: run.attestation ? "pass" : "unknown",
       }),
     ),
+  );
+}
+
+/** The attestation as a file you can take, not just a screen you can read.
+ *
+ * The bytes shown, hashed and downloaded here are the exact bytes of
+ * recovery.attestation.json — never a re-serialisation, which would hash
+ * differently and quietly break the portability claim. */
+function portableArtifact(run) {
+  if (!run.attestationBytes) return null;
+
+  const bytes = run.attestationBytes;
+  const computedCell = h("dd", { text: "computing…" });
+  const crossCheckCell = h("dd", { text: "—" });
+
+  // The CI suite independently recorded the attestation's hash; extract it
+  // from the JUnit file so the browser's result can be checked against it.
+  const recorded =
+    run.attestationJunit?.match(/"attestation_sha256"\s+value="([0-9a-f]{64})"/)?.[1] ?? null;
+
+  queueMicrotask(async () => {
+    try {
+      const digest = await sha256Hex(bytes);
+      computedCell.textContent = digest;
+      if (!recorded) {
+        crossCheckCell.textContent = "not recorded by this run's CI suite";
+      } else if (digest === recorded) {
+        crossCheckCell.className = "match";
+        crossCheckCell.textContent = `matches attestation.junit.xml · ${shortHash(recorded, 12, 8)}`;
+      } else {
+        crossCheckCell.className = "differ";
+        crossCheckCell.textContent = `DOES NOT MATCH attestation.junit.xml · ${shortHash(recorded, 12, 8)}`;
+      }
+    } catch (error) {
+      computedCell.textContent = `unavailable — ${error.message}`;
+    }
+  });
+
+  const download = btn("Download attestation.json", { primary: true });
+  download.addEventListener("click", () => {
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/json" }));
+    const link = h("a", { href: url, download: "recovery.attestation.json" });
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+
+  let text;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    text = null;
+  }
+
+  return panel(
+    "Portable artifact",
+    { actions: download },
+    h(
+      "p",
+      { class: "lede", style: "margin-bottom:var(--s-4)" },
+      "The attestation is a file, not a page. Take it, mail it, commit it — anyone can re-verify ",
+      "it without FlashPilot installed. The hash below is computed by your browser over the exact ",
+      "bytes you would download.",
+    ),
+    h(
+      "dl",
+      { class: "hash-list" },
+      h(
+        "div",
+        { class: "hash-item" },
+        h("dt", { text: "SHA-256 (computed here)" }),
+        computedCell,
+      ),
+      h(
+        "div",
+        { class: "hash-item" },
+        h("dt", { text: "Independent record" }),
+        crossCheckCell,
+      ),
+      h(
+        "div",
+        { class: "hash-item" },
+        h("dt", { text: "Size" }),
+        h("dd", { text: `${bytes.length} bytes` }),
+      ),
+    ),
+    text
+      ? h(
+          "details",
+          { class: "artifact-details" },
+          h("summary", { text: "Show the raw bytes (as text)" }),
+          h("pre", { class: "artifact-raw mono", text: text }),
+        )
+      : null,
   );
 }
 

@@ -203,6 +203,14 @@ def build_bundle(spec: Sample, dest: Path) -> dict:
     manifest = read_json(dest / "evidence-manifest.json")
     files, missing = collect_evidence(dest, manifest)
 
+    # The attestation is also carried as raw bytes so the UI can offer a
+    # byte-exact download and hash it in-browser; a re-serialized JSON copy
+    # would hash differently and defeat the point.
+    att_path = dest / "recovery.attestation.json"
+    attestation_raw = (
+        base64.b64encode(att_path.read_bytes()).decode("ascii") if att_path.is_file() else None
+    )
+
     return {
         "id": spec.sample_id,
         "title": spec.title,
@@ -212,6 +220,7 @@ def build_bundle(spec: Sample, dest: Path) -> dict:
         "verdict": verdict_of(spec.kind, core),
         "result": core,
         "attestation": read_json(dest / "recovery.attestation.json"),
+        "attestation_raw": attestation_raw,
         "manifest": manifest,
         "contract": read_json(dest / "persistence-contract.json"),
         "environment": read_json(dest / "environment.json"),

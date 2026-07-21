@@ -59,6 +59,11 @@ export const STATUS = Object.freeze({
 /**
  * Re-verify one manifest entry against the embedded bytes.
  * Fails closed: unknown, missing, path-escaping or mismatched -> never INTACT.
+ *
+ * `mutate` is a Set of paths to corrupt in memory. A non-empty file gets one
+ * bit of its first byte flipped; an empty file cannot be bit-flipped, so it
+ * gains a single byte instead — the size check must then catch it. Either way
+ * a requested mutation is guaranteed to be detectable, never silently inert.
  */
 export async function verifyEntry(entry, bytesByPath, mutate = null) {
   const path = entry?.path;
@@ -69,10 +74,13 @@ export async function verifyEntry(entry, bytesByPath, mutate = null) {
     return { path, status: STATUS.MISSING, reason: "no bytes for a manifest entry" };
   }
   let bytes = bytesByPath[path];
-  if (mutate && mutate.path === path) {
-    bytes = bytes.slice();
-    const index = Math.min(mutate.byteIndex ?? 0, bytes.length - 1);
-    bytes[index] = bytes[index] ^ 0x01; // flip exactly one bit of one byte
+  if (mutate?.has(path)) {
+    if (bytes.length === 0) {
+      bytes = new Uint8Array([0x01]);
+    } else {
+      bytes = bytes.slice();
+      bytes[0] = bytes[0] ^ 0x01; // flip exactly one bit of one byte
+    }
   }
   let actual;
   try {

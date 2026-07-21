@@ -25,23 +25,36 @@ const OVERALL_COPY = {
 };
 
 export function renderVerifier(run) {
-  const probes = { tamper: false, traversal: false, drop: false };
+  const probes = { traversal: false, drop: false };
+  // Paths whose in-memory copy gets a one-byte corruption. Fed by the global
+  // probe button and by clicking individual evidence rows.
+  const tampered = new Set();
+  const firstPath = run.manifest?.entries?.[0]?.path ?? null;
 
   const stampSlot = h("div", {});
   const metricsSlot = h("div", {});
   const progress = h("p", { class: "eyebrow", text: "" });
 
-  const table = evidenceTable(effectiveManifest(run, probes));
-  const tableSlot = h("div", {}, table.node);
-  let currentTable = table;
+  const tableSlot = h("div", {});
+  let currentTable = null;
+  let flipButton = null;
 
-  const controls = h("div", { class: "row" });
+  const toggleRow = (path) => {
+    if (tampered.has(path)) tampered.delete(path);
+    else tampered.add(path);
+    rerender();
+  };
 
   const rerender = async () => {
     const manifest = effectiveManifest(run, probes);
-    currentTable = evidenceTable(manifest);
+    currentTable = evidenceTable(manifest, { onToggleRow: toggleRow, tampered });
     tableSlot.replaceChildren(currentTable.node);
-    await runVerification(run, manifest, probes, currentTable, stampSlot, metricsSlot, progress);
+    if (flipButton && firstPath) {
+      const on = tampered.has(firstPath);
+      flipButton.setAttribute("aria-pressed", String(on));
+      flipButton.className = `btn ${on ? stateClass("fail") : ""}`;
+    }
+    await runVerification(run, manifest, tampered, currentTable, stampSlot, metricsSlot, progress);
   };
 
   const probeButton = (label, key, description) => {
@@ -56,8 +69,15 @@ export function renderVerifier(run) {
     return button;
   };
 
+  flipButton = btn("Flip one bit", { pressed: false });
+  flipButton.title = "Flip a single bit of the first evidence file, in memory only.";
+  flipButton.addEventListener("click", () => {
+    if (firstPath) toggleRow(firstPath);
+  });
+
+  const controls = h("div", { class: "row" });
   controls.append(
-    probeButton("Flip one bit", "tamper", "Flip a single bit of the first evidence file, in memory only."),
+    flipButton,
     probeButton("Inject ../ path", "traversal", "Add a manifest entry that escapes the run root."),
     probeButton("Drop a file", "drop", "Remove the bytes for one manifest entry."),
     btn("Re-run verification", {
@@ -92,17 +112,16 @@ export function renderVerifier(run) {
         { class: "lede", style: "margin-bottom:var(--s-4)" },
         "Each probe mutates the in-memory copy only — the files in ",
         h("span", { class: "mono", text: `samples/${run.id}/` }),
-        " are never touched. A correct verifier must refuse all three.",
+        " are never touched. You can also click any row in the evidence table to corrupt that ",
+        "specific file. A correct verifier must refuse every mutation.",
       ),
       controls,
     ),
-    panel(`Evidence (${table.count} files)`, {}, tableSlot),
+    panel(`Evidence (${run.manifest?.entries?.length ?? 0} files)`, {}, tableSlot),
   );
 
   // Kick off the first pass once the surface is in the document.
-  queueMicrotask(() =>
-    runVerification(run, effectiveManifest(run, probes), probes, currentTable, stampSlot, metricsSlot, progress),
-  );
+  queueMicrotask(rerender);
 
   return view;
 }
@@ -125,7 +144,7 @@ function effectiveManifest(run, probes) {
   return { ...base, entries };
 }
 
-async function runVerification(run, manifest, probes, table, stampSlot, metricsSlot, progress) {
+async function runVerification(run, manifest, tampered, table, stampSlot, metricsSlot, progress) {
   if (!manifest || !Array.isArray(manifest.entries) || manifest.entries.length === 0) {
     stampSlot.replaceChildren(
       verdictStamp("VOID", "void", "no closed inventory to re-verify"),
@@ -144,7 +163,7 @@ async function runVerification(run, manifest, probes, table, stampSlot, metricsS
   table.reset();
   progress.textContent = "hashing…";
 
-  const mutate = probes.tamper ? { path: manifest.entries[0].path, byteIndex: 0 } : null;
+  const mutate = tampered.size > 0 ? tampered : null;
   const started = performance.now();
   const result = await verifyManifest(manifest, run.evidence, mutate, (done, total, row) => {
     table.setStatus(row.path, row.status);
