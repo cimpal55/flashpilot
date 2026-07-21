@@ -291,14 +291,14 @@ the deterministic result and attestation verification required here. Source:
 [Cedar language overview](https://docs.cedarpolicy.com/).
 
 FlashPilot therefore does not claim a new general policy language or policy
-evaluation algorithm. Its V1.0 contribution is narrower: a closed Pydantic/YAML
-data model with discriminated requirement types, explicit evidence bindings,
-stable check IDs, fail-closed aggregate derivation, and portable JSON Schema,
-JUnit, Markdown, and SARIF projections. The evaluator cannot express arbitrary
-conditions, call functions, execute code, discover evidence, or override an
-underlying Recovery Gate. General authorization, shared policy services,
-organization inheritance, and remote policy distribution remain later or
-external concerns.
+evaluation algorithm. Its repository-policy contribution is narrower: a
+closed Pydantic/YAML data model with discriminated requirement types, explicit
+evidence bindings, stable check IDs, fail-closed aggregate derivation, and
+portable JSON Schema, JUnit, Markdown, and SARIF projections. The evaluator
+cannot express arbitrary conditions, call functions, execute code, discover
+evidence, or override an underlying Recovery Gate. The later organization
+layer reuses these same closed selectors; general authorization, shared policy
+services, arbitrary inheritance, and remote distribution remain external.
 
 ## Detached Ed25519 signing boundary
 
@@ -346,11 +346,13 @@ therefore attests a deterministic hash-bound policy result and relies on the
 certificate constraints for GitHub identity rather than trusting custom
 identity text in a predicate. Source: [`gh attestation verify`](https://cli.github.com/manual/gh_attestation_verify).
 
-This is a provenance trust chain, not a second recovery oracle: the GitHub
-attestation authenticates the exact policy-evaluation bytes, while only the
-existing local Recovery Gates and closed suite evaluator determine whether
-recovery is verified. GitHub's required attestation storage is not extended
-into a FlashPilot registry, query service, or history product in this item.
+This is a provenance trust chain, not a second recovery oracle. Item 8 advances
+the workflow subject to the terminal organization-policy evaluation, which
+embeds and hash-binds the repository suite evaluation. GitHub authenticates
+those exact terminal bytes, while only the existing local Recovery Gates and
+closed policy evaluators determine whether evidence satisfies qualification.
+GitHub's required attestation storage is not extended into a FlashPilot
+registry, query service, or history product.
 
 ## Local attestation-history boundary
 
@@ -380,9 +382,34 @@ authority to replace the whole registry can replace its metadata, chain, and
 local head. This threat is stated rather than obscured by a stronger product
 claim.
 
-The implementation also avoids repository or filesystem discovery outside the
-explicit registry root. There is no network protocol, SQL/document store,
-background publisher, retention worker, deletion API, search language,
-organization-policy evaluation, or OIDC/Sigstore import. These boundaries keep
-the item useful for local evidence history without prematurely implementing the
-commercial registry/dashboard layer deferred by the master plan.
+The registry implementation also avoids repository or filesystem discovery
+outside the explicit registry root. The registry has no network protocol,
+SQL/document store, background publisher, retention worker, deletion API,
+search language, organization-policy input, or OIDC/Sigstore import. These
+boundaries keep it useful for local evidence history without turning the
+separate organization-policy layer into a hosted registry/dashboard service.
+
+## Organization qualification-policy boundary
+
+Organization policy commonly involves distribution, inheritance, exceptions,
+identity, and authorization. FlashPilot implements none of those general
+surfaces. Its organization artifact is a fixed technical baseline over the
+same seven already-supported recovery scenario types. It requires exact
+selector inventory and signed runtime attestations; a repository may only
+tighten the two existing RPO/RTO bounds.
+
+The organization command re-runs the existing repository suite evaluator from
+explicit local policy and run bindings. It does not accept a detached PASS
+claim, scan for evidence, or use compact registry history as a substitute for
+the complete source bundle. The final artifact embeds and SHA-256 binds the
+repository evaluation, both policy sources, one operator-provided scope label,
+and every derived check. This is layered deterministic conformance, not a new
+policy language, certification authority, or authenticated repository-identity
+system.
+
+This narrow composition retains the useful distinction identified by the OPA
+and Cedar comparisons above: broad policy languages solve broader rule and
+authorization problems, while FlashPilot needs fixed recovery-evidence checks.
+Remote policy distribution, multi-level inheritance, delegation, waivers,
+exceptions, revocation, and a hosted organization service remain future or
+external work.

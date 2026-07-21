@@ -8,6 +8,9 @@ on:
       - "examples/hf_trainer/**"
       - "examples/ci/policy.yml"
       - "examples/ci/qualification-policy.yml"
+      - "examples/ci/organization-policy.yml"
+      - "schemas/organization-qualification-policy-v1.schema.json"
+      - "schemas/organization-policy-evaluation-v1.schema.json"
 
 jobs:
   qualify-checkpoint:
@@ -156,12 +159,30 @@ jobs:
           --run hf-managed-preemption=runs/ci-preemption
           --run hf-static-audit=runs/ci-audit
 
-      - name: Attest the verified suite with GitHub OIDC provenance
+      - name: Enforce the closed organization qualification baseline
+        run: >-
+          flashpilot enforce-organization-policy
+          --organization-policy examples/ci/organization-policy.yml
+          --repository-policy examples/ci/qualification-policy.yml
+          --scope-id flashpilot-main
+          --output-dir runs/ci-organization
+          --public-key runs/ci-signing/ed25519-public.pem
+          --run hf-process-termination=runs/ci-hf
+          --run fsdp-checkpoint-restart=runs/ci-distributed
+          --run fsdp-rank-termination-0=runs/ci-distributed-fault-rank-0
+          --run fsdp-rank-termination-1=runs/ci-distributed-fault-rank-1
+          --run deepspeed-checkpoint-restart=runs/ci-deepspeed
+          --run deepspeed-rank-termination-0=runs/ci-deepspeed-fault-rank-0
+          --run deepspeed-rank-termination-1=runs/ci-deepspeed-fault-rank-1
+          --run hf-managed-preemption=runs/ci-preemption
+          --run hf-static-audit=runs/ci-audit
+
+      - name: Attest the terminal organization policy with GitHub OIDC provenance
         if: success()
         id: oidc-provenance
         uses: actions/attest@v4
         with:
-          subject-path: runs/ci-policy/policy-evaluation.json
+          subject-path: runs/ci-organization/organization-policy-evaluation.json
 
       - name: Verify the GitHub OIDC provenance bundle
         shell: bash
@@ -169,7 +190,7 @@ jobs:
           mkdir -p runs/ci-provenance
           cp "${{ steps.oidc-provenance.outputs.bundle-path }}" \
             runs/ci-provenance/github-oidc-provenance.sigstore.json
-          gh attestation verify runs/ci-policy/policy-evaluation.json \
+          gh attestation verify runs/ci-organization/organization-policy-evaluation.json \
             --bundle runs/ci-provenance/github-oidc-provenance.sigstore.json \
             --repo "${GITHUB_REPOSITORY}" \
             --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/flashpilot-qualification.yml" \
@@ -204,8 +225,11 @@ jobs:
           name: flashpilot-ci-evidence
           if-no-files-found: error
           path: |
+            examples/ci/organization-policy.yml
             examples/ci/qualification-policy.yml
             schemas/attestation-signature-v1.schema.json
+            schemas/organization-qualification-policy-v1.schema.json
+            schemas/organization-policy-evaluation-v1.schema.json
             schemas/qualification-policy-v1.schema.json
             schemas/qualification-policy-evaluation-v1.schema.json
             runs/**/junit.xml
@@ -213,6 +237,7 @@ jobs:
             runs/**/report.md
             runs/**/result.json
             runs/**/audit.json
+            runs/**/organization-policy-evaluation.json
             runs/**/policy-evaluation.json
             runs/**/failure-event.json
             runs/**/phases/fault/*.json
@@ -229,7 +254,10 @@ jobs:
             runs/**/recovery.attestation.json
             runs/**/recovery.attestation.signature.json
             runs/ci-signing/ed25519-public.pem
+            examples/ci/organization-policy.yml
             examples/ci/qualification-policy.yml
+            runs/ci-organization/organization-policy-evaluation.json
+            runs/ci-organization/repository-policy/policy-evaluation.json
             runs/ci-policy/policy-evaluation.json
             runs/ci-provenance/github-oidc-provenance.sigstore.json
             runs/ci-provenance/verification.json

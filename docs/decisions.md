@@ -1072,3 +1072,53 @@ operator responsibilities. Remote lookup/publication, services, databases,
 deletion, pruning, retention automation, revocation, key rotation,
 organization policy, policy inheritance, OIDC import, and new recovery verdicts
 remain out of scope. Organization-level policy is the separate next milestone.
+
+## D-064: organization policy is an exact closed baseline over a reverified suite
+
+The eighth V1.0 production-infrastructure item adds one organization layer
+without turning FlashPilot into a general policy engine. An
+`OrganizationQualificationPolicyV1` source contains the same seven closed,
+discriminated scenario types already understood by repository suite policy.
+It fixes `unknown_state=fail`, exact scenario inventory, explicit scope and
+local policy-source binding, all-requirements-must-pass, and signed runtime
+attestations. It accepts no expressions, functions, imports, commands,
+arbitrary check IDs, plugin hooks, repository discovery, remote policy URLs,
+inheritance trees, exceptions, or waivers.
+
+Organization requirements are matched to repository requirements by the
+canonical typed selector, not by a free-form label. The selector excludes only
+the human-facing requirement ID and the two numeric bounds. A repository may
+tighten maximum RPO or RTO but may not loosen either bound. It must preserve
+the exact scenario inventory, exact recovery, required attestation, and
+detached-signature requirement. Static audit remains explicitly non-attesting
+and cannot become a recovery verdict.
+
+`enforce-organization-policy` does not accept a precomputed repository PASS as
+authority. It receives the organization source, repository policy source,
+explicit scope label, explicit run bindings, and explicit Ed25519 public key.
+It invokes the existing repository suite enforcer again, including complete
+source-result, attestation, signature, and trusted-key verification. The
+terminal `organization-policy-evaluation.json` embeds that complete repository
+evaluation and binds its exact serialized SHA-256, both policy-source hashes,
+the scope label, every organization check, and the derived verdict. JUnit,
+Markdown, and SARIF are projections of the same model.
+
+The scope label is operator-provided context; it is not authenticated
+repository or workload identity. Organization evaluation neither runs a new
+Recovery Gate nor upgrades UNKNOWN, FAILED, unsigned, or invalid evidence. It
+also does not read the compact local registry, because registry history lacks
+the complete source checkpoint/evidence bundle and cannot replace the suite
+verifier. The output root is separate from every bound run and has a closed
+inventory.
+
+Hosted CI now runs this organization layer after the unchanged 153-check
+repository suite policy. GitHub OIDC provenance advances to the exact terminal
+organization evaluation, which transitively embeds and hash-binds the suite
+evaluation. This extends D-062 without changing its trust boundary: GitHub
+authenticates the terminal bytes and workflow identity, while deterministic
+FlashPilot evidence remains the only source of qualification verdicts.
+
+The organization layer is local and single-scope per invocation. Remote policy
+distribution, authenticated scope identity, multi-policy inheritance,
+delegation, approvals, waivers, revocation, key rotation, a hosted service, and
+general authorization remain explicitly out of scope.
