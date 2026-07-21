@@ -1,26 +1,59 @@
 # FlashPilot
 
-FlashPilot is a checkpoint recovery qualification and verification harness that proves whether a training checkpoint can resume correctly after a real process failure.
+**Your checkpoint loads. That does not mean it can resume.** FlashPilot kills a
+real training process, resumes it in a new one, and compares the two runs step
+by step — then issues a portable, independently re-verifiable attestation.
 
 ## Try it — no install
 
 **[Open the FlashPilot sandbox →](https://cimpal55.github.io/flashpilot/)**
 
-Real qualification runs in your browser. Nothing to install. Start with the pair
-that carries the argument: two Hugging Face checkpoints from the same training
-script, both of which load without an error — and only one of which can actually
-resume the run it claims to continue.
+Real runs in your browser. Nothing to install, no account.
 
-Then re-verify the proof yourself. The page recomputes SHA-256 over the raw
-evidence bytes using your browser's own Web Crypto, and lets you corrupt any file
-to watch the check fail closed. It renders and re-verifies; it never computes a
-verdict.
+## The one scene that matters
 
-It complements—rather than replaces—PyTorch, Hugging Face, DeepSpeed, NeMo,
-and their checkpoint implementations. P0 qualifies one controlled CPU-only
-native-PyTorch workflow through real termination, new-process restore, exact
-trajectory comparison, evidence-bounded GPT-5.6 diagnosis, one typed repair,
-and deterministic re-verification.
+Two Hugging Face checkpoints from the *same* training script. Both load without
+an error. Only one can actually continue the run it claims to continue.
+
+| | `save_only_model=False` | `save_only_model=True` |
+|---|---|---|
+| Checkpoint loads | yes | yes |
+| Optimizer / scheduler / RNG state | present | **missing** |
+| Loss trajectory after resume | identical to control | **diverges at step 5** |
+| Requirements met | 13 / 13 | **5 / 13** |
+| Verdict | ✅ **VERIFIED** | ❌ **FAILED** |
+| Attestation | issued | withheld |
+
+Hugging Face documents the trade-off on `save_only_model` — it
+"[prevents resuming training from checkpoint](https://huggingface.co/docs/transformers/main_classes/trainer)".
+The checkpoint still loads, so nothing warns you. FlashPilot is what turns that
+sentence into a failing check before an expensive run, instead of a surprise
+after a crash.
+
+[See both runs side by side →](https://cimpal55.github.io/flashpilot/#/compare)
+
+## 60 seconds, any shell
+
+```bash
+pip install flashpilot
+flashpilot doctor
+flashpilot demo --provider fixture --profile ci
+```
+
+<details>
+<summary>PowerShell equivalent</summary>
+
+```powershell
+python -m pip install flashpilot
+flashpilot doctor
+flashpilot demo --provider fixture --profile ci
+```
+
+</details>
+
+The fixture demo needs no API key, no network access, no model download, and no
+GPU. It ends with a red-to-green run: a failing gate, one typed repair, a second
+real crash, then `VERIFIED 24/24`.
 
 ## Three supported paths
 
@@ -29,11 +62,22 @@ and deterministic re-verification.
 Install the release-candidate wheel in a clean Python environment and run the
 short CPU profile:
 
+```bash
+python -m pip install ./dist/flashpilot-0.2.0-py3-none-any.whl
+flashpilot doctor
+flashpilot demo --provider fixture --profile ci
+```
+
+<details>
+<summary>PowerShell equivalent</summary>
+
 ```powershell
 python -m pip install .\dist\flashpilot-0.2.0-py3-none-any.whl
 flashpilot doctor
 flashpilot demo --provider fixture --profile ci
 ```
+
+</details>
 
 The published-package form is `python -m pip install flashpilot`. Dependency
 resolution may use the configured package index or local cache. After
@@ -49,12 +93,24 @@ Use `flashpilot demo --provider fixture` for the full-size demo profile.
 
 Static audit never runs a training script and never claims verified recovery:
 
+```bash
+flashpilot audit-checkpoint ./checkpoint-1000 \
+  --framework auto \
+  --profile exact-training-resume \
+  --output-dir ./runs/checkpoint-1000-audit
+```
+
+<details>
+<summary>PowerShell equivalent</summary>
+
 ```powershell
 flashpilot audit-checkpoint .\checkpoint-1000 `
   --framework auto `
   --profile exact-training-resume `
   --output-dir .\runs\checkpoint-1000-audit
 ```
+
+</details>
 
 It emits `PASS`, `WARN`, `FAIL`, or `UNKNOWN` plus `audit.json`, `report.md`,
 `junit.xml`, and `job-summary.md`. UNKNOWN never exits zero and becomes an
@@ -65,6 +121,18 @@ explicit failure under the checked-in CI policy.
 Install the optional dependencies and run the installed local example. No model
 or dataset is downloaded:
 
+```bash
+python -m pip install "flashpilot[hf]"
+flashpilot qualify hf-trainer \
+  --profile exact-training-resume \
+  --fault process-kill \
+  --scenario complete \
+  --run-dir ./runs/hf-complete
+```
+
+<details>
+<summary>PowerShell equivalent</summary>
+
 ```powershell
 python -m pip install "flashpilot[hf]"
 flashpilot qualify hf-trainer `
@@ -74,12 +142,17 @@ flashpilot qualify hf-trainer `
   --run-dir .\runs\hf-complete
 ```
 
+</details>
+
 From a source checkout, `--script .\examples\hf_trainer\train.py` selects the
 same documented contract explicitly. Omitting `--script` selects the installed
 package's offline worker entry. A base installation without the HF extra exits
 `5` with actionable `pip install 'flashpilot[hf]'` guidance.
 
-## PyTorch Lightning qualification
+<details>
+<summary><strong>Every other qualification path (Lightning, conversion equivalence, fuzz, fallback, randomized fault timing, SARIF, preemption, FSDP, DeepSpeed, multi-rank)</strong></summary>
+
+### PyTorch Lightning qualification
 
 FlashPilot includes one explicit, optional PyTorch Lightning
 qualification adapter. It does not join the frozen native repair adapter and
@@ -103,7 +176,7 @@ before bytes or an attestation are emitted. The real Lightning
 `weights_only=True` scenario remains loadable but fails exact resume because it
 omits optimizer, scheduler, RNG-bridge, and loss-history state.
 
-## Checkpoint conversion equivalence
+### Checkpoint conversion equivalence
 
 Four fixed, local CPU conversion contracts are qualified together:
 
@@ -135,7 +208,7 @@ A passing conversion result is equivalence evidence, not crash-recovery
 verification. It emits neither a recovery attestation nor storage-savings
 claims.
 
-## Partial-write fuzz qualification
+### Partial-write fuzz qualification
 
 A deterministic six-case matrix runs for every requested iteration:
 
@@ -160,7 +233,7 @@ relative artifact paths, JSON, Markdown, JUnit, and a job summary. This is
 commit-integrity evidence, not randomized crash timing or recovery proof, so it
 emits no recovery attestation, byte metric, or storage-savings claim.
 
-## Previous-valid checkpoint fallback
+### Previous-valid checkpoint fallback
 
 Deterministic fallback is qualified after the newest committed checkpoint
 becomes corrupt:
@@ -187,7 +260,7 @@ checkpoint and rejected newest evidence are fingerprinted before and after
 recovery. A verified fallback reports neither storage savings nor checkpoint
 bytes and currently emits no recovery attestation.
 
-## Repeated randomized fault timing
+### Repeated randomized fault timing
 
 Repeated randomized fault timing reruns the unchanged native `safe_full` crash and
 recovery experiment at a reproducible, seeded set of completed-step boundaries:
@@ -213,7 +286,7 @@ The result includes relative paths, JSON, Markdown, JUnit, and a job summary.
 It does not call GPT, execute repair, emit an attestation, or calculate or
 report checkpoint bytes or storage savings.
 
-## SARIF dashboard output
+### SARIF dashboard output
 
 FlashPilot now writes `results.sarif` beside its typed JSON, Markdown, and
 JUnit evidence for static audits; native, Hugging Face, and Lightning
@@ -236,7 +309,7 @@ The included GitHub Actions workflow uploads SARIF as an ordinary diagnostic
 artifact under its existing `contents: read` permission. It does not request
 `security-events: write` or automatically publish Code Scanning results.
 
-## Managed-preemption certification
+### Managed-preemption certification
 
 V0.4 adds one narrow POSIX certification path for the included offline CPU
 Hugging Face Trainer workload:
@@ -271,7 +344,7 @@ The hosted Ubuntu workflow is configured to execute the real signal path. A
 local or hosted run certifies only the included process/workload contract; it does not claim
 that Kubernetes, Slurm, or a cloud provider control plane was exercised.
 
-## Two-rank FSDP restart qualification
+### Two-rank FSDP restart qualification
 
 The first V1.0 qualification item exercises real PyTorch FSDP2 collectives and
 Distributed Checkpoint sharding on two local CPU ranks:
@@ -300,7 +373,7 @@ the bounded rank-termination option is documented below. Neither surface tests
 elastic resharding, CUDA/NCCL, or network filesystems. Verified bytes and the
 unsigned attestation are emitted only after the deterministic Gate passes.
 
-## Two-rank DeepSpeed ZeRO-2 restart qualification
+### Two-rank DeepSpeed ZeRO-2 restart qualification
 
 On Linux, install the explicit optional dependency and run the fixed CPU/Gloo
 contract:
@@ -332,7 +405,7 @@ the baseline for the bounded rank-termination option below. Elastic or
 universal checkpoints, ZeRO stages 1/3, CUDA/NCCL, downloaded models or
 datasets, and network filesystems remain outside the qualified surface.
 
-## Multi-rank failure qualification
+### Multi-rank failure qualification
 
 The third V1.0 item adds one explicit fault to both supported two-rank
 runtimes. Select either rank; run both commands to qualify the complete target
@@ -367,6 +440,8 @@ SHA-256 of `failure-event.json`. Clean restart remains the default. This does
 not implement elastic membership, in-process process-group reinitialization,
 world-size changes, scheduler retries, multi-node networking, CUDA, or NCCL.
 
+</details>
+
 ## What the demo proves
 
 1. An uninterrupted seeded CPU control produces stable trajectory evidence.
@@ -385,6 +460,12 @@ world-size changes, scheduler retries, multi-node networking, CUDA, or NCCL.
 7. Recurring logical-byte reduction is shown only after verification. The
    immutable frozen-base cost is reported separately, and the first
    adapter-aware write is not presented as savings.
+
+It complements—rather than replaces—PyTorch, Hugging Face, DeepSpeed, NeMo,
+and their checkpoint implementations. P0 qualifies one controlled CPU-only
+native-PyTorch workflow through real termination, new-process restore, exact
+trajectory comparison, evidence-bounded GPT-5.6 diagnosis, one typed repair,
+and deterministic re-verification.
 
 ## Audience and architecture
 
@@ -448,7 +529,8 @@ command.
 - Verified: Windows 11, Python 3.12.13, PyTorch CPU execution.
 - Package declaration: Python 3.11 or newer. Python 3.11 has not been verified
   and is not claimed as such.
-- No CUDA, external datasets, downloaded weights, server, or desktop UI.
+- No CUDA, external datasets, or downloaded weights. The CLI needs no server;
+  the optional sandbox is a static page and is never required to run FlashPilot.
 - Payload and metadata files are fsynced and directory rename is atomic.
   Python does not expose directory fsync on Windows, so directory durability is
   explicitly best-effort there.
@@ -457,7 +539,7 @@ command.
 
 Run environment qualification at any time:
 
-```powershell
+```bash
 flashpilot doctor
 ```
 
@@ -467,11 +549,22 @@ Windows directory-fsync limitation.
 
 ## Inspecting a completed run
 
+```bash
+flashpilot audit --run-dir ./runs/repair-<uuid>
+flashpilot verify --run-dir ./runs/repair-<uuid>
+flashpilot replay --run-dir ./runs/repair-<uuid>
+```
+
+<details>
+<summary>PowerShell equivalent</summary>
+
 ```powershell
 flashpilot audit --run-dir .\runs\repair-<uuid>
 flashpilot verify --run-dir .\runs\repair-<uuid>
 flashpilot replay --run-dir .\runs\repair-<uuid>
 ```
+
+</details>
 
 These commands are read-only. `replay` revalidates the captured structured
 response without making an API call.
@@ -490,7 +583,7 @@ The independently accepted Windows/Python 3.12.13 demo-profile run measured:
 | Recurring logical-byte reduction | 93,475 bytes (74.06%) |
 | One-time immutable frozen base | 93,987 bytes, reported separately |
 
-These values come from the accepted Prompt 6 run. Timing is environment- and
+These values come from the verified demo run. Timing is environment- and
 invocation-dependent and is retained in the build log rather than generalized.
 
 Logical checkpoint bytes were measured in the controlled demo. Physical NAND
@@ -500,25 +593,45 @@ they are not a general compression or hardware-lifetime claim.
 
 ## Scope limits
 
-The frozen P0 repair path still supports only `NativePyTorchAdapter` and the six
-primary Section 28.5 repair actions. VNext separately adds one narrow,
-non-repairing `HuggingFaceTrainerAdapter` qualification for the included local
-Trainer contract. It is not plugin discovery, framework auto-detection, generic
+The **repair** path is frozen to `NativePyTorchAdapter` and its six primary
+repair actions. The **qualification** paths are broader and cover Hugging Face
+Trainer, PyTorch Lightning, FSDP, and DeepSpeed. Only native PyTorch can be
+repaired; every other framework can be qualified but not repaired.
+
+Qualification is not plugin discovery, framework auto-detection, generic
 arbitrary-script compatibility, or an additional GPT repair surface.
 
 Install and run the optional local HF qualification with:
+
+```bash
+python -m pip install -e ".[hf]"
+flashpilot qualify hf-trainer \
+  --script ./examples/hf_trainer/train.py \
+  --profile exact-training-resume \
+  --fault process-kill \
+  --scenario complete \
+  --run-dir ./runs/hf-complete
+```
+
+<details>
+<summary>PowerShell equivalent</summary>
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[hf]"
 .\.venv\Scripts\flashpilot.exe qualify hf-trainer --script .\examples\hf_trainer\train.py --profile exact-training-resume --fault process-kill --scenario complete --run-dir .\runs\hf-complete
 ```
 
+</details>
+
 The example constructs its tiny model and synthetic dataset locally, forces CPU
 execution and offline Hugging Face environment controls, keeps dropout enabled,
 kills a real checkpoint worker, and resumes in a new process. The `model-only`
 scenario is loadable but intentionally fails exact training-resume qualification.
 
-## CI and policy workflow
+<details>
+<summary><strong>CI, typed suite policy, organization policy, signing, and the local attestation registry</strong></summary>
+
+### CI and policy workflow
 
 Every static audit and qualification writes `junit.xml` plus
 `job-summary.md`. The JUnit testcase names are the exact deterministic check
@@ -663,7 +776,7 @@ identity constraint. GitHub provenance authenticates who produced the fixed
 organization-policy-evaluation artifact; it cannot create or upgrade a
 FlashPilot recovery verdict.
 
-## Optional local attestation history
+### Optional local attestation history
 
 V1.0 can preserve verified signed recovery statements in an explicitly chosen
 local append-only registry. Registration first verifies the complete source
@@ -701,6 +814,8 @@ run. Trust in the registry root and admission key remains an operator concern;
 there is no deletion, pruning, revocation, key rotation, network API, database,
 or hosted registry. Organization-policy enforcement is a separate explicit
 suite operation and neither discovers nor trusts compact registry history.
+
+</details>
 
 ## Security model
 
@@ -780,13 +895,23 @@ remain unimplemented.
 
 Repository: <https://github.com/cimpal55/flashpilot>
 
-No license file is currently committed. Selecting and adding the intended
-license remains a human release decision and is listed in the release checklist.
+Licensed under Apache-2.0. See [LICENSE](LICENSE).
 
 ## Development quality gates
+
+```bash
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest -q
+```
+
+<details>
+<summary>PowerShell equivalent</summary>
 
 ```powershell
 .\.venv\Scripts\python.exe -m ruff check .
 .\.venv\Scripts\python.exe -m ruff format --check .
 .\.venv\Scripts\python.exe -m pytest -q
 ```
+
+</details>
