@@ -1,0 +1,6 @@
+[2026-07-21 18:47:24,178] [WARNING] [real_accelerator.py:199:get_accelerator] Setting accelerator to CPU. If you have GPU or other accelerator, we were unable to detect it.
+{'loss': '1.609', 'grad_norm': '0.4194', 'learning_rate': '0.01', 'epoch': '0.125'}
+{'loss': '1.612', 'grad_norm': '0.4207', 'learning_rate': '0.00875', 'epoch': '0.25'}
+{'loss': '1.619', 'grad_norm': '0.428', 'learning_rate': '0.0075', 'epoch': '0.375'}
+{'loss': '1.607', 'grad_norm': '0.4211', 'learning_rate': '0.00625', 'epoch': '0.5'}
+{"schema_version":"flashpilot-hf-checkpoint-event-v1","event":"checkpoint_committed","worker_pid":23704,"global_step":4,"checkpoint_path":"crash/checkpoints/checkpoint-4","scenario":"complete","model_present":true,"trainer_state_present":true,"optimizer_present":true,"scheduler_present":true,"rng_state_present":true,"emitted_at":"2026-07-21T15:47:26.136630Z"}

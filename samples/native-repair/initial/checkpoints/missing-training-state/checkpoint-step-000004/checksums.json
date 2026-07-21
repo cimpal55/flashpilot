@@ -1,0 +1,15 @@
+{
+  "schema_version": "checksums-v1",
+  "files": [
+    {
+      "path": "adapter.pt",
+      "sha256": "cc6681b215e8106c3801b59582e57e2a6c73d96a54b97e398ece8aa186859bf1",
+      "size_bytes": 2781
+    },
+    {
+      "path": "state.json",
+      "sha256": "76e527e70d42be77d0759b1c6229c56baab37b757a3fd0954025bb717927c0f3",
+      "size_bytes": 861
+    }
+  ]
+}

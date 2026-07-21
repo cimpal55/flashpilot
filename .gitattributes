@@ -1,0 +1,14 @@
+# Evidence must survive a round trip through git byte-for-byte.
+#
+# The sample runs are attested by SHA-256 over their exact bytes. If git
+# normalised line endings on checkout, every text file under samples/ would
+# hash differently on Windows than on Linux and the whole re-verification
+# story would break. -text disables all line-ending conversion for them.
+# -diff additionally marks them as opaque: samples are attested evidence, not
+# reviewable source. Without it, evidence written on Windows carries CRLF that
+# `git diff --check` reports as trailing whitespace on every line — and
+# "fixing" that would change the bytes the manifest hashes.
+samples/** -text -diff
+
+# bundles.js embeds base64 of those same bytes; keep it byte-stable too.
+report-ui/src/data/bundles.js -text

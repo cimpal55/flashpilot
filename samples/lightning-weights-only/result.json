@@ -1,0 +1,252 @@
+{
+  "adapter": "pytorch-lightning",
+  "checkpoint_event": {
+    "checkpoint_path": "crash/checkpoints/checkpoint-4",
+    "emitted_at": "2026-07-20T10:56:26.556514Z",
+    "event": "checkpoint_committed",
+    "global_step": 4,
+    "loop_state_present": true,
+    "loss_history_present": false,
+    "model_present": true,
+    "optimizer_present": false,
+    "rng_state_present": false,
+    "scenario": "weights-only",
+    "scheduler_present": false,
+    "schema_version": "flashpilot-lightning-checkpoint-event-v1",
+    "worker_pid": 32492
+  },
+  "checkpoint_inventory": [
+    "epoch",
+    "global_step",
+    "hparams_name",
+    "hyper_parameters",
+    "loops",
+    "pytorch-lightning_version",
+    "state_dict"
+  ],
+  "control": {
+    "checkpoint_step": 0,
+    "cpu_only": true,
+    "evaluation_sha256": "966c02c178cef1bbef7d07b1cc491f45bb1ee288992a7657bd036f80a4143636",
+    "lightning_version": "2.6.5",
+    "loss_history": [
+      0.32196044921875,
+      0.24109923839569092,
+      0.422993540763855,
+      0.18924395740032196,
+      0.42403459548950195,
+      0.47362595796585083,
+      0.1744976043701172,
+      0.26637983322143555
+    ],
+    "mode": "control",
+    "model_loaded_from_checkpoint": false,
+    "optimizer_sha256": "fba1e94775ff1663606e8f8a61c73739a4dfcf5a7854b05e814eb977678ef140",
+    "scenario": "weights-only",
+    "scheduler_sha256": "ce8fc7b9958043b43b1af5683656e04bb77f6d1cce16b011849df3083cad06d0",
+    "schema_version": "flashpilot-lightning-run-summary-v1",
+    "semantic_global_step": 8,
+    "torch_version": "2.13.0+cpu",
+    "trainable_state_sha256": "92147948cf1bbb326c6ccf31bd456d37d2c06a8c6702717afac683b7cd7370af",
+    "trainer_global_step": 8,
+    "worker_pid": 9280
+  },
+  "control_process": {
+    "completed_at": "2026-07-20T10:56:15.639003Z",
+    "exit_code": 0,
+    "exit_verified": true,
+    "started_at": "2026-07-20T10:56:06.072834Z",
+    "worker_pid": 9280
+  },
+  "crash_process": {
+    "completed_at": "2026-07-20T10:56:26.627493Z",
+    "exit_code": 1,
+    "exit_verified": true,
+    "started_at": "2026-07-20T10:56:15.679144Z",
+    "worker_pid": 32492
+  },
+  "created_at": "2026-07-20T10:56:38.238186Z",
+  "fault_scenario": "process-kill",
+  "final_verdict": "FAILED",
+  "forwarded_arguments": [],
+  "framework": "lightning",
+  "gate": {
+    "achieved_rpo_steps": 0,
+    "atol": 0.0,
+    "checks": [
+      {
+        "actual": "present",
+        "category": "checkpoint",
+        "check_id": "checkpoint.model",
+        "expected": "present",
+        "label": "Model state is present",
+        "status": "pass"
+      },
+      {
+        "actual": "present",
+        "category": "checkpoint",
+        "check_id": "checkpoint.loop-state",
+        "expected": "present",
+        "label": "Loop state is present",
+        "status": "pass"
+      },
+      {
+        "actual": "missing",
+        "category": "checkpoint",
+        "check_id": "checkpoint.optimizer",
+        "expected": "present",
+        "label": "Optimizer state is present",
+        "status": "fail"
+      },
+      {
+        "actual": "missing",
+        "category": "checkpoint",
+        "check_id": "checkpoint.scheduler",
+        "expected": "present",
+        "label": "Scheduler state is present",
+        "status": "fail"
+      },
+      {
+        "actual": "missing",
+        "category": "checkpoint",
+        "check_id": "checkpoint.rng",
+        "expected": "present",
+        "label": "RNG state is present",
+        "status": "fail"
+      },
+      {
+        "actual": "missing",
+        "category": "checkpoint",
+        "check_id": "checkpoint.loss-history",
+        "expected": "present",
+        "label": "Loss history is present",
+        "status": "fail"
+      },
+      {
+        "actual": "verified=True, exit=1",
+        "category": "process",
+        "check_id": "process.real-termination",
+        "expected": "verified nonzero exit",
+        "label": "Checkpoint worker was really terminated",
+        "status": "pass"
+      },
+      {
+        "actual": "32492 -> 24156",
+        "category": "process",
+        "check_id": "process.distinct-recovery",
+        "expected": "distinct PIDs",
+        "label": "Recovery ran in a new process",
+        "status": "pass"
+      },
+      {
+        "actual": "8",
+        "category": "trajectory",
+        "check_id": "progress.global-step",
+        "expected": "8",
+        "label": "Recovered global step matches control",
+        "status": "pass"
+      },
+      {
+        "actual": "different",
+        "category": "trajectory",
+        "check_id": "trajectory.loss-history",
+        "expected": "exact control loss history",
+        "label": "Loss history exactly matches control",
+        "status": "fail"
+      },
+      {
+        "actual": "133a4fe54c8b225b57b9a7eb3de1b8bd58ab4eceb1c1b2e13e27b394c79f8e4c",
+        "category": "state",
+        "check_id": "state.trainable",
+        "expected": "92147948cf1bbb326c6ccf31bd456d37d2c06a8c6702717afac683b7cd7370af",
+        "label": "Trainable state digest exactly matches control",
+        "status": "fail"
+      },
+      {
+        "actual": "8f385ba69b9e891864258b8a3a4a032195f79f5d437f22c526fbae5087f16200",
+        "category": "state",
+        "check_id": "state.evaluation",
+        "expected": "966c02c178cef1bbef7d07b1cc491f45bb1ee288992a7657bd036f80a4143636",
+        "label": "Evaluation digest exactly matches control",
+        "status": "fail"
+      },
+      {
+        "actual": "c367ccb3b101fd9864d044163c63e88dda11f9062f3328233e5716dc42e87e90",
+        "category": "state",
+        "check_id": "state.optimizer",
+        "expected": "fba1e94775ff1663606e8f8a61c73739a4dfcf5a7854b05e814eb977678ef140",
+        "label": "Optimizer digest exactly matches control",
+        "status": "fail"
+      },
+      {
+        "actual": "32d51e072e08c2a5d51a3a2394199cad179dd799b4744d072253a2888b07af23",
+        "category": "state",
+        "check_id": "state.scheduler",
+        "expected": "ce8fc7b9958043b43b1af5683656e04bb77f6d1cce16b011849df3083cad06d0",
+        "label": "Scheduler digest exactly matches control",
+        "status": "fail"
+      }
+    ],
+    "failed_check_ids": [
+      "checkpoint.optimizer",
+      "checkpoint.scheduler",
+      "checkpoint.rng",
+      "checkpoint.loss-history",
+      "trajectory.loss-history",
+      "state.trainable",
+      "state.evaluation",
+      "state.optimizer",
+      "state.scheduler"
+    ],
+    "max_rpo_steps": 0,
+    "passed": false,
+    "rtol": 0.0,
+    "schema_version": "flashpilot-lightning-recovery-gate-v1"
+  },
+  "html_report_path": "report.html",
+  "limitations": [
+    "Qualification covers the included CPU LightningModule, not arbitrary modules.",
+    "The RNG bridge is explicit module checkpoint state required by this contract.",
+    "The attestation is unsigned and provides integrity, not publisher authentication."
+  ],
+  "model_checkpoint_load_succeeded": true,
+  "qualification_profile": "exact-training-resume",
+  "recovery": {
+    "checkpoint_step": 4,
+    "cpu_only": true,
+    "evaluation_sha256": "8f385ba69b9e891864258b8a3a4a032195f79f5d437f22c526fbae5087f16200",
+    "lightning_version": "2.6.5",
+    "loss_history": [
+      0.40072473883628845,
+      0.37614256143569946,
+      0.22858504951000214,
+      0.2903594970703125
+    ],
+    "mode": "recover",
+    "model_loaded_from_checkpoint": true,
+    "optimizer_sha256": "c367ccb3b101fd9864d044163c63e88dda11f9062f3328233e5716dc42e87e90",
+    "scenario": "weights-only",
+    "scheduler_sha256": "32d51e072e08c2a5d51a3a2394199cad179dd799b4744d072253a2888b07af23",
+    "schema_version": "flashpilot-lightning-run-summary-v1",
+    "semantic_global_step": 8,
+    "torch_version": "2.13.0+cpu",
+    "trainable_state_sha256": "133a4fe54c8b225b57b9a7eb3de1b8bd58ab4eceb1c1b2e13e27b394c79f8e4c",
+    "trainer_global_step": 4,
+    "worker_pid": 24156
+  },
+  "recovery_process": {
+    "completed_at": "2026-07-20T10:56:38.188476Z",
+    "exit_code": 0,
+    "exit_verified": true,
+    "started_at": "2026-07-20T10:56:26.666449Z",
+    "worker_pid": 24156
+  },
+  "report_path": "report.md",
+  "result_path": "result.json",
+  "run_id": "d55ab815ca5f4903a6fdc0f36455e436",
+  "scenario": "weights-only",
+  "schema_version": "flashpilot-lightning-qualification-v1",
+  "script_path": "inputs/train.py",
+  "verified_persisted_bytes": null,
+  "weights_only_diverged": true
+}

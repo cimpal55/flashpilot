@@ -1,0 +1,245 @@
+{
+  "adapter": "huggingface-trainer",
+  "checkpoint_event": {
+    "checkpoint_path": "crash/checkpoints/checkpoint-4",
+    "emitted_at": "2026-07-21T15:48:42.197587Z",
+    "event": "checkpoint_committed",
+    "global_step": 4,
+    "model_present": true,
+    "optimizer_present": false,
+    "rng_state_present": false,
+    "scenario": "model-only",
+    "scheduler_present": false,
+    "schema_version": "flashpilot-hf-checkpoint-event-v1",
+    "trainer_state_present": true,
+    "worker_pid": 17432
+  },
+  "checkpoint_inventory": [
+    "config.json",
+    "flashpilot-callback.json",
+    "model.safetensors",
+    "trainer_state.json",
+    "training_args.bin",
+    "training_args.json"
+  ],
+  "control": {
+    "checkpoint_step": 0,
+    "evaluation_sha256": "0e2baf1f2c06964cc38cbfd3b4278dd50423475af83bb435195c815174ec63c9",
+    "loss_history": [
+      1.6094427108764648,
+      1.6116161346435547,
+      1.6185109615325928,
+      1.6071336269378662,
+      1.5965160131454468,
+      1.591310739517212,
+      1.5910385847091675,
+      1.5895633697509766
+    ],
+    "mode": "control",
+    "model_loaded_from_checkpoint": false,
+    "offline_environment": true,
+    "optimizer_sha256": "6973dbbf26f14b71755dfa998029c9895283c450703c9fd4827fc2b351beaa63",
+    "scenario": "model-only",
+    "scheduler_sha256": "7b9e523d685a2faf6a45c0c4ff59aa618d900ddfa1255f1d4cf934a8dd733d41",
+    "schema_version": "flashpilot-hf-run-summary-v1",
+    "semantic_global_step": 8,
+    "torch_version": "2.13.0+cpu",
+    "trainable_state_sha256": "834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3",
+    "trainer_global_step": 8,
+    "transformers_version": "5.14.1",
+    "worker_pid": 22864
+  },
+  "control_process": {
+    "completed_at": "2026-07-21T15:48:34.054634Z",
+    "exit_code": 0,
+    "exit_verified": true,
+    "started_at": "2026-07-21T15:48:25.313625Z",
+    "worker_pid": 22864
+  },
+  "crash_process": {
+    "completed_at": "2026-07-21T15:48:42.245878Z",
+    "exit_code": 1,
+    "exit_verified": true,
+    "started_at": "2026-07-21T15:48:34.088167Z",
+    "worker_pid": 17432
+  },
+  "created_at": "2026-07-21T15:48:50.688662Z",
+  "fault_scenario": "process-kill",
+  "final_verdict": "FAILED",
+  "forwarded_arguments": [],
+  "framework": "transformers",
+  "gate": {
+    "achieved_rpo_steps": 0,
+    "atol": 0.0,
+    "checks": [
+      {
+        "actual": "present",
+        "category": "checkpoint",
+        "check_id": "checkpoint.model",
+        "expected": "present",
+        "label": "Model state is present",
+        "status": "pass"
+      },
+      {
+        "actual": "present",
+        "category": "checkpoint",
+        "check_id": "checkpoint.trainer-state",
+        "expected": "present",
+        "label": "Trainer state is present",
+        "status": "pass"
+      },
+      {
+        "actual": "missing",
+        "category": "checkpoint",
+        "check_id": "checkpoint.optimizer",
+        "expected": "present",
+        "label": "Optimizer state is present",
+        "status": "fail"
+      },
+      {
+        "actual": "missing",
+        "category": "checkpoint",
+        "check_id": "checkpoint.scheduler",
+        "expected": "present",
+        "label": "Scheduler state is present",
+        "status": "fail"
+      },
+      {
+        "actual": "missing",
+        "category": "checkpoint",
+        "check_id": "checkpoint.rng",
+        "expected": "present",
+        "label": "RNG state is present",
+        "status": "fail"
+      },
+      {
+        "actual": "verified=True, exit=1",
+        "category": "process",
+        "check_id": "process.real-termination",
+        "expected": "verified nonzero exit",
+        "label": "Checkpoint worker was really terminated",
+        "status": "pass"
+      },
+      {
+        "actual": "17432 -> 6272",
+        "category": "process",
+        "check_id": "process.distinct-recovery",
+        "expected": "distinct PIDs",
+        "label": "Recovery ran in a new process",
+        "status": "pass"
+      },
+      {
+        "actual": "8",
+        "category": "trajectory",
+        "check_id": "progress.global-step",
+        "expected": "8",
+        "label": "Recovered global step matches control",
+        "status": "pass"
+      },
+      {
+        "actual": "different",
+        "category": "trajectory",
+        "check_id": "trajectory.loss-history",
+        "expected": "exact control loss history",
+        "label": "Loss history exactly matches control",
+        "status": "fail"
+      },
+      {
+        "actual": "8bd5001c874e89bbb60af70bc002e290c84aeeec0918d5d804f3a4ec151a5dfc",
+        "category": "state",
+        "check_id": "state.trainable",
+        "expected": "834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3",
+        "label": "Trainable state digest exactly matches control",
+        "status": "fail"
+      },
+      {
+        "actual": "0349f7a7c042b0ea978bb895f8ea0593a2a1e0b9cb3f7236f6c609b8649ffcee",
+        "category": "state",
+        "check_id": "state.evaluation",
+        "expected": "0e2baf1f2c06964cc38cbfd3b4278dd50423475af83bb435195c815174ec63c9",
+        "label": "Evaluation digest exactly matches control",
+        "status": "fail"
+      },
+      {
+        "actual": "b45b313281ecb221ac2e4371fe2adb6ff4018b9782c3a6de3104ba73d77d98fa",
+        "category": "state",
+        "check_id": "state.optimizer",
+        "expected": "6973dbbf26f14b71755dfa998029c9895283c450703c9fd4827fc2b351beaa63",
+        "label": "Optimizer digest exactly matches control",
+        "status": "fail"
+      },
+      {
+        "actual": "c0e1339157199be3a4c601c4b001608fbef42875cf7d29d0211554a96ded2826",
+        "category": "state",
+        "check_id": "state.scheduler",
+        "expected": "7b9e523d685a2faf6a45c0c4ff59aa618d900ddfa1255f1d4cf934a8dd733d41",
+        "label": "Scheduler digest exactly matches control",
+        "status": "fail"
+      }
+    ],
+    "failed_check_ids": [
+      "checkpoint.optimizer",
+      "checkpoint.scheduler",
+      "checkpoint.rng",
+      "trajectory.loss-history",
+      "state.trainable",
+      "state.evaluation",
+      "state.optimizer",
+      "state.scheduler"
+    ],
+    "max_rpo_steps": 0,
+    "passed": false,
+    "rtol": 0.0,
+    "schema_version": "flashpilot-hf-recovery-gate-v1"
+  },
+  "html_report_path": "report.html",
+  "limitations": [
+    "Qualification covers the included local CPU Trainer contract, not arbitrary scripts.",
+    "Offline environment controls prevent library-mediated Hub access; this is not an OS network sandbox.",
+    "The attestation payload has no embedded signature; detached Ed25519 verification requires an explicitly trusted public key."
+  ],
+  "model_checkpoint_load_succeeded": true,
+  "model_only_diverged": true,
+  "qualification_profile": "exact-training-resume",
+  "recovery": {
+    "checkpoint_step": 4,
+    "evaluation_sha256": "0349f7a7c042b0ea978bb895f8ea0593a2a1e0b9cb3f7236f6c609b8649ffcee",
+    "loss_history": [
+      1.6094427108764648,
+      1.6116161346435547,
+      1.6185109615325928,
+      1.6071336269378662,
+      1.5961759090423584,
+      1.5867186784744263,
+      1.5831108093261719,
+      1.5598859786987305
+    ],
+    "mode": "recover",
+    "model_loaded_from_checkpoint": true,
+    "offline_environment": true,
+    "optimizer_sha256": "b45b313281ecb221ac2e4371fe2adb6ff4018b9782c3a6de3104ba73d77d98fa",
+    "scenario": "model-only",
+    "scheduler_sha256": "c0e1339157199be3a4c601c4b001608fbef42875cf7d29d0211554a96ded2826",
+    "schema_version": "flashpilot-hf-run-summary-v1",
+    "semantic_global_step": 8,
+    "torch_version": "2.13.0+cpu",
+    "trainable_state_sha256": "8bd5001c874e89bbb60af70bc002e290c84aeeec0918d5d804f3a4ec151a5dfc",
+    "trainer_global_step": 8,
+    "transformers_version": "5.14.1",
+    "worker_pid": 6272
+  },
+  "recovery_process": {
+    "completed_at": "2026-07-21T15:48:50.651679Z",
+    "exit_code": 0,
+    "exit_verified": true,
+    "started_at": "2026-07-21T15:48:42.259366Z",
+    "worker_pid": 6272
+  },
+  "report_path": "report.md",
+  "result_path": "result.json",
+  "run_id": "620ee9a36bdb4759bc0ec9d41ff16001",
+  "scenario": "model-only",
+  "schema_version": "flashpilot-hf-qualification-v1",
+  "script_path": "inputs/train.py",
+  "verified_persisted_bytes": null
+}

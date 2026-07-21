@@ -1,0 +1,25 @@
+{
+  "schema_version": "safe-full-state-v1",
+  "checkpoint_id": "checkpoint-step-000004",
+  "global_step": 4,
+  "profile": {
+    "name": "ci",
+    "global_seed": 20260716,
+    "steps": 8,
+    "batch_size": 4,
+    "sequence_length": 8,
+    "vocabulary_size": 32,
+    "model_width": 16,
+    "attention_heads": 2,
+    "transformer_layers": 1,
+    "adapter_width": 4,
+    "dropout": 0.2,
+    "learning_rate": 0.01
+  },
+  "loss_history": [
+    3.5371975898742676,
+    3.434457540512085,
+    3.5977065563201904,
+    3.560746669769287
+  ]
+}

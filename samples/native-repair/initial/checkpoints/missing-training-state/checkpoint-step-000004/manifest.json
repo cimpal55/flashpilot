@@ -1,0 +1,41 @@
+{
+  "schema_version": "checkpoint-manifest-v1",
+  "checkpoint_id": "checkpoint-step-000004",
+  "strategy": "missing_training_state",
+  "profile": "ci",
+  "global_step": 4,
+  "created_at": "2026-07-20T01:28:58.987496Z",
+  "serialized_state": [
+    "adapter",
+    "global_step",
+    "config",
+    "base_model_identity"
+  ],
+  "omitted_state": [
+    "optimizer",
+    "scheduler",
+    "python_rng",
+    "numpy_rng",
+    "torch_rng"
+  ],
+  "base_artifact": {
+    "identity": "native-pytorch:ci:c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+    "path": "artifacts/frozen-base/base.pt",
+    "sha256": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+    "size_bytes": 18475
+  },
+  "payloads": [
+    {
+      "role": "adapter",
+      "path": "adapter.pt",
+      "sha256": "cc6681b215e8106c3801b59582e57e2a6c73d96a54b97e398ece8aa186859bf1",
+      "size_bytes": 2781
+    },
+    {
+      "role": "state",
+      "path": "state.json",
+      "sha256": "76e527e70d42be77d0759b1c6229c56baab37b757a3fd0954025bb717927c0f3",
+      "size_bytes": 861
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "after_restore": {
+    "evaluation_sha256": "d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312",
+    "global_step": 4,
+    "loss_history": [
+      3.5371975898742676,
+      3.434457540512085,
+      3.5977065563201904,
+      3.560746669769287
+    ],
+    "optimizer_sha256": "9d74c2ab1d0065b9a270080cbacd3ccdf2937e8c2aee112d50171dec423a0a3a",
+    "scheduler_sha256": "caa817fb3191ab1456ade00320565fb3dfb7e7e648a1207f3f22f04893dec770",
+    "trainable_state_sha256": "43ba75808906932a005b0d3e186b5786ab64a25fdce5542655d2d0951fc6eeb5"
+  },
+  "after_restore_rng": {
+    "numpy_sha256": "adc7e545ec0530eae9f1da725e83f48b146bd4ec79f98451367ca3d18e994db5",
+    "python_sha256": "dd8aec1ccf3053de61ed6a459e2668c385b7996eaedd947444006209995a7063",
+    "torch_sha256": "fa163c67bdc6bd308e73799701eff603b07e6196b09748af3a051a16d257ca62"
+  },
+  "checkpoint_path": "checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004",
+  "completed_at": "2026-07-20T01:29:12.418105Z",
+  "final": {
+    "evaluation_sha256": "a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a",
+    "global_step": 8,
+    "loss_history": [
+      3.5371975898742676,
+      3.434457540512085,
+      3.5977065563201904,
+      3.560746669769287,
+      3.670823574066162,
+      3.627253293991089,
+      3.508639335632324,
+      3.8248143196105957
+    ],
+    "optimizer_sha256": "c03dfc8b66e6645fb552223428ad86a855c97049d133b08984604f6e7d55a050",
+    "scheduler_sha256": "e07ffd6a89fefb61e80d1ca56025a927222a83180ffced778789606d3a7bec81",
+    "trainable_state_sha256": "1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997"
+  },
+  "first_completed_step": 5,
+  "first_resumed_batch_step": 4,
+  "restored_global_step": 4,
+  "schema_version": "recovery-worker-result-v1",
+  "started_at": "2026-07-20T01:29:10.998216Z",
+  "strategy": "safe_adapter_aware",
+  "worker_pid": 31396
+}

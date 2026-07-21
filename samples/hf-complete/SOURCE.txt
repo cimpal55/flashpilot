@@ -1,0 +1,4 @@
+Copied verbatim from runs/final-hf-complete of the FlashPilot core repository.
+Organization-policy evaluation copied from runs/final-policy/pass,
+produced by `flashpilot enforce-organization-policy`.
+No value in this directory was edited, regenerated, or synthesised.

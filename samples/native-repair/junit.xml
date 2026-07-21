@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="flashpilot.native-qualification" tests="24" failures="0" errors="0" skipped="0">
+  <properties>
+    <property name="status" value="VERIFIED" />
+    <property name="framework" value="native-pytorch" />
+    <property name="qualification_profile" value="exact-training-resume" />
+    <property name="rpo_steps" value="0" />
+    <property name="rto_seconds" value="3.965455" />
+  </properties>
+  <testcase classname="flashpilot.native-pytorch" name="integrity.manifest_schema">
+    <system-out>Manifest schema valid Expected=checkpoint-manifest-v1; actual=checkpoint-manifest-v1.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="integrity.completion_marker">
+    <system-out>Completion marker present Expected=COMPLETE present in final checkpoint; actual=present.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="integrity.checksums">
+    <system-out>All payload checksums valid Expected=every manifest payload matches SHA-256 and size; actual=5 payloads validated.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="integrity.base_present">
+    <system-out>Base artifact present when required Expected=contained immutable base artifact; actual=present.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="integrity.base_hash">
+    <system-out>Base artifact hash matches Expected=c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86; actual=c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="state.global_step">
+    <system-out>Checkpoint global step is valid Expected=0 &lt; step &lt; 8, consistent across restore; actual=manifest=4, event=4, restored=4.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="state.model_or_adapter">
+    <system-out>Model or adapter state restores Expected=serialized adapter and exact trainable-state digest; actual=serialized=True, digest_match=True.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="state.optimizer">
+    <system-out>Optimizer state restores when required Expected=serialized optimizer with exact digest; actual=serialized=True, digest_match=True.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="state.scheduler">
+    <system-out>Scheduler state restores when required Expected=serialized scheduler with exact digest; actual=serialized=True, digest_match=True.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="state.python_rng">
+    <system-out>Python RNG state restores when required Expected=serialized state with exact digest; actual=serialized=True, digest_match=True.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="state.numpy_rng">
+    <system-out>NumPy RNG state restores when required Expected=serialized state with exact digest; actual=serialized=True, digest_match=True.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="state.torch_rng">
+    <system-out>Torch RNG state restores when required Expected=serialized state with exact digest; actual=serialized=True, digest_match=True.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="process.next_step">
+    <system-out>Resumed run continues from the expected next step Expected=first batch at 4, first completion at 5; actual=first batch at 4, first completion at 5.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="process.original_pid">
+    <system-out>Original worker PID is recorded Expected=27632; actual=27632.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="process.expected_termination">
+    <system-out>Original worker termination is verified Expected=parent termination with nonzero exit code; actual=method=TerminateProcess via subprocess.Popen.kill, exit=1, verified=True.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="process.new_recovery_pid">
+    <system-out>Recovery uses a different PID Expected=PID different from 27632; actual=31396.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="process.recovery_exit">
+    <system-out>Recovery worker exits successfully Expected=exit code 0; actual=exit=0, verified=True.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="rollback.hard_limit">
+    <system-out>Achieved rollback is within the hard limit Expected=&lt;= 0 steps; actual=0 steps.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="trajectory.checkpoint_evaluation">
+    <system-out>Fixed evaluation after restore matches Expected=d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312; actual=d60572aea12f91960f3f0030bdfdca55fdafe059146c7230af9094923811d312.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="trajectory.final_trainable">
+    <system-out>Final trainable parameters match control Expected=1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997; actual=1fc72fdf21487afe7b32da833d2300cd9a68f0c0c6f3ce1456910a5102a92997.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="trajectory.final_evaluation">
+    <system-out>Final evaluation logits match control Expected=a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a; actual=a42a6d25c8aaf6674130ef63439f6fd415824bd23ff9cd6a7c0ca0305be3ef9a.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="trajectory.loss_history">
+    <system-out>Continued loss trajectory matches control Expected=exact loss sequence equality; actual=exact match.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="safety.path_containment">
+    <system-out>All managed write paths passed containment Expected=all paths contained; symlink escapes rejected; actual=contained.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.native-pytorch" name="contract.no_mandatory_omission">
+    <system-out>No mandatory contract requirement was silently omitted Expected=all mandatory continuation state declared; actual=complete.</system-out>
+  </testcase>
+</testsuite>

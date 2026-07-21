@@ -1,0 +1,27 @@
+{
+  "checkpoint_step": 0,
+  "evaluation_sha256": "0e2baf1f2c06964cc38cbfd3b4278dd50423475af83bb435195c815174ec63c9",
+  "loss_history": [
+    1.6094427108764648,
+    1.6116161346435547,
+    1.6185109615325928,
+    1.6071336269378662,
+    1.5965160131454468,
+    1.591310739517212,
+    1.5910385847091675,
+    1.5895633697509766
+  ],
+  "mode": "control",
+  "model_loaded_from_checkpoint": false,
+  "offline_environment": true,
+  "optimizer_sha256": "6973dbbf26f14b71755dfa998029c9895283c450703c9fd4827fc2b351beaa63",
+  "scenario": "complete",
+  "scheduler_sha256": "7b9e523d685a2faf6a45c0c4ff59aa618d900ddfa1255f1d4cf934a8dd733d41",
+  "schema_version": "flashpilot-hf-run-summary-v1",
+  "semantic_global_step": 8,
+  "torch_version": "2.13.0+cpu",
+  "trainable_state_sha256": "834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3",
+  "trainer_global_step": 8,
+  "transformers_version": "5.14.1",
+  "worker_pid": 23532
+}

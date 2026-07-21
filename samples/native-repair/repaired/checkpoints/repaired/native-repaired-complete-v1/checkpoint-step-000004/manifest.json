@@ -1,0 +1,58 @@
+{
+  "schema_version": "checkpoint-manifest-v1",
+  "checkpoint_id": "checkpoint-step-000004",
+  "strategy": "safe_adapter_aware",
+  "profile": "ci",
+  "global_step": 4,
+  "created_at": "2026-07-20T01:29:08.833224Z",
+  "serialized_state": [
+    "adapter",
+    "optimizer",
+    "scheduler",
+    "global_step",
+    "python_rng",
+    "numpy_rng",
+    "torch_rng",
+    "config",
+    "base_model_identity"
+  ],
+  "omitted_state": [],
+  "base_artifact": {
+    "identity": "native-pytorch:ci:c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+    "path": "artifacts/frozen-base/base.pt",
+    "sha256": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+    "size_bytes": 18475
+  },
+  "payloads": [
+    {
+      "role": "adapter",
+      "path": "adapter.pt",
+      "sha256": "cc6681b215e8106c3801b59582e57e2a6c73d96a54b97e398ece8aa186859bf1",
+      "size_bytes": 2781
+    },
+    {
+      "role": "optimizer",
+      "path": "optimizer.pt",
+      "sha256": "ce1a57f6b5ed144f5ffed0a73b27cda66f49caa19f06124984dbb9eedabf4baf",
+      "size_bytes": 5795
+    },
+    {
+      "role": "rng",
+      "path": "rng.pt",
+      "sha256": "71ed181a88f9f4250fa37088ace6e502308b66f72dae3e4c085514511630f97e",
+      "size_bytes": 14285
+    },
+    {
+      "role": "scheduler",
+      "path": "scheduler.pt",
+      "sha256": "4b06758dd8c53f4479c37b7e5b5ff7a5850408ec7e9a519d30c58cb8b61a6759",
+      "size_bytes": 1465
+    },
+    {
+      "role": "state",
+      "path": "state.json",
+      "sha256": "42f0ffd09aff687c6d363e67efdb6b4093bc30b5feb1955ac94ad455352b19a1",
+      "size_bytes": 857
+    }
+  ]
+}

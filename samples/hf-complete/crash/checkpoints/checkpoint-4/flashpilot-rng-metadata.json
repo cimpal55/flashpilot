@@ -1,0 +1,9 @@
+{
+  "numpy_rng_present": true,
+  "payload_path": "rng_state.pth",
+  "payload_sha256": "fd1ab2990bdb7ce78633b6b1e51b1afc78d29059de4e8af1e8a42f1ff076d795",
+  "producer": "flashpilot-trainer-callback",
+  "python_rng_present": true,
+  "schema_version": "flashpilot-hf-rng-metadata-v1",
+  "torch_rng_present": true
+}

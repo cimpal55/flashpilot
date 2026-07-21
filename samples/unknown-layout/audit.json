@@ -1,0 +1,18 @@
+{
+  "schema_version": "flashpilot-static-audit-v1",
+  "status": "UNKNOWN",
+  "framework": "unknown",
+  "qualification_profile": "exact-training-resume",
+  "checkpoint_name": "milestone13-unknown-checkpoint",
+  "static_only": true,
+  "recovery_verified": false,
+  "checks": [
+    {
+      "check_id": "detection.framework",
+      "status": "UNKNOWN",
+      "requirement_state_id": null,
+      "summary": "Checkpoint layout is unknown or ambiguous; it was not trusted.",
+      "evidence_paths": []
+    }
+  ]
+}

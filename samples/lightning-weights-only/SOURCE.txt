@@ -1,0 +1,2 @@
+Copied verbatim from runs/dev-lightning-weights-2 of the FlashPilot core repository.
+No value in this directory was edited, regenerated, or synthesised.

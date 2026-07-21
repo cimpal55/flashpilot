@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="flashpilot.attestation-verification" tests="8" failures="0" errors="0" skipped="0">
+  <properties>
+    <property name="verdict" value="VERIFIED" />
+    <property name="attestation_sha256" value="e83c9e8799efbdab76e90895ccc3caf6f6024d53798d6cf834233df73b7086af" />
+    <property name="signature_status" value="unsigned" />
+  </properties>
+  <testcase classname="flashpilot.attestation" name="schema.attestation">
+    <system-out>RecoveryAttestationV1 schema is valid.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="integrity.evidence-manifest">
+    <system-out>Evidence manifest schema and SHA-256 passed.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="integrity.evidence-files">
+    <system-out>Closed inventory verified 27 evidence artifacts.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="integrity.environment">
+    <system-out>Dependency environment identity is consistent.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="consistency.contract">
+    <system-out>Contract hash and deterministic minimum agree.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="consistency.result">
+    <system-out>HF result, exact gate, process, trajectory, and RPO agree.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="consistency.reports">
+    <system-out>HF reports are exact result-derived views.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.attestation" name="integrity.checkpoint">
+    <system-out>HF checkpoint hash and state files agree.</system-out>
+  </testcase>
+</testsuite>

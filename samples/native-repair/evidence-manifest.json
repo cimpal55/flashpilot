@@ -1,0 +1,281 @@
+{
+  "entries": [
+    {
+      "path": "agent/failure/captured-live-metadata.json",
+      "sha256": "adb92f36e454c33be35b9ba7793cc0e6201e3375889918332da07f34a95a2987",
+      "size_bytes": 573
+    },
+    {
+      "path": "agent/failure/metadata.json",
+      "sha256": "ae7a1f6cbf8ce8c7e4489425499f9b8bf1cd80bc04daa4e8c4e6ba1665145d99",
+      "size_bytes": 537
+    },
+    {
+      "path": "agent/failure/request.redacted.json",
+      "sha256": "da5d268138d74b6a178f78318e10ecdd584393bcf6fa7372b1076803868f7fd2",
+      "size_bytes": 14235
+    },
+    {
+      "path": "agent/failure/response.parsed.json",
+      "sha256": "7733b94365c27f791a602bebf9d71a33ce0350313591b7941510770c5f795e27",
+      "size_bytes": 4831
+    },
+    {
+      "path": "agent/failure/validation.json",
+      "sha256": "1989796c0cad0dacb76de5a326c0dcbc9490bb44e7c03ba8ef67c8b972269f31",
+      "size_bytes": 2676
+    },
+    {
+      "path": "agent/repair-attempt-admission.json",
+      "sha256": "02f9f15c1733553581fabdebaafc6d90ff4e91843d5685b84e929c7c340ba2c7",
+      "size_bytes": 157
+    },
+    {
+      "path": "agent/repair/execution.json",
+      "sha256": "8b0b79a65972ab189b6f68797836b7c7fc1d41a1102369ab3e21208a9c6f5095",
+      "size_bytes": 1124
+    },
+    {
+      "path": "agent/repair/repaired-strategy.json",
+      "sha256": "f631fb57e4bedc70d8feeadb81cd0f43a805a1a23bd371a9c4df4b2956b0cc5a",
+      "size_bytes": 287
+    },
+    {
+      "path": "agent/request.redacted.json",
+      "sha256": "da5d268138d74b6a178f78318e10ecdd584393bcf6fa7372b1076803868f7fd2",
+      "size_bytes": 14235
+    },
+    {
+      "path": "environment.json",
+      "sha256": "4c7fbf342a03801607f693b045f2ed7be58048a67347d8c8595732a0b30075ae",
+      "size_bytes": 776
+    },
+    {
+      "path": "initial/agent/request.redacted.json",
+      "sha256": "da5d268138d74b6a178f78318e10ecdd584393bcf6fa7372b1076803868f7fd2",
+      "size_bytes": 14235
+    },
+    {
+      "path": "initial/artifacts/frozen-base/COMPLETE",
+      "sha256": "ce65117826b8b76a7480b8789b41c698c0865b64c6b51f93be8bdc28719d3a46",
+      "size_bytes": 83
+    },
+    {
+      "path": "initial/artifacts/frozen-base/base.json",
+      "sha256": "81dcc20c7c340e2fd8c33e388a1774dbd268446fa9e3286785cc6a60bcd9d3e4",
+      "size_bytes": 372
+    },
+    {
+      "path": "initial/artifacts/frozen-base/base.pt",
+      "sha256": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+      "size_bytes": 18475
+    },
+    {
+      "path": "initial/checkpoints/missing-training-state/checkpoint-step-000004/COMPLETE",
+      "sha256": "b4babcb4704ae078c54e0adec79602bbcf0927dacd2149cd4f8207ef70f13009",
+      "size_bytes": 92
+    },
+    {
+      "path": "initial/checkpoints/missing-training-state/checkpoint-step-000004/adapter.pt",
+      "sha256": "cc6681b215e8106c3801b59582e57e2a6c73d96a54b97e398ece8aa186859bf1",
+      "size_bytes": 2781
+    },
+    {
+      "path": "initial/checkpoints/missing-training-state/checkpoint-step-000004/checksums.json",
+      "sha256": "9373ddd51d88d63d3e4ea283e696eba6e1ba2ad21b0bb553ff943077bbed3bd0",
+      "size_bytes": 355
+    },
+    {
+      "path": "initial/checkpoints/missing-training-state/checkpoint-step-000004/manifest.json",
+      "sha256": "56281b789f24d88fa0d3522a3509b09f15c8c3980f72587c08e48723123d498f",
+      "size_bytes": 1080
+    },
+    {
+      "path": "initial/checkpoints/missing-training-state/checkpoint-step-000004/state.json",
+      "sha256": "76e527e70d42be77d0759b1c6229c56baab37b757a3fd0954025bb717927c0f3",
+      "size_bytes": 861
+    },
+    {
+      "path": "initial/logs/checkpoint-worker.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "initial/logs/recovery-worker.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "initial/result.json",
+      "sha256": "6447dfffa7e0f2d948efacf27d0ba005a4d5f768bdaeb4b6119637b88b2d6e2b",
+      "size_bytes": 14743
+    },
+    {
+      "path": "initial/workers/recovery-result.json",
+      "sha256": "4198109bae15976c7980558262074987fa504a3ba98935f2291207366b07cf3f",
+      "size_bytes": 1878
+    },
+    {
+      "path": "job-summary.md",
+      "sha256": "38de9a45234fabaa2a39f07e15f20862f8dca39d998f8cf38e0ccb6fde3bf75a",
+      "size_bytes": 356
+    },
+    {
+      "path": "junit.xml",
+      "sha256": "5523648af42dbf09cb5b51d58e8e9da9e294560b05b70b83ca987f1576b90ad1",
+      "size_bytes": 6430
+    },
+    {
+      "path": "measurements/safe-full/checkpoints/checkpoint-step-000004/COMPLETE",
+      "sha256": "b4babcb4704ae078c54e0adec79602bbcf0927dacd2149cd4f8207ef70f13009",
+      "size_bytes": 92
+    },
+    {
+      "path": "measurements/safe-full/checkpoints/checkpoint-step-000004/checksums.json",
+      "sha256": "627bdfb1699094e8993e2f809600d59c3110b9aaedbea21f50fbdb75d2f89786",
+      "size_bytes": 805
+    },
+    {
+      "path": "measurements/safe-full/checkpoints/checkpoint-step-000004/manifest.json",
+      "sha256": "3e7e95f43bef2c8e5ccde9838c7d8a169adee016187070d63f1bb5a438a6afa6",
+      "size_bytes": 1305
+    },
+    {
+      "path": "measurements/safe-full/checkpoints/checkpoint-step-000004/model.pt",
+      "sha256": "2bbdd47b7e346ed7d8f3ee443897ce9884dbe4517d06da2bbd371f02f43f3d1b",
+      "size_bytes": 20718
+    },
+    {
+      "path": "measurements/safe-full/checkpoints/checkpoint-step-000004/optimizer.pt",
+      "sha256": "ce1a57f6b5ed144f5ffed0a73b27cda66f49caa19f06124984dbb9eedabf4baf",
+      "size_bytes": 5795
+    },
+    {
+      "path": "measurements/safe-full/checkpoints/checkpoint-step-000004/rng.pt",
+      "sha256": "71ed181a88f9f4250fa37088ace6e502308b66f72dae3e4c085514511630f97e",
+      "size_bytes": 14285
+    },
+    {
+      "path": "measurements/safe-full/checkpoints/checkpoint-step-000004/scheduler.pt",
+      "sha256": "4b06758dd8c53f4479c37b7e5b5ff7a5850408ec7e9a519d30c58cb8b61a6759",
+      "size_bytes": 1465
+    },
+    {
+      "path": "measurements/safe-full/checkpoints/checkpoint-step-000004/state.json",
+      "sha256": "6dffd484aceb5285169fc1726547b1f3cd1215b412e6252c8cfb0643f0df5d9f",
+      "size_bytes": 533
+    },
+    {
+      "path": "measurements/storage-comparison.json",
+      "sha256": "791cf1bfd1fb9d81868c0fc6b2d8bd0d1927a462a65eb763843b42ee86aeebf3",
+      "size_bytes": 773
+    },
+    {
+      "path": "persistence-contract.json",
+      "sha256": "a6d17a5cccbe0f7f709f2c36cb87332b819ffe12938b74cced568f01acdf86a1",
+      "size_bytes": 2766
+    },
+    {
+      "path": "repaired/artifacts/frozen-base/COMPLETE",
+      "sha256": "ce65117826b8b76a7480b8789b41c698c0865b64c6b51f93be8bdc28719d3a46",
+      "size_bytes": 83
+    },
+    {
+      "path": "repaired/artifacts/frozen-base/base.json",
+      "sha256": "81dcc20c7c340e2fd8c33e388a1774dbd268446fa9e3286785cc6a60bcd9d3e4",
+      "size_bytes": 372
+    },
+    {
+      "path": "repaired/artifacts/frozen-base/base.pt",
+      "sha256": "c17cc8994c8f0fe6def32423b0e5d9efedffb3cd71c7de9631f26cf505925d86",
+      "size_bytes": 18475
+    },
+    {
+      "path": "repaired/checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004/COMPLETE",
+      "sha256": "b4babcb4704ae078c54e0adec79602bbcf0927dacd2149cd4f8207ef70f13009",
+      "size_bytes": 92
+    },
+    {
+      "path": "repaired/checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004/adapter.pt",
+      "sha256": "cc6681b215e8106c3801b59582e57e2a6c73d96a54b97e398ece8aa186859bf1",
+      "size_bytes": 2781
+    },
+    {
+      "path": "repaired/checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004/checksums.json",
+      "sha256": "61dd3d31d8b901309f7eec3f81fa33e9b0e78a7152ce3f1ee2ae3d1d2cd48c09",
+      "size_bytes": 806
+    },
+    {
+      "path": "repaired/checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004/manifest.json",
+      "sha256": "f2b5a02749131bb4076695da7b05cfc27cb716cb777709ecdbc0e447ac4f83e2",
+      "size_bytes": 1600
+    },
+    {
+      "path": "repaired/checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004/optimizer.pt",
+      "sha256": "ce1a57f6b5ed144f5ffed0a73b27cda66f49caa19f06124984dbb9eedabf4baf",
+      "size_bytes": 5795
+    },
+    {
+      "path": "repaired/checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004/rng.pt",
+      "sha256": "71ed181a88f9f4250fa37088ace6e502308b66f72dae3e4c085514511630f97e",
+      "size_bytes": 14285
+    },
+    {
+      "path": "repaired/checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004/scheduler.pt",
+      "sha256": "4b06758dd8c53f4479c37b7e5b5ff7a5850408ec7e9a519d30c58cb8b61a6759",
+      "size_bytes": 1465
+    },
+    {
+      "path": "repaired/checkpoints/repaired/native-repaired-complete-v1/checkpoint-step-000004/state.json",
+      "sha256": "42f0ffd09aff687c6d363e67efdb6b4093bc30b5feb1955ac94ad455352b19a1",
+      "size_bytes": 857
+    },
+    {
+      "path": "repaired/logs/checkpoint-worker.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "repaired/logs/recovery-worker.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "repaired/result.json",
+      "sha256": "71b42eed50c722780b4b51ea19b99c275baffaadcedfdc6dbf6bddddbda479b1",
+      "size_bytes": 14384
+    },
+    {
+      "path": "repaired/strategy/repaired-strategy.json",
+      "sha256": "f631fb57e4bedc70d8feeadb81cd0f43a805a1a23bd371a9c4df4b2956b0cc5a",
+      "size_bytes": 287
+    },
+    {
+      "path": "repaired/workers/recovery-result.json",
+      "sha256": "1219b5b4bfbf0f864bf2e4076865b7eaffa466564ad6b28f7da420adb0942b9a",
+      "size_bytes": 1885
+    },
+    {
+      "path": "report.html",
+      "sha256": "43c695256ef0776b346acfb675928672abebb7a042e8ab4de5d651386a762e3c",
+      "size_bytes": 8315
+    },
+    {
+      "path": "report.md",
+      "sha256": "8305c897f63192e5e2ee4f4f7fac1b0c1db85f681de0d3f4f6326305112913e7",
+      "size_bytes": 2138
+    },
+    {
+      "path": "result.json",
+      "sha256": "abe4141f060a4fd87e68e5bbc974518908d85c865e314cc336100b151c727d97",
+      "size_bytes": 43147
+    }
+  ],
+  "excluded_statement_artifacts": [
+    "attestation.junit.xml",
+    "evidence-manifest.json",
+    "recovery.attestation.json"
+  ],
+  "root_scope": "attestation-directory",
+  "schema_version": "flashpilot-evidence-manifest-v1"
+}

@@ -1,0 +1,92 @@
+{
+  "accepted_actions": [
+    "persist_optimizer_state",
+    "persist_scheduler_state",
+    "persist_python_rng_state",
+    "persist_numpy_rng_state",
+    "persist_torch_rng_state",
+    "restore_state_before_next_batch"
+  ],
+  "attempt_number": 1,
+  "decisions": [
+    {
+      "action": "change_supported_checkpoint_strategy",
+      "disposition": "unsupported",
+      "evidence_ids": [
+        "contract:mandatory-state"
+      ],
+      "reason": "Known action is unsupported by NativePyTorchAdapter in P0."
+    },
+    {
+      "action": "persist_optimizer_state",
+      "disposition": "accepted",
+      "evidence_ids": [
+        "restore:optimizer-state",
+        "contract:mandatory-state",
+        "trajectory:final-trainable",
+        "trajectory:loss-history"
+      ],
+      "reason": "Typed action is supported and linked to request evidence."
+    },
+    {
+      "action": "persist_scheduler_state",
+      "disposition": "accepted",
+      "evidence_ids": [
+        "restore:scheduler-state",
+        "contract:mandatory-state",
+        "trajectory:final-trainable",
+        "trajectory:loss-history"
+      ],
+      "reason": "Typed action is supported and linked to request evidence."
+    },
+    {
+      "action": "persist_python_rng_state",
+      "disposition": "accepted",
+      "evidence_ids": [
+        "restore:python-rng",
+        "contract:mandatory-state"
+      ],
+      "reason": "Typed action is supported and linked to request evidence."
+    },
+    {
+      "action": "persist_numpy_rng_state",
+      "disposition": "accepted",
+      "evidence_ids": [
+        "restore:numpy-rng",
+        "contract:mandatory-state"
+      ],
+      "reason": "Typed action is supported and linked to request evidence."
+    },
+    {
+      "action": "persist_torch_rng_state",
+      "disposition": "accepted",
+      "evidence_ids": [
+        "restore:torch-rng",
+        "contract:mandatory-state",
+        "trajectory:final-trainable",
+        "trajectory:final-evaluation",
+        "trajectory:loss-history"
+      ],
+      "reason": "Typed action is supported and linked to request evidence."
+    },
+    {
+      "action": "restore_state_before_next_batch",
+      "disposition": "accepted",
+      "evidence_ids": [
+        "restore:optimizer-state",
+        "restore:scheduler-state",
+        "restore:python-rng",
+        "restore:numpy-rng",
+        "restore:torch-rng",
+        "process:next-step"
+      ],
+      "reason": "Typed action is supported and linked to request evidence."
+    }
+  ],
+  "execution_performed": false,
+  "rejected_actions": [],
+  "schema_version": "repair-plan-validation-v1",
+  "unsupported_actions": [
+    "change_supported_checkpoint_strategy"
+  ]
+}

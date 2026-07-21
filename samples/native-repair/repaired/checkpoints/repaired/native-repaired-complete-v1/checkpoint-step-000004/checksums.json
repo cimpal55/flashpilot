@@ -1,0 +1,30 @@
+{
+  "schema_version": "checksums-v1",
+  "files": [
+    {
+      "path": "adapter.pt",
+      "sha256": "cc6681b215e8106c3801b59582e57e2a6c73d96a54b97e398ece8aa186859bf1",
+      "size_bytes": 2781
+    },
+    {
+      "path": "optimizer.pt",
+      "sha256": "ce1a57f6b5ed144f5ffed0a73b27cda66f49caa19f06124984dbb9eedabf4baf",
+      "size_bytes": 5795
+    },
+    {
+      "path": "rng.pt",
+      "sha256": "71ed181a88f9f4250fa37088ace6e502308b66f72dae3e4c085514511630f97e",
+      "size_bytes": 14285
+    },
+    {
+      "path": "scheduler.pt",
+      "sha256": "4b06758dd8c53f4479c37b7e5b5ff7a5850408ec7e9a519d30c58cb8b61a6759",
+      "size_bytes": 1465
+    },
+    {
+      "path": "state.json",
+      "sha256": "42f0ffd09aff687c6d363e67efdb6b4093bc30b5feb1955ac94ad455352b19a1",
+      "size_bytes": 857
+    }
+  ]
+}

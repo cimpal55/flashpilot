@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FlashPilot — resume qualification report</title>
+    <meta
+      name="description"
+      content="Frameworks save checkpoints. FlashPilot proves they can safely resume — and issues a portable, independently re-verifiable attestation of that proof."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0A0E15" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="FlashPilot — resume qualification" />
+    <meta
+      property="og:description"
+      content="Six real checkpoint-recovery runs, rendered and re-verified in your browser. A checkpoint that loads is not a checkpoint that resumes."
+    />
+    <meta name="twitter:card" content="summary" />
+
+    <!-- Webfonts are progressive enhancement only: the page is fully styled by
+         the fallback stack in tokens.css when there is no network. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+
+    <link rel="stylesheet" href="./src/design/tokens.css" />
+    <link rel="stylesheet" href="./src/design/base.css" />
+    <link rel="stylesheet" href="./src/design/components.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230A0E15'/%3E%3Cpath d='M9 22V10h13' stroke='%2333D69F' stroke-width='3' fill='none'/%3E%3Cpath d='M9 16h9' stroke='%234ECDE0' stroke-width='3'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="padding: 2rem; color: #e7edf4">
+        This report re-verifies evidence hashes in your browser, which requires
+        JavaScript. The same data is readable as plain files under
+        <code>samples/</code> in the repository.
+      </p>
+    </noscript>
+    <script type="module">
+      import { mount } from "./src/app.js";
+      mount(document.getElementById("root"));
+    </script>
+  </body>
+</html>
