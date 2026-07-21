@@ -2,7 +2,7 @@
  * process reality, metrics, provenance and the trust boundary. */
 
 import { h, shortHash } from "../lib/dom.js";
-import { panel, pill, verdictStamp, metric, metricGrid, taxonomyPill, btn } from "../components/kit.js";
+import { panel, pill, verdictStamp, metric, metricGrid, taxonomyPill, btn, stateClass } from "../components/kit.js";
 import { gateReadout, trajectoryLanes, provenanceHashes, trustPanel, processReadout } from "../components/blocks.js";
 import { sha256Hex } from "../lib/hash.js";
 
@@ -12,6 +12,7 @@ export function renderReport(run) {
     { class: "stack" },
     headline(run),
     verdictSummary(run),
+    whyItFailed(run),
     run.staticOnly ? staticOnlyBanner() : null,
     panel(
       "Recovery gate",
@@ -196,6 +197,58 @@ function portableArtifact(run) {
         )
       : null,
   );
+}
+
+/**
+ * "Why it failed", derived deterministically from the first three failed gate
+ * checks in the order the core recorded them. No ranking heuristic, no
+ * generated prose, no model: the same run always yields the same summary.
+ */
+function whyItFailed(run) {
+  if (run.state !== "fail") return null;
+  const failed = run.gate.checks.filter((c) => c.state === "fail");
+  if (failed.length === 0) return null;
+  const shown = failed.slice(0, 3);
+  const rest = failed.length - shown.length;
+
+  return panel(
+    "Why it failed",
+    { actions: pill(`${failed.length} failing`, "fail") },
+    h(
+      "p",
+      { class: "lede", style: "margin-bottom:var(--s-4)" },
+      "The first ",
+      String(shown.length),
+      " failed requirements, in the order the gate recorded them.",
+    ),
+    ...shown.map((check) =>
+      h(
+        "div",
+        { class: `compare-metric ${stateClass("fail")}` },
+        h(
+          "span",
+          {},
+          h("span", { text: check.label }),
+          h("div", { class: "check-id mono", text: check.id }),
+        ),
+        h("span", {
+          class: "v",
+          title: `expected ${check.expected}\nactual ${check.actual}`,
+          text: `expected ${abbreviate(check.expected)} · got ${abbreviate(check.actual)}`,
+        }),
+      ),
+    ),
+    rest > 0
+      ? h("p", { class: "lede", style: "margin-top:var(--s-3)", text: `${rest} further requirement${rest === 1 ? "" : "s"} also failed — see the full gate readout below.` })
+      : null,
+  );
+}
+
+function abbreviate(value) {
+  if (value === null || value === undefined) return "—";
+  const text = String(value);
+  if (/^[0-9a-f]{64}$/i.test(text)) return shortHash(text, 8, 4);
+  return text.length > 40 ? `${text.slice(0, 38)}…` : text;
 }
 
 function staticOnlyBanner() {

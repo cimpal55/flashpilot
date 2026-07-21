@@ -1,6 +1,9 @@
 /* Hash router. Hash routing (not history routing) is what lets the same build
- * work unchanged from file://, from `python -m http.server`, and from GitHub
- * Pages without any server-side rewrite rules. */
+ * work unchanged from `python -m http.server` and from GitHub Pages without any
+ * server-side rewrite rules or a per-route 404 fallback.
+ *
+ * It does NOT make the page work from file:// — ES modules are fetched under
+ * CORS and a file:// origin is opaque, so any static server is required. */
 
 const listeners = new Set();
 

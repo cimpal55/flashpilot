@@ -2,6 +2,20 @@
 
 FlashPilot is a checkpoint recovery qualification and verification harness that proves whether a training checkpoint can resume correctly after a real process failure.
 
+## Try it — no install
+
+**[Open the FlashPilot sandbox →](https://cimpal55.github.io/flashpilot/)**
+
+Real qualification runs in your browser. Nothing to install. Start with the pair
+that carries the argument: two Hugging Face checkpoints from the same training
+script, both of which load without an error — and only one of which can actually
+resume the run it claims to continue.
+
+Then re-verify the proof yourself. The page recomputes SHA-256 over the raw
+evidence bytes using your browser's own Web Crypto, and lets you corrupt any file
+to watch the check fail closed. It renders and re-verifies; it never computes a
+verdict.
+
 It complements—rather than replaces—PyTorch, Hugging Face, DeepSpeed, NeMo,
 and their checkpoint implementations. P0 qualifies one controlled CPU-only
 native-PyTorch workflow through real termination, new-process restore, exact

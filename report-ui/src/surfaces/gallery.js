@@ -5,6 +5,7 @@ import { h } from "../lib/dom.js";
 import { RUNS, HERO_PAIR, getRun } from "../lib/bundle.js";
 import { panel, pill, stateClass, btn, metricGrid, metric } from "../components/kit.js";
 
+
 function runCard(run) {
   return h(
     "a",
@@ -53,6 +54,12 @@ export function renderGallery() {
         "and a real resume in a new process. This page renders those artifacts and re-verifies their ",
         "hashes in your browser. It never computes a verdict of its own.",
       ),
+      h(
+        "div",
+        { class: "row", style: "margin-top:var(--s-4)" },
+        btn("Start the proof", { href: "#/compare", primary: true }),
+        btn("Explore all runs", { href: "#all-runs" }),
+      ),
     ),
 
     metricGrid(
@@ -84,7 +91,11 @@ export function renderGallery() {
         )
       : null,
 
-    panel("All runs", {}, h("div", { class: "card-grid" }, ...RUNS.map(runCard))),
+    h(
+      "div",
+      { id: "all-runs" },
+      panel("All runs", {}, h("div", { class: "card-grid" }, ...RUNS.map(runCard))),
+    ),
   );
 }
 

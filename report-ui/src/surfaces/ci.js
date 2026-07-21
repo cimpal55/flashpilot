@@ -1,26 +1,24 @@
 /* CI surface — the same evidence as a pull-request check.
  *
- * The JUnit XML rendered here is the exact file the CLI wrote; it is parsed in
- * the browser, not re-derived. Exit codes come from flashpilot.ci.exits. */
+ * Hard rule for this surface: every value shown must have been RECORDED by the
+ * core. The UI does not derive exit codes, does not decide merges, and does not
+ * infer a policy verdict. Where the core recorded nothing, this page says so
+ * rather than computing a plausible-looking substitute.
+ *
+ * The JUnit XML is the exact file the CLI wrote, parsed in the browser. */
 
 import { h } from "../lib/dom.js";
-import { panel, pill, banner, metric, metricGrid, stateClass, btn } from "../components/kit.js";
-import { getRun, HERO_PAIR } from "../lib/bundle.js";
+import { panel, pill, banner, metric, metricGrid, stateClass } from "../components/kit.js";
 
-/** Copied from src/flashpilot/ci/exits.py — the contract CI actually branches on. */
-const EXIT_CODES = {
-  0: { name: "VERIFIED", state: "pass", merge: "allowed", note: "Recovery was proven end to end." },
-  2: { name: "REVIEW", state: "unknown", merge: "held", note: "Evidence needs a human decision." },
-  3: { name: "QUALIFICATION FAILED", state: "fail", merge: "blocked", note: "A required capability was not met." },
-  4: { name: "INVALID EVIDENCE", state: "fail", merge: "blocked", note: "Evidence did not verify — never treated as a pass." },
-  5: { name: "UNSUPPORTED", state: "unknown", merge: "blocked", note: "Layout or framework was not recognised." },
-};
-
-function exitCodeFor(run) {
-  if (run.state === "pass") return 0;
-  if (run.state === "fail") return 3;
-  return 5;
-}
+/** Documented in src/flashpilot/ci/exits.py. Shown as a reference table only —
+ *  this page never selects a code on a run's behalf. */
+const EXIT_CODES = [
+  [0, "VERIFIED", "pass", "Recovery was proven end to end."],
+  [2, "REVIEW", "unknown", "Evidence needs a human decision."],
+  [3, "QUALIFICATION FAILED", "fail", "A required capability was not met."],
+  [4, "INVALID EVIDENCE", "fail", "Evidence did not verify — never treated as a pass."],
+  [5, "UNSUPPORTED", "unknown", "Layout or framework was not recognised."],
+];
 
 function parseJUnit(xml) {
   if (!xml) return null;
@@ -55,8 +53,6 @@ function parseJUnit(xml) {
 export function renderCi(run) {
   const suite = parseJUnit(run.junit);
   const attSuite = parseJUnit(run.attestationJunit);
-  const code = exitCodeFor(run);
-  const exit = EXIT_CODES[code];
 
   return h(
     "div",
@@ -64,36 +60,19 @@ export function renderCi(run) {
     h(
       "header",
       { class: "stack-tight" },
-      h("p", { class: "eyebrow", text: "continuous integration · pull-request check" }),
-      h("h1", { text: "Blocking a bad policy before an expensive run" }),
+      h("p", { class: "eyebrow", text: "continuous integration · recorded evidence" }),
+      h("h1", { text: "The same evidence, as a pull-request check" }),
       h(
         "p",
         { class: "lede" },
         "The same typed evidence drives the local CLI and the CI check. Nothing is re-decided here: ",
-        "the annotations below come from the JUnit file the run emitted.",
+        "every value below was written by the run that produced it.",
       ),
     ),
 
-    banner(
-      exit.state,
-      h(
-        "div",
-        {},
-        h("strong", { text: `exit ${code} · ${exit.name} — merge ${exit.merge}. ` }),
-        exit.note,
-      ),
-    ),
-
-    metricGrid(
-      metric("Requirements", suite ? String(suite.tests) : "—"),
-      metric("Failing", suite ? String(suite.failures) : "—", {
-        state: suite?.failures ? "fail" : "pass",
-      }),
-      metric("Exit code", String(code), { state: exit.state }),
-      metric("Merge", exit.merge, { state: exit.merge === "allowed" ? "pass" : "fail" }),
-    ),
-
-    mergeGate(run),
+    verdictBanner(run),
+    suiteMetrics(run, suite),
+    policyPanel(run),
 
     suite
       ? panel(
@@ -111,85 +90,140 @@ export function renderCi(run) {
         )
       : null,
 
-    run.jobSummary ? panel("Job summary (as posted to the run)", {}, jobSummary(run.jobSummary)) : null,
+    run.jobSummary ? panel("Job summary (as written by the run)", {}, jobSummary(run.jobSummary)) : null,
 
     panel(
       "Exit-code contract",
       {},
       h(
-        "div",
-        {},
-        ...Object.entries(EXIT_CODES).map(([value, meta]) =>
-          h(
-            "div",
-            { class: `compare-metric ${stateClass(meta.state)}` },
-            h(
-              "span",
-              {},
-              h("span", { class: "mono", text: `exit ${value} · ${meta.name}` }),
-              h("div", { class: "lede", style: "font-size:var(--step--1)", text: meta.note }),
-            ),
-            h("span", { class: "v", text: `merge ${meta.merge}` }),
-          ),
-        ),
+        "p",
+        { class: "lede", style: "margin-bottom:var(--s-4)" },
+        "The codes FlashPilot's CI entrypoints return, from ",
+        h("span", { class: "mono", text: "src/flashpilot/ci/exits.py" }),
+        ". This is reference documentation — this page does not assign a code to any run.",
+      ),
+      ...EXIT_CODES.map(([value, name, state, note]) =>
         h(
-          "p",
-          { class: "lede", style: "margin-top:var(--s-4)" },
-          "UNKNOWN and INVALID EVIDENCE both block. There is no exit code that turns an unproven ",
-          "checkpoint into a passing check.",
+          "div",
+          { class: `compare-metric ${stateClass(state)}` },
+          h(
+            "span",
+            {},
+            h("span", { class: "mono", text: `exit ${value} · ${name}` }),
+            h("div", { class: "lede", style: "font-size:var(--step--1)", text: note }),
+          ),
+          h("span", { class: "v", text: state === "pass" ? "merge allowed" : "merge blocked" }),
         ),
+      ),
+      h(
+        "p",
+        { class: "lede", style: "margin-top:var(--s-4)" },
+        "UNKNOWN and INVALID EVIDENCE both block. There is no code that turns an unproven ",
+        "checkpoint into a passing check.",
       ),
     ),
   );
 }
 
-function mergeGate(current) {
-  const [failId, passId] = HERO_PAIR;
-  const failRun = getRun(failId);
-  const passRun = getRun(passId);
-  if (!failRun || !passRun) return null;
-
-  const column = (run) => {
-    const code = exitCodeFor(run);
-    const exit = EXIT_CODES[code];
-    return h(
+/** The gate verdict, copied. No exit code is inferred from it. */
+function verdictBanner(run) {
+  const copy =
+    run.state === "pass"
+      ? "The recovery gate passed. Every requirement below was met."
+      : run.state === "fail"
+        ? "The recovery gate failed. The failing requirements are listed below."
+        : "The gate did not reach a verdict. UNKNOWN is never rendered as a pass.";
+  return banner(
+    run.state,
+    h(
       "div",
-      { class: `compare-col ${stateClass(run.state)}` },
-      h("div", { class: "row", style: "justify-content:space-between" }, h("strong", { text: run.verdict }), pill(`exit ${code}`, run.state)),
-      h("h3", { text: run.title, style: "margin-top:var(--s-2)" }),
+      {},
+      h("strong", { text: `Recovery gate: ${run.verdict}. ` }),
+      copy,
+    ),
+  );
+}
+
+function suiteMetrics(run, suite) {
+  return metricGrid(
+    metric("Requirements", suite ? String(suite.tests) : String(run.gate.total || "—")),
+    metric("Failing", suite ? String(suite.failures) : String(run.gate.failedCount), {
+      state: (suite ? suite.failures : run.gate.failedCount) ? "fail" : "pass",
+    }),
+    metric("Gate verdict", run.verdict, { state: run.state }),
+    metric("Attestation", run.attestation ? "issued" : "withheld", {
+      state: run.attestation ? "pass" : "unknown",
+    }),
+  );
+}
+
+/**
+ * Organization-policy evaluation.
+ *
+ * Rendered only from a recorded `organization-policy-evaluation.json`. When the
+ * run carries none, this states that plainly. An absent policy evaluation is
+ * not a passing one, and it is not something this page may reconstruct.
+ */
+function policyPanel(run) {
+  const evaluation = run.policyEvaluation;
+
+  if (!evaluation) {
+    return panel(
+      "Organization policy",
+      { actions: pill("not evaluated", "unknown") },
       h(
-        "div",
-        { class: "compare-metric" },
-        h("span", { text: "Persistence policy" }),
-        h("span", { class: "v", text: run.scenario ?? "—" }),
+        "p",
+        { class: "lede" },
+        "This run carries no organization-policy evaluation, so none is shown. The policy verdict, ",
+        "its exit code, and the resulting merge decision are produced by ",
+        h("span", { class: "mono", text: "flashpilot enforce-organization-policy" }),
+        " and are only displayed here when that command has actually written them into the run.",
       ),
       h(
-        "div",
-        { class: "compare-metric" },
-        h("span", { text: "Failing requirements" }),
-        h("span", { class: "v", text: String(run.gate.failedCount) }),
+        "p",
+        { class: "lede", style: "margin-top:var(--s-3)" },
+        "The checkpoint-content difference between the samples in this sandbox is a difference in ",
+        "what each callback persists — not an organization-policy change, and it is not presented as one.",
       ),
-      h(
-        "div",
-        { class: "compare-metric" },
-        h("span", { text: "Merge" }),
-        h("span", { class: "v", text: exit.merge }),
-      ),
-      run.id === current.id ? null : btn("Open this check", { href: `#/run/${run.id}/ci` }),
     );
-  };
+  }
+
+  // Every field below is copied verbatim from the recorded evaluation.
+  const passed = evaluation.passed === true;
+  const state = passed ? "pass" : "fail";
+  const requirements = Array.isArray(evaluation.requirements) ? evaluation.requirements : [];
 
   return panel(
-    "The policy regression, as CI sees it",
-    {},
-    h(
-      "p",
-      { class: "lede", style: "margin-bottom:var(--s-4)" },
-      "Same training script, same gate, one difference: what the checkpoint callback persists. ",
-      "Dropping optimizer, scheduler and RNG state still produces a checkpoint that loads — and a ",
-      "check that blocks the merge.",
+    "Organization policy",
+    { actions: pill(passed ? "PASS" : "FAIL", state) },
+    metricGrid(
+      metric("Policy verdict", passed ? "PASS" : "FAIL", { state }),
+      metric("Exit code", String(evaluation.exit_code ?? "—"), { state }),
+      metric("Requirements", `${requirements.filter((r) => r.passed).length}/${requirements.length}`, {
+        state,
+      }),
+      metric("Merge", evaluation.merge_decision ?? (passed ? "allowed" : "blocked"), { state }),
     ),
-    h("div", { class: "compare" }, column(passRun), column(failRun)),
+    h(
+      "div",
+      { style: "margin-top:var(--s-4)" },
+      h("div", { class: "gate-group-title", text: `${evaluation.organization_id ?? "organization"} · ${evaluation.policy_id ?? "policy"}` }),
+      ...requirements.map((req) =>
+        h(
+          "div",
+          { class: `compare-metric ${stateClass(req.passed ? "pass" : "fail")}` },
+          h(
+            "span",
+            {},
+            h("span", { class: "mono", text: req.requirement_id ?? "requirement" }),
+            req.summary
+              ? h("div", { class: "lede", style: "font-size:var(--step--1)", text: req.summary })
+              : null,
+          ),
+          h("span", { class: "v", text: req.passed ? "PASS" : "FAIL" }),
+        ),
+      ),
+    ),
   );
 }
 
@@ -226,7 +260,8 @@ function jobSummary(markdown) {
     if (!line.trim()) continue;
     if (line.startsWith("## ")) nodes.push(h("h3", { text: line.slice(3), style: "margin-top:var(--s-4)" }));
     else if (line.startsWith("# ")) nodes.push(h("h3", { text: line.slice(2) }));
-    else if (line.startsWith("- ")) nodes.push(h("div", { class: "mono", style: "color:var(--ink-muted)", text: line.slice(2).replace(/[`*]/g, "") }));
+    else if (line.startsWith("- "))
+      nodes.push(h("div", { class: "mono", style: "color:var(--ink-muted)", text: line.slice(2).replace(/[`*]/g, "") }));
     else nodes.push(h("p", { class: "lede", text: line.replace(/[`*]/g, "") }));
   }
   return h("div", { class: "stack-tight" }, ...nodes);

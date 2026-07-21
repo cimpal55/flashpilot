@@ -188,10 +188,14 @@ def copy_sample(spec: Sample, runs_root: Path) -> Path:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(origin, target)
 
+    # newline="\n" everywhere: samples/ and bundles.js are marked -text in
+    # .gitattributes, so a platform-dependent line ending would make
+    # regeneration produce a spurious diff on Linux CI.
     (dest / "SOURCE.txt").write_text(
         f"Copied verbatim from runs/{spec.source} of the FlashPilot core repository.\n"
         "No value in this directory was edited, regenerated, or synthesised.\n",
         encoding="utf-8",
+        newline="\n",
     )
     return dest
 
@@ -211,6 +215,14 @@ def build_bundle(spec: Sample, dest: Path) -> dict:
         base64.b64encode(att_path.read_bytes()).decode("ascii") if att_path.is_file() else None
     )
 
+    # The manifest's own bytes, so the browser can bind the inventory to the
+    # attestation's evidence_manifest_sha256 rather than trusting that they
+    # refer to the same manifest.
+    man_path = dest / "evidence-manifest.json"
+    manifest_raw = (
+        base64.b64encode(man_path.read_bytes()).decode("ascii") if man_path.is_file() else None
+    )
+
     return {
         "id": spec.sample_id,
         "title": spec.title,
@@ -221,9 +233,15 @@ def build_bundle(spec: Sample, dest: Path) -> dict:
         "result": core,
         "attestation": read_json(dest / "recovery.attestation.json"),
         "attestation_raw": attestation_raw,
+        "manifest_raw": manifest_raw,
         "manifest": manifest,
         "contract": read_json(dest / "persistence-contract.json"),
         "environment": read_json(dest / "environment.json"),
+        # Organization-policy evaluations are consumed only if the core actually
+        # emitted them into the run directory. Nothing here synthesises a policy
+        # verdict, an exit code, or a merge decision.
+        "policy_evaluation": read_json(dest / "organization-policy-evaluation.json"),
+        "policy_junit": read_text(dest / "organization-policy.junit.xml"),
         "junit": read_text(dest / "junit.xml"),
         "attestation_junit": read_text(dest / "attestation.junit.xml"),
         "job_summary": read_text(dest / "job-summary.md"),
@@ -261,6 +279,7 @@ def main() -> None:
         "// samples/. Every value here is copied; none is computed by the UI.\n"
         f"export const BUNDLES = {payload};\n",
         encoding="utf-8",
+        newline="\n",
     )
     size_kb = round(BUNDLE_OUT.stat().st_size / 1024)
     print(f"\nwrote {BUNDLE_OUT.relative_to(REPO)} ({size_kb} KB)")

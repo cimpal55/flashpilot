@@ -22,7 +22,7 @@ exactly what gets deployed — plain ES modules and CSS custom properties.
 | Re-verification | SHA-256 over **raw evidence bytes** via the browser's Web Crypto, compared to the manifest the core wrote |
 | Failure mode | fails closed — unknown, missing, path-escaping and hash-mismatched evidence all render as not-a-pass |
 | Network | none. Sample bytes are embedded; webfonts are optional progressive enhancement with a full fallback stack |
-| Backend | none. Hash routing means the same files work from `file://`, a local server, and GitHub Pages |
+| Backend | none. Hash routing means the same files work from any static server and from GitHub Pages with no rewrite rules. A static server *is* required: ES modules will not load from `file://` |
 
 Raw-byte hashing is deliberately independent of FlashPilot's JSON
 canonicalisation, so the check can be reasoned about without knowing the core's

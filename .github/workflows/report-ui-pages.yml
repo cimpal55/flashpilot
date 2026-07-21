@@ -1,27 +1,30 @@
 name: report-ui
 
-# Publishes the static report UI to GitHub Pages, but only after the sample
-# corpus has been re-verified. A bundle whose evidence does not hash correctly
-# is never deployed — the site fails closed the same way the UI does.
+# Verification runs on every pull request touching the UI. Deployment happens
+# only on a push to main, and only after verification passes — a bundle whose
+# evidence does not re-hash correctly is never published.
 
 on:
+  pull_request:
+    paths:
+      - "report-ui/**"
+      - "samples/**"
+      - "tools/**"
+      - ".github/workflows/report-ui-pages.yml"
   push:
     branches: [main]
     paths:
       - "report-ui/**"
       - "samples/**"
-      - "tools/build_samples.py"
-      - "tools/verify_samples.py"
+      - "tools/**"
       - ".github/workflows/report-ui-pages.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: report-ui-pages
+  group: report-ui-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,22 +32,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Re-verify the sample evidence
         run: python tools/verify_samples.py
+
+      - name: Verifier unit tests
+        run: node --test report-ui/tests/hash.test.mjs
+
       - name: Check the UI ships only static assets
         run: |
-          if grep -rniE 'https?://(?!fonts\.(googleapis|gstatic)\.com)' report-ui/index.html report-ui/src --include='*.js' --include='*.css' --include='*.html' -P; then
+          if grep -rniE 'https?://(?!fonts\.(googleapis|gstatic)\.com)' \
+              report-ui/index.html report-ui/src \
+              --include='*.js' --include='*.css' --include='*.html' -P; then
             echo "::error::report-ui references an external origin other than the optional webfont host"
             exit 1
           fi
           echo "no unexpected external origins"
 
   deploy:
+    # Publishing is gated on both verification and the branch: pull requests
+    # from forks must never be able to deploy.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

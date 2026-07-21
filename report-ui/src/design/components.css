@@ -384,6 +384,54 @@ button.evidence-row-btn[aria-pressed="true"] {
   border-radius: var(--radius);
 }
 
+/* ---- Trust ladder ------------------------------------------------------- */
+
+.ladder-rung {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.ladder-rung:last-child {
+  border-bottom: 0;
+}
+.rung-tick {
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 2px;
+  background: var(--state);
+}
+.rung-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.rung-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+.rung-value {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  letter-spacing: 0.08em;
+  color: var(--state);
+}
+.rung-question {
+  color: var(--ink-muted);
+  font-size: var(--step--1);
+  margin-top: 2px;
+}
+.rung-by {
+  color: var(--ink-faint);
+  font-size: var(--step--1);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
 /* ---- Loss chart --------------------------------------------------------- */
 
 .traj-chart {
