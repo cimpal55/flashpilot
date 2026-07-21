@@ -44,6 +44,8 @@ def render_organization_policy_junit(evaluation: OrganizationPolicyEvaluationV1)
         ("repository_policy_id", evaluation.repository_policy_id),
         ("repository_policy_sha256", evaluation.repository_policy_sha256),
         ("passed", str(evaluation.passed).lower()),
+        ("exit_code", str(evaluation.exit_code)),
+        ("merge_decision", evaluation.merge_decision),
     ):
         ElementTree.SubElement(properties, "property", {"name": name, "value": value})
     repository_by_requirement = {
@@ -91,6 +93,8 @@ def render_organization_policy_summary(evaluation: OrganizationPolicyEvaluationV
         "# FlashPilot organization qualification policy",
         "",
         f"- Outcome: **{'PASS' if evaluation.passed else 'FAIL'}**",
+        f"- Exit code: `{evaluation.exit_code}`",
+        f"- Merge: **{evaluation.merge_decision}**",
         f"- Organization: `{evaluation.organization_id}`",
         f"- Organization policy: `{evaluation.policy_id}`",
         f"- Scope: `{evaluation.scope_id}`",

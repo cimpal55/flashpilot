@@ -573,12 +573,28 @@
       "title": "Checks",
       "type": "array"
     },
+    "exit_code": {
+      "enum": [
+        0,
+        3
+      ],
+      "title": "Exit Code",
+      "type": "integer"
+    },
     "failed_check_ids": {
       "items": {
         "type": "string"
       },
       "title": "Failed Check Ids",
       "type": "array"
+    },
+    "merge_decision": {
+      "enum": [
+        "allowed",
+        "blocked"
+      ],
+      "title": "Merge Decision",
+      "type": "string"
     },
     "organization_id": {
       "maxLength": 80,
@@ -651,6 +667,8 @@
     "repository_policy_evaluation_sha256",
     "repository_policy_evaluation",
     "passed",
+    "exit_code",
+    "merge_decision",
     "checks",
     "requirements",
     "failed_check_ids"

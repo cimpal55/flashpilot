@@ -15,6 +15,7 @@ from flashpilot.ci.exits import (
     EXIT_INVALID_EVIDENCE,
     EXIT_QUALIFICATION_FAILED,
     EXIT_UNSUPPORTED,
+    EXIT_VERIFIED,
 )
 from flashpilot.ci.models import CICheck, CICheckStatus, CIRunEvidence, CIStatus
 from flashpilot.ci.organization_policy import (
@@ -589,3 +590,111 @@ def test_checked_in_organization_policy_schemas_match_generators() -> None:
     for filename, expected in organization_policy_schema_documents().items():
         actual = json.loads((Path("schemas") / filename).read_text(encoding="utf-8"))
         assert actual == expected
+
+
+def test_passing_evaluation_records_exit_code_and_merge_decision() -> None:
+    organization = _organization_policy(_runtime_requirement(max_rto_seconds=60))
+    repository = QualificationPolicyV1(
+        policy_id="repository-suite",
+        requirements=(_runtime_requirement(max_rto_seconds=30),),
+    )
+    evaluation = _evaluate(organization, repository, _repository_evaluation(repository))
+
+    assert evaluation.passed is True
+    assert evaluation.exit_code == EXIT_VERIFIED
+    assert evaluation.merge_decision == "allowed"
+
+
+def test_failing_evaluation_records_blocking_exit_code_and_merge_decision() -> None:
+    organization = _organization_policy(_runtime_requirement(max_rpo_steps=0, max_rto_seconds=60))
+    repository = QualificationPolicyV1(
+        policy_id="repository-suite",
+        requirements=(_runtime_requirement(max_rpo_steps=5, max_rto_seconds=600),),
+    )
+    evaluation = _evaluate(organization, repository, _repository_evaluation(repository))
+
+    assert evaluation.passed is False
+    assert evaluation.exit_code == EXIT_QUALIFICATION_FAILED
+    assert evaluation.merge_decision == "blocked"
+
+
+def _mutated_evaluation(evaluation: OrganizationPolicyEvaluationV1, **overrides: object) -> dict:
+    payload = evaluation.model_dump(mode="json")
+    payload.update(overrides)
+    return payload
+
+
+def test_passing_verdict_with_blocking_exit_code_is_rejected() -> None:
+    organization = _organization_policy(_runtime_requirement(max_rto_seconds=60))
+    repository = QualificationPolicyV1(
+        policy_id="repository-suite",
+        requirements=(_runtime_requirement(max_rto_seconds=30),),
+    )
+    evaluation = _evaluate(organization, repository, _repository_evaluation(repository))
+
+    with pytest.raises(ValidationError):
+        OrganizationPolicyEvaluationV1.model_validate(
+            _mutated_evaluation(evaluation, exit_code=EXIT_QUALIFICATION_FAILED)
+        )
+
+
+def test_failing_verdict_with_allowed_merge_is_rejected() -> None:
+    organization = _organization_policy(_runtime_requirement(max_rpo_steps=0, max_rto_seconds=60))
+    repository = QualificationPolicyV1(
+        policy_id="repository-suite",
+        requirements=(_runtime_requirement(max_rpo_steps=5, max_rto_seconds=600),),
+    )
+    evaluation = _evaluate(organization, repository, _repository_evaluation(repository))
+
+    with pytest.raises(ValidationError):
+        OrganizationPolicyEvaluationV1.model_validate(
+            _mutated_evaluation(evaluation, merge_decision="allowed")
+        )
+
+
+def test_unsupported_exit_codes_and_merge_decisions_are_rejected() -> None:
+    organization = _organization_policy(_runtime_requirement(max_rto_seconds=60))
+    repository = QualificationPolicyV1(
+        policy_id="repository-suite",
+        requirements=(_runtime_requirement(max_rto_seconds=30),),
+    )
+    evaluation = _evaluate(organization, repository, _repository_evaluation(repository))
+
+    for override in ({"exit_code": 2}, {"exit_code": 4}, {"merge_decision": "review"}):
+        with pytest.raises(ValidationError):
+            OrganizationPolicyEvaluationV1.model_validate(
+                _mutated_evaluation(evaluation, **override)
+            )
+
+
+def test_evaluation_round_trips_without_change() -> None:
+    organization = _organization_policy(_runtime_requirement(max_rto_seconds=60))
+    repository = QualificationPolicyV1(
+        policy_id="repository-suite",
+        requirements=(_runtime_requirement(max_rto_seconds=30),),
+    )
+    evaluation = _evaluate(organization, repository, _repository_evaluation(repository))
+
+    serialized = json.dumps(evaluation.model_dump(mode="json"), indent=2, sort_keys=True)
+    restored = OrganizationPolicyEvaluationV1.model_validate_json(serialized)
+
+    assert restored == evaluation
+    assert json.dumps(restored.model_dump(mode="json"), indent=2, sort_keys=True) == serialized
+
+
+def test_reporters_publish_the_recorded_merge_decision() -> None:
+    organization = _organization_policy(_runtime_requirement(max_rpo_steps=0, max_rto_seconds=60))
+    repository = QualificationPolicyV1(
+        policy_id="repository-suite",
+        requirements=(_runtime_requirement(max_rpo_steps=5, max_rto_seconds=600),),
+    )
+    evaluation = _evaluate(organization, repository, _repository_evaluation(repository))
+
+    suite = ElementTree.fromstring(render_organization_policy_junit(evaluation))
+    properties = {node.get("name"): node.get("value") for node in suite.iter("property")}
+    assert properties["exit_code"] == str(EXIT_QUALIFICATION_FAILED)
+    assert properties["merge_decision"] == "blocked"
+
+    summary = render_organization_policy_summary(evaluation)
+    assert f"- Exit code: `{EXIT_QUALIFICATION_FAILED}`" in summary
+    assert "- Merge: **blocked**" in summary

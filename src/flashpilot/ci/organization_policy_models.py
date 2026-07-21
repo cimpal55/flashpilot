@@ -13,6 +13,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from flashpilot.ci.exits import EXIT_QUALIFICATION_FAILED, EXIT_VERIFIED
 from flashpilot.ci.models import CICheck, CICheckStatus
 from flashpilot.ci.qualification_policy_models import (
     QualificationPolicyEvaluationV1,
@@ -106,6 +107,11 @@ class OrganizationPolicyEvaluationV1(StrictOrganizationPolicyModel):
     repository_policy_evaluation_sha256: str = Field(pattern=SHA256_PATTERN)
     repository_policy_evaluation: QualificationPolicyEvaluationV1
     passed: bool
+    # Recorded by the core so that no consumer has to re-derive them. A reader
+    # that computes its own merge decision is deciding policy; a reader that
+    # copies these is reporting it.
+    exit_code: Literal[0, 3]
+    merge_decision: Literal["allowed", "blocked"]
     checks: tuple[CICheck, ...] = Field(min_length=1)
     requirements: tuple[OrganizationRequirementEvaluation, ...] = Field(min_length=1)
     failed_check_ids: tuple[str, ...]
@@ -124,6 +130,15 @@ class OrganizationPolicyEvaluationV1(StrictOrganizationPolicyModel):
         failed = tuple(check.check_id for check in checks if check.status is CICheckStatus.FAIL)
         if failed != self.failed_check_ids or self.passed != (not failed):
             raise ValueError("organization policy verdict must derive from every check")
+        # The recorded exit code and merge decision are not independent facts:
+        # they are the verdict restated for CI. Any disagreement is rejected so
+        # a hand-edited artifact cannot present a passing merge on a failed run.
+        expected_exit = EXIT_VERIFIED if self.passed else EXIT_QUALIFICATION_FAILED
+        expected_decision = "allowed" if self.passed else "blocked"
+        if self.exit_code != expected_exit or self.merge_decision != expected_decision:
+            raise ValueError(
+                "organization policy exit code and merge decision must match the verdict"
+            )
         serialized_repository_evaluation = (
             json.dumps(
                 self.repository_policy_evaluation.model_dump(mode="json"),

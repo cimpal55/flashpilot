@@ -335,6 +335,8 @@ def evaluate_organization_policy(
         repository_policy_evaluation_sha256=repository_evaluation_sha256,
         repository_policy_evaluation=repository_evaluation,
         passed=not failed,
+        exit_code=EXIT_VERIFIED if not failed else EXIT_QUALIFICATION_FAILED,
+        merge_decision="allowed" if not failed else "blocked",
         checks=checks,
         requirements=requirements,
         failed_check_ids=failed,
@@ -477,5 +479,7 @@ def enforce_organization_policy(
         junit_path=junit_path,
         job_summary_path=summary_path,
         sarif_path=sarif_path,
-        exit_code=EXIT_VERIFIED if evaluation.passed else EXIT_QUALIFICATION_FAILED,
+        # Single source: the artifact already records this, validated against
+        # the verdict. Recomputing it here could drift from what was persisted.
+        exit_code=evaluation.exit_code,
     )

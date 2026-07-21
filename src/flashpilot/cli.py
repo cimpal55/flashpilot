@@ -1572,6 +1572,7 @@ def enforce_organization_policy_command(
         raise typer.Exit(code=EXIT_INVALID_EVIDENCE) from error
     evaluation = result.evaluation
     typer.echo("ORGANIZATION POLICY " + ("PASS" if evaluation.passed else "FAIL"))
+    typer.echo(f"Merge: {evaluation.merge_decision} (exit {evaluation.exit_code})")
     typer.echo(f"Organization: {evaluation.organization_id}")
     typer.echo(f"Policy ID: {evaluation.policy_id}")
     typer.echo(f"Scope: {evaluation.scope_id}")
