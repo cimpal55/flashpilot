@@ -6,6 +6,9 @@ field, or a CI policy decision.
 """
 
 from flashpilot.telemetry.models import (
+    MAX_OBSERVATION_SECONDS,
+    MIN_OBSERVATION_SECONDS,
+    NVME_COUNTER_GRANULARITY_BYTES,
     STORAGE_TELEMETRY_LIMITATIONS,
     STORAGE_TELEMETRY_PATH,
     StorageTelemetryAvailability,
@@ -22,12 +25,16 @@ from flashpilot.telemetry.service import (
     StorageTelemetryCapture,
     StorageTelemetryError,
     finish_capture,
+    observe,
     read_storage_telemetry,
     start_capture,
     write_storage_telemetry,
 )
 
 __all__ = [
+    "MAX_OBSERVATION_SECONDS",
+    "MIN_OBSERVATION_SECONDS",
+    "NVME_COUNTER_GRANULARITY_BYTES",
     "STORAGE_TELEMETRY_LIMITATIONS",
     "STORAGE_TELEMETRY_PATH",
     "StorageTelemetryAvailability",
@@ -38,6 +45,7 @@ __all__ = [
     "StorageTelemetryEvidenceV1",
     "StorageTelemetrySample",
     "finish_capture",
+    "observe",
     "read_storage_telemetry",
     "start_capture",
     "storage_telemetry_schema_documents",

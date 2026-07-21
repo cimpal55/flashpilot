@@ -1164,3 +1164,46 @@ these counters, and are listed explicitly in the artifact's own limitations.
 Unavailability is the normal case: the collectors require elevated rights on
 both platforms. Absence is recorded as an explicit reason rather than an error,
 and never blocks or degrades a qualification run.
+
+### Storage telemetry hardening
+
+Five corrections were applied before this could be considered production-ready.
+
+**No byte figure at all.** NVMe Data Units Written counts rounded units of
+1000 x 512 bytes. Both ends of an observation window are independently rounded,
+so a unit difference establishes neither a byte count nor a strict lower bound.
+The `host_write_bytes_lower_bound` field was therefore removed rather than
+renamed: the delta is published as a rounded unit count alongside
+`counter_granularity_bytes`, and left uninterpreted. A test asserts no
+byte-valued field exists, because the strongest guarantee against a misleading
+number is having nowhere to put one.
+
+**A real observation window.** Reading both samples back to back measured only
+the cost of reading them. `collect-storage-telemetry --duration-seconds N` now
+holds the window open for a bounded interval (1 to 3600 seconds). The recorded
+`window_seconds` is the actual gap between the two samples, not the requested
+duration. No caller-supplied command runs inside the window.
+
+**A real output cap.** `subprocess.run(capture_output=True)` buffers the entire
+stream before any slicing, which bounds what is retained but not what a broken
+or hostile tool can make the process allocate. Collection now streams through
+`Popen`, aborts once the cap is exceeded, reports `output-limit-exceeded`, and
+terminates the child, escalating to kill if it does not exit.
+
+**Atomic, contained artifact writes.** A plain write follows a symlink planted
+at the target and can leave a truncated file behind. Writes now go through the
+project's existing `PathSandbox`, reject symlinked targets, write to a
+temporary file, fsync, and atomically replace. An existing artifact with
+different content is refused outright rather than silently overwritten, since
+two disagreeing artifacts for one run must not be resolved by preferring the
+newer one.
+
+**Device binding, or nothing.** The Windows collector previously read the first
+physical disk on the system, which need not be the disk holding the run. It now
+resolves volume to partition to physical disk for the drive backing `run_dir`
+and refuses ambiguity. If the link cannot be proven — a UNC path, a
+non-existent directory, more than one candidate disk — the result is
+`device-not-bound` rather than a proxy reading. Resolution requires the
+directory to exist, because resolving a missing path would fall back to the
+current working drive and silently bind to an unrelated device. Collection of
+`Wear` was dropped entirely, since the project makes no wear claim.

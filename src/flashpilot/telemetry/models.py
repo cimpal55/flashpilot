@@ -24,10 +24,18 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 STORAGE_TELEMETRY_PATH = "storage-telemetry.json"
 
-# Counter semantics differ per vendor and per platform. Only counters whose
-# unit is unambiguous are modelled; anything else is reported as unavailable
-# rather than converted with a guessed multiplier.
-NVME_DATA_UNIT_BYTES = 512_000
+# NVMe Data Units Written is a ROUNDED device counter: the spec counts units of
+# 1000 * 512 bytes, incremented per rounded-up unit. A difference of N units
+# therefore does not establish N * 512000 bytes, nor even a strict lower bound,
+# because each end of the window is itself rounded. This constant is published
+# as the counter's granularity so a reader can interpret the unit delta — it is
+# never used to synthesise a byte figure.
+NVME_COUNTER_GRANULARITY_BYTES = 512_000
+
+# Bounds for a real observation window. A window must be long enough to contain
+# something and short enough to stay a bounded, interruptible operation.
+MIN_OBSERVATION_SECONDS = 1
+MAX_OBSERVATION_SECONDS = 3600
 
 
 class StrictTelemetryModel(BaseModel):
@@ -44,7 +52,9 @@ class StorageTelemetryAvailability(StrictTelemetryModel):
         "tool-unavailable",
         "insufficient-privileges",
         "no-supported-device",
+        "device-not-bound",
         "unreadable-counters",
+        "output-limit-exceeded",
         "collection-disabled",
     ]
     detail: str = Field(max_length=500)
@@ -90,14 +100,20 @@ class StorageTelemetrySample(StrictTelemetryModel):
 
 
 class StorageTelemetryDelta(StrictTelemetryModel):
-    """The change between two samples, with its confounders made explicit."""
+    """The change between two samples, with its confounders made explicit.
+
+    There is deliberately no byte field. NVMe Data Units Written is rounded at
+    both ends of the window, so no honest byte count — not even a lower bound —
+    follows from a unit difference. The rounded unit delta is published with its
+    granularity and left uninterpreted.
+    """
 
     schema_version: Literal["flashpilot-storage-telemetry-delta-v1"] = (
         "flashpilot-storage-telemetry-delta-v1"
     )
     window_seconds: float = Field(ge=0.0)
     data_units_written_delta: int | None = Field(default=None, ge=0)
-    host_write_bytes_lower_bound: int | None = Field(default=None, ge=0)
+    counter_granularity_bytes: int | None = Field(default=None, gt=0)
     host_write_commands_delta: int | None = Field(default=None, ge=0)
     unsafe_shutdowns_delta: int | None = Field(default=None, ge=0)
     media_errors_delta: int | None = Field(default=None, ge=0)
@@ -108,14 +124,13 @@ class StorageTelemetryDelta(StrictTelemetryModel):
     counter_wrapped: bool = False
 
     @model_validator(mode="after")
-    def _bytes_follow_units(self) -> Self:
+    def _granularity_accompanies_units(self) -> Self:
         if self.data_units_written_delta is None:
-            if self.host_write_bytes_lower_bound is not None:
-                raise ValueError("host_write_bytes_lower_bound requires data_units_written_delta")
+            if self.counter_granularity_bytes is not None:
+                raise ValueError("counter_granularity_bytes requires data_units_written_delta")
             return self
-        expected = self.data_units_written_delta * NVME_DATA_UNIT_BYTES
-        if self.host_write_bytes_lower_bound != expected:
-            raise ValueError("host_write_bytes_lower_bound must be derived from the unit delta")
+        if self.counter_granularity_bytes != NVME_COUNTER_GRANULARITY_BYTES:
+            raise ValueError("counter_granularity_bytes must be the NVMe counter granularity")
         return self
 
 
@@ -156,6 +171,8 @@ class StorageTelemetryEvidenceV1(StrictTelemetryModel):
 STORAGE_TELEMETRY_LIMITATIONS: tuple[str, ...] = (
     "Host counters are device-wide; concurrent writes by any other process are "
     "included and cannot be separated from this run.",
+    "NVMe Data Units Written is a rounded counter. A unit difference does not "
+    "establish a byte count or a byte lower bound, and none is reported.",
     "Reported values are what the device firmware exposes; FlashPilot does not "
     "verify their accuracy.",
     "No claim is made about NAND wear, write amplification, endurance, or drive "

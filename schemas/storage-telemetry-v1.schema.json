@@ -20,7 +20,9 @@
             "tool-unavailable",
             "insufficient-privileges",
             "no-supported-device",
+            "device-not-bound",
             "unreadable-counters",
+            "output-limit-exceeded",
             "collection-disabled"
           ],
           "title": "Reason",
@@ -110,13 +112,26 @@
     },
     "StorageTelemetryDelta": {
       "additionalProperties": false,
-      "description": "The change between two samples, with its confounders made explicit.",
+      "description": "The change between two samples, with its confounders made explicit.\n\nThere is deliberately no byte field. NVMe Data Units Written is rounded at\nboth ends of the window, so no honest byte count \u2014 not even a lower bound \u2014\nfollows from a unit difference. The rounded unit delta is published with its\ngranularity and left uninterpreted.",
       "properties": {
         "attribution": {
           "const": "device-wide-not-attributable",
           "default": "device-wide-not-attributable",
           "title": "Attribution",
           "type": "string"
+        },
+        "counter_granularity_bytes": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counter Granularity Bytes"
         },
         "counter_wrapped": {
           "default": false,
@@ -135,19 +150,6 @@
           ],
           "default": null,
           "title": "Data Units Written Delta"
-        },
-        "host_write_bytes_lower_bound": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Host Write Bytes Lower Bound"
         },
         "host_write_commands_delta": {
           "anyOf": [

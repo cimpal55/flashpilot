@@ -85,8 +85,10 @@ from flashpilot.registry import (
     verify_attestation_registry,
 )
 from flashpilot.telemetry import (
+    MAX_OBSERVATION_SECONDS,
+    MIN_OBSERVATION_SECONDS,
     StorageTelemetryError,
-    finish_capture,
+    observe,
     start_capture,
     write_storage_telemetry,
 )
@@ -1628,6 +1630,15 @@ def collect_storage_telemetry(
         Path,
         typer.Option(help="Existing run directory to receive storage-telemetry.json."),
     ],
+    duration_seconds: Annotated[
+        int,
+        typer.Option(
+            help=(
+                "Length of the observation window in seconds "
+                f"({MIN_OBSERVATION_SECONDS}-{MAX_OBSERVATION_SECONDS})."
+            ),
+        ),
+    ] = MIN_OBSERVATION_SECONDS,
     device: Annotated[
         str | None,
         typer.Option(help="Explicit NVMe device node to read (Linux only)."),
@@ -1637,11 +1648,16 @@ def collect_storage_telemetry(
 
     This never affects a Recovery Gate check, a qualification verdict, or an
     attestation. Unavailable counters are recorded as unavailable; they are
-    never estimated, and no NAND wear or drive lifetime claim is made.
+    never estimated, and no NAND wear or drive lifetime claim is made. No
+    caller-supplied command is executed during the observation window.
     """
 
-    capture = start_capture(device)
-    evidence = finish_capture(capture)
+    capture = start_capture(device, run_dir=run_dir)
+    try:
+        evidence = observe(capture, duration_seconds)
+    except StorageTelemetryError as error:
+        typer.echo(f"Unsupported observation window: {error}", err=True)
+        raise typer.Exit(code=EXIT_UNSUPPORTED) from error
     try:
         target = write_storage_telemetry(evidence, run_dir)
     except (StorageTelemetryError, OSError, UnicodeError) as error:
@@ -1651,14 +1667,15 @@ def collect_storage_telemetry(
     if evidence.availability.available:
         typer.echo("STORAGE TELEMETRY COLLECTED (supporting evidence only)")
         delta = evidence.delta
-        if delta is not None and delta.host_write_bytes_lower_bound is not None:
+        if delta is not None and delta.data_units_written_delta is not None:
             typer.echo(
-                f"Device-wide host writes during the window: "
-                f"{delta.host_write_bytes_lower_bound} bytes "
-                f"(not attributable to this run)"
+                f"Device-wide NVMe Data Units Written increased by "
+                f"{delta.data_units_written_delta} rounded units "
+                f"({delta.counter_granularity_bytes} bytes per unit) over "
+                f"{delta.window_seconds:.1f}s. This is not attributable to this run."
             )
         else:
-            typer.echo("No host-write byte counter was exposed by this device.")
+            typer.echo("No host-write unit counter was exposed by the bound device.")
     else:
         typer.echo(f"STORAGE TELEMETRY UNAVAILABLE: {evidence.availability.reason}")
         typer.echo(evidence.availability.detail)

@@ -17,7 +17,9 @@ import json
 import shutil
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime
+from pathlib import Path
 
 from flashpilot.telemetry.models import (
     StorageTelemetryAvailability,
@@ -54,23 +56,70 @@ def _unavailable(reason: str, detail: str) -> _CollectorResult:
     )
 
 
+class _OutputLimitExceeded(RuntimeError):
+    """Raised when a collector produced more output than the cap allows."""
+
+
 def _run_readonly(argv: list[str]) -> tuple[int, str] | None:
-    """Run a read-only command as an argument array. Never uses a shell."""
+    """Run a read-only command as an argument array. Never uses a shell.
+
+    Reads stdout incrementally and kills the child as soon as the cap is
+    exceeded. `subprocess.run(capture_output=True)` would buffer the whole
+    stream in memory first and only then allow slicing, which caps the value
+    we keep but not the memory a hostile or broken tool can make us allocate.
+    """
     try:
-        completed = subprocess.run(  # noqa: S603 - fixed argv, no shell, no user input
+        process = subprocess.Popen(  # noqa: S603 - fixed argv, no shell, no user input
             argv,
-            capture_output=True,
-            timeout=COLLECTION_TIMEOUT_SECONDS,
-            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
             shell=False,
         )
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, ValueError):
         return None
-    stdout = completed.stdout[:MAX_COLLECTOR_OUTPUT_BYTES]
+
+    chunks: list[bytes] = []
+    total = 0
+    deadline = time.monotonic() + COLLECTION_TIMEOUT_SECONDS
     try:
-        return completed.returncode, stdout.decode("utf-8", errors="replace")
-    except UnicodeError:
+        assert process.stdout is not None
+        while True:
+            if time.monotonic() > deadline:
+                raise TimeoutError("collector exceeded its timeout")
+            chunk = process.stdout.read(8192)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > MAX_COLLECTOR_OUTPUT_BYTES:
+                raise _OutputLimitExceeded(f"collector exceeded {MAX_COLLECTOR_OUTPUT_BYTES} bytes")
+            chunks.append(chunk)
+        returncode = process.wait(timeout=max(0.0, deadline - time.monotonic()))
+    except _OutputLimitExceeded:
+        _terminate(process)
+        raise
+    except (OSError, ValueError, TimeoutError, subprocess.TimeoutExpired):
+        _terminate(process)
         return None
+    finally:
+        if process.stdout is not None:
+            process.stdout.close()
+
+    return returncode, b"".join(chunks).decode("utf-8", errors="replace")
+
+
+def _terminate(process: subprocess.Popen[bytes]) -> None:
+    """Guarantee the child is gone, escalating from terminate to kill."""
+    if process.poll() is not None:
+        return
+    try:
+        process.terminate()
+        process.wait(timeout=2.0)
+    except (OSError, subprocess.TimeoutExpired):
+        try:
+            process.kill()
+            process.wait(timeout=2.0)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
 
 
 def _coerce_counter(value: object) -> int | None:
@@ -92,7 +141,10 @@ def _collect_linux_nvme(device: str) -> _CollectorResult:
     if shutil.which("nvme") is None:
         return _unavailable("tool-unavailable", "nvme-cli is not installed or not on PATH")
 
-    result = _run_readonly(["nvme", "smart-log", device, "--output-format=json"])
+    try:
+        result = _run_readonly(["nvme", "smart-log", device, "--output-format=json"])
+    except _OutputLimitExceeded as error:
+        return _unavailable("output-limit-exceeded", str(error))
     if result is None:
         return _unavailable(
             "unreadable-counters", f"nvme smart-log could not be executed for {device}"
@@ -137,33 +189,73 @@ def _collect_linux_nvme(device: str) -> _CollectorResult:
     )
 
 
+# Resolves the physical disk that actually backs the given drive letter:
+# volume -> partition -> disk. Selecting the first disk on the system would be
+# a proxy, not a measurement, so an unprovable link must fail closed instead.
 _WINDOWS_COUNTER_SCRIPT = (
     "$ErrorActionPreference='Stop';"
-    "$d=Get-PhysicalDisk | Select-Object -First 1;"
+    "$p=Get-Partition -DriveLetter {drive};"
+    "$d=$p | Get-Disk | Get-PhysicalDisk;"
+    "if(@($d).Count -ne 1){{throw 'ambiguous physical disk'}};"
     "$c=$d | Get-StorageReliabilityCounter;"
-    "[pscustomobject]@{"
+    "[pscustomobject]@{{"
     "DeviceId=$d.FriendlyName;"
-    "PowerOnHours=$c.PowerOnHours;"
-    "Wear=$c.Wear;"
-    "ReadErrorsTotal=$c.ReadErrorsTotal"
-    "} | ConvertTo-Json -Compress"
+    "SerialNumber=$d.SerialNumber;"
+    "PowerOnHours=$c.PowerOnHours"
+    "}} | ConvertTo-Json -Compress"
 )
 
 
-def _collect_windows_reliability() -> _CollectorResult:
+def _windows_drive_letter(run_dir: Path) -> str | None:
+    """The drive letter backing run_dir, or None if it cannot be determined.
+
+    The directory must already exist. Resolving a non-existent path would fall
+    back to the current working drive, silently binding the measurement to a
+    device that has nothing to do with the run.
+    """
+    try:
+        resolved = run_dir.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return None
+    if not resolved.is_dir():
+        return None
+    # "C:" for a local path; a UNC path yields "\\\\server\\share", which is
+    # not a drive letter and is therefore not bindable.
+    drive = resolved.drive
+    if len(drive) == 2 and drive[1] == ":" and drive[0].isalpha():
+        return drive[0].upper()
+    return None
+
+
+def _collect_windows_reliability(run_dir: Path | None) -> _CollectorResult:
     powershell = shutil.which("powershell") or shutil.which("pwsh")
     if powershell is None:
         return _unavailable("tool-unavailable", "PowerShell is not available on PATH")
 
-    result = _run_readonly(
-        [
-            powershell,
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            _WINDOWS_COUNTER_SCRIPT,
-        ]
-    )
+    if run_dir is None:
+        return _unavailable(
+            "device-not-bound",
+            "no run directory was supplied, so no device could be bound to the measurement",
+        )
+    drive_letter = _windows_drive_letter(run_dir)
+    if drive_letter is None:
+        return _unavailable(
+            "device-not-bound",
+            f"could not resolve a drive letter for {run_dir}; network and mapped paths are not bound",
+        )
+
+    try:
+        result = _run_readonly(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                _WINDOWS_COUNTER_SCRIPT.format(drive=drive_letter),
+            ]
+        )
+    except _OutputLimitExceeded as error:
+        return _unavailable("output-limit-exceeded", str(error))
     if result is None:
         return _unavailable(
             "unreadable-counters", "Get-StorageReliabilityCounter could not be executed"
@@ -194,11 +286,17 @@ def _collect_windows_reliability() -> _CollectorResult:
             "no usable counters were returned by Get-StorageReliabilityCounter",
         )
 
-    device_id = payload.get("DeviceId")
+    # The device identity must be stable across both samples, so it is built
+    # from what the disk reports rather than from an index that could shift.
+    device_id = payload.get("SerialNumber") or payload.get("DeviceId")
+    if not device_id:
+        return _unavailable(
+            "device-not-bound", "the bound physical disk reported no stable identity"
+        )
     return _CollectorResult(
         sample=StorageTelemetrySample(
             captured_at=datetime.now(UTC),
-            device_id=str(device_id)[:200] if device_id else "physical-disk-0",
+            device_id=f"{drive_letter}: {str(device_id).strip()}"[:200],
             device_kind="unknown",
             source="windows-storage-reliability-counter",
             counters=counters,
@@ -206,12 +304,15 @@ def _collect_windows_reliability() -> _CollectorResult:
         availability=StorageTelemetryAvailability(
             available=True,
             reason="collected",
-            detail="Windows storage reliability counters (no host-write byte counter is exposed)",
+            detail=(
+                f"Windows storage reliability counters for the disk backing {drive_letter}: "
+                "(no host-write byte counter is exposed)"
+            ),
         ),
     )
 
 
-def collect_sample(device: str | None = None) -> _CollectorResult:
+def collect_sample(device: str | None = None, run_dir: Path | None = None) -> _CollectorResult:
     """Collect one reading, or explain why none is available."""
     if sys.platform.startswith("linux"):
         return _collect_linux_nvme(device or "/dev/nvme0")
@@ -221,7 +322,7 @@ def collect_sample(device: str | None = None) -> _CollectorResult:
                 "no-supported-device",
                 "explicit device selection is not supported on Windows",
             )
-        return _collect_windows_reliability()
+        return _collect_windows_reliability(run_dir)
     return _unavailable(
         "unsupported-platform", f"storage telemetry is not implemented for {sys.platform}"
     )
