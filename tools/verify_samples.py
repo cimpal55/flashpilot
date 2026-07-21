@@ -75,11 +75,15 @@ def main() -> int:
             if actual != entry["sha256"]:
                 failures.append(f"{sample_id}: {rel} sha256 {actual} != manifest {entry['sha256']}")
             if entry.get("size_bytes") is not None and entry["size_bytes"] != len(raw):
-                failures.append(f"{sample_id}: {rel} size {len(raw)} != manifest {entry['size_bytes']}")
+                failures.append(
+                    f"{sample_id}: {rel} size {len(raw)} != manifest {entry['size_bytes']}"
+                )
 
             payload = embedded.get(rel)
             if payload is None:
-                failures.append(f"{sample_id}: {rel} is in the manifest but not embedded in bundles.js")
+                failures.append(
+                    f"{sample_id}: {rel} is in the manifest but not embedded in bundles.js"
+                )
             elif base64.b64decode(payload) != raw:
                 failures.append(f"{sample_id}: {rel} embedded bytes differ from the file on disk")
 
