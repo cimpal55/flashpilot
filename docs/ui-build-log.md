@@ -171,9 +171,30 @@ network requests to external origins : 0 (webfonts absent; fallback stack render
 
 ### v0.1 fixture demo
 
-**Unchanged — not re-run in this worktree.** No Python file was touched, so the
-demo cannot have regressed; the assertion is structural rather than executed.
-Re-run it in the primary checkout before merging if you want it on the record.
+**Re-run and confirmed, on the record.** Executed directly in this worktree,
+against the code as it stands on this branch:
+
+```text
+.venv/Scripts/python.exe -m flashpilot.cli demo --provider fixture --profile demo --run-dir ./runs/ui-branch-v01-regression
+```
+
+```text
+Recovery attestation v1
+  Verdict            VERIFIED
+  Profile            exact-training-resume
+  Framework          native-pytorch 2.13.0+cpu
+  Source             f93d6a336368 (dirty)
+  Recovery processes 21988 -> 24024
+  Recovery Gate      24/24
+  Exact policy       atol=0.0, rtol=0.0
+  RPO / RTO          0 steps / 4.594s
+  Persisted bytes    32,743
+```
+
+24/24, VERIFIED, distinct recovery PIDs — unchanged, and this time proven by
+execution rather than inferred from an empty diff. `f93d6a336368` is the merged
+`main` HEAD (PR #9) this branch was rebased onto. The scratch run directory was
+deleted after capture; it is not part of the committed sample corpus.
 
 ### Assumptions and unresolved risks
 
