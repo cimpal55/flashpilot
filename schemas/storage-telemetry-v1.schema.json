@@ -1,0 +1,334 @@
+{
+  "$defs": {
+    "StorageTelemetryAvailability": {
+      "additionalProperties": false,
+      "description": "Why telemetry is or is not present. Absence is normal, not an error.",
+      "properties": {
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "detail": {
+          "maxLength": 500,
+          "title": "Detail",
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "collected",
+            "unsupported-platform",
+            "tool-unavailable",
+            "insufficient-privileges",
+            "no-supported-device",
+            "unreadable-counters",
+            "collection-disabled"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "available",
+        "reason",
+        "detail"
+      ],
+      "title": "StorageTelemetryAvailability",
+      "type": "object"
+    },
+    "StorageTelemetryCounters": {
+      "additionalProperties": false,
+      "description": "One raw reading. Every field is optional because vendors differ.",
+      "properties": {
+        "data_units_written": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Units Written"
+        },
+        "host_write_commands": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Host Write Commands"
+        },
+        "media_errors": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Media Errors"
+        },
+        "power_on_hours": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Power On Hours"
+        },
+        "unsafe_shutdowns": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unsafe Shutdowns"
+        }
+      },
+      "title": "StorageTelemetryCounters",
+      "type": "object"
+    },
+    "StorageTelemetryDelta": {
+      "additionalProperties": false,
+      "description": "The change between two samples, with its confounders made explicit.",
+      "properties": {
+        "attribution": {
+          "const": "device-wide-not-attributable",
+          "default": "device-wide-not-attributable",
+          "title": "Attribution",
+          "type": "string"
+        },
+        "counter_wrapped": {
+          "default": false,
+          "title": "Counter Wrapped",
+          "type": "boolean"
+        },
+        "data_units_written_delta": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Units Written Delta"
+        },
+        "host_write_bytes_lower_bound": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Host Write Bytes Lower Bound"
+        },
+        "host_write_commands_delta": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Host Write Commands Delta"
+        },
+        "media_errors_delta": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Media Errors Delta"
+        },
+        "schema_version": {
+          "const": "flashpilot-storage-telemetry-delta-v1",
+          "default": "flashpilot-storage-telemetry-delta-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "unsafe_shutdowns_delta": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unsafe Shutdowns Delta"
+        },
+        "window_seconds": {
+          "minimum": 0.0,
+          "title": "Window Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "window_seconds"
+      ],
+      "title": "StorageTelemetryDelta",
+      "type": "object"
+    },
+    "StorageTelemetrySample": {
+      "additionalProperties": false,
+      "description": "A single point-in-time reading from one device.",
+      "properties": {
+        "captured_at": {
+          "format": "date-time",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "counters": {
+          "$ref": "#/$defs/StorageTelemetryCounters"
+        },
+        "device_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Device Id",
+          "type": "string"
+        },
+        "device_kind": {
+          "enum": [
+            "nvme",
+            "unknown"
+          ],
+          "title": "Device Kind",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "flashpilot-storage-telemetry-sample-v1",
+          "default": "flashpilot-storage-telemetry-sample-v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "linux-nvme-cli",
+            "windows-storage-reliability-counter",
+            "unavailable"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "captured_at",
+        "device_id",
+        "device_kind",
+        "source",
+        "counters"
+      ],
+      "title": "StorageTelemetrySample",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The complete supporting-evidence artifact.\n\n`influences_verdict` is a frozen literal. It exists so that any consumer \u2014\na reporter, a CI policy, the report UI \u2014 can assert mechanically that this\nartifact is not permitted to affect a verdict.",
+  "properties": {
+    "after": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StorageTelemetrySample"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "availability": {
+      "$ref": "#/$defs/StorageTelemetryAvailability"
+    },
+    "before": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StorageTelemetrySample"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "delta": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StorageTelemetryDelta"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "evidence_class": {
+      "const": "supporting-only",
+      "default": "supporting-only",
+      "title": "Evidence Class",
+      "type": "string"
+    },
+    "influences_verdict": {
+      "const": false,
+      "default": false,
+      "title": "Influences Verdict",
+      "type": "boolean"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "flashpilot-storage-telemetry-v1",
+      "default": "flashpilot-storage-telemetry-v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "availability",
+    "limitations"
+  ],
+  "title": "StorageTelemetryEvidenceV1",
+  "type": "object"
+}

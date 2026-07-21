@@ -893,3 +893,22 @@ scope identity, inheritance tree, delegation, waiver, exception, revocation,
 key rotation, hosted service, registry-policy coupling, framework behavior,
 GPT work, repair behavior, or Recovery Gate change. Item 9 and all later work
 were not started.
+## V1.0 item 9 — storage telemetry
+
+The plan gave one line of guidance — "SMART/NVMe telemetry only as supporting
+evidence, not the product core" — plus a standing prohibition on claiming NAND
+wear or SSD lifetime.
+
+The decision worth recording is that both constraints were made structural
+rather than documentary. `influences_verdict` is `Literal[False]` and
+`attribution` is a single-valued literal, so the guarantees are enforced by the
+schema and provable by a test that asserts the type *rejects* the unsafe value.
+A comment saying "do not use this for verdicts" would have been weaker and would
+have decayed.
+
+The second judgement call was to under-report rather than approximate. Windows
+exposes no counter comparable to NVMe data units, so the Windows collector
+records no write volume at all instead of substituting a proxy; and a counter
+that moves backwards drops its delta instead of clamping to zero, because a
+clamped zero is indistinguishable from a genuinely measured quiet window. Both
+choices produce less data and a more trustworthy artifact.

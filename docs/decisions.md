@@ -1122,3 +1122,45 @@ The organization layer is local and single-scope per invocation. Remote policy
 distribution, authenticated scope identity, multi-policy inheritance,
 delegation, approvals, waivers, revocation, key rotation, a hosted service, and
 general authorization remain explicitly out of scope.
+## Storage telemetry is supporting evidence, enforced by type
+
+FlashPilot records optional NVMe/SMART counters around a measured window. The
+master plan constrains this to "supporting evidence, not the product core", so
+that constraint is encoded structurally rather than left to documentation and
+review.
+
+`StorageTelemetryEvidenceV1` carries `evidence_class: "supporting-only"` and
+`influences_verdict: Literal[False]`. Both are frozen literals, so a consumer —
+a reporter, a CI policy, the report UI — can assert mechanically that the
+artifact is not permitted to affect a verdict, and no future edit can silently
+flip it without changing the schema.
+
+The attribution problem is handled the same way. Host counters are device-wide:
+any other process writing to the same device during the window is included in
+the delta. `StorageTelemetryDelta.attribution` therefore has exactly one
+permitted value, `device-wide-not-attributable`, so a delta can never be
+serialised as "bytes written by this run".
+
+Three further rules follow from "never fabricate metrics":
+
+1. A byte figure must derive from a measured unit delta. A validator rejects any
+   `host_write_bytes_lower_bound` that is not the unit delta multiplied by the
+   NVMe data-unit size, and rejects a byte figure with no unit delta at all.
+2. A counter that moves backwards indicates a wrap, a firmware reset, or a
+   different device. The delta is dropped rather than clamped to zero, because a
+   clamped zero would look like a genuinely measured quiet window.
+3. Counter parsing accepts only unambiguous non-negative integers. Floats with a
+   fractional part, booleans, negatives, and free text are dropped rather than
+   approximated.
+
+Windows exposes no host-write byte counter comparable to NVMe data units, so on
+Windows no write volume is recorded at all rather than substituting a proxy
+counter that would not mean the same thing.
+
+There is no field in which NAND wear, write amplification, endurance, or drive
+lifetime could be recorded. Those claims are not made, are not measurable from
+these counters, and are listed explicitly in the artifact's own limitations.
+
+Unavailability is the normal case: the collectors require elevated rights on
+both platforms. Absence is recorded as an explicit reason rather than an error,
+and never blocks or degrades a qualification run.

@@ -819,3 +819,20 @@ hash chain to source results and signed recovery attestations. The optional
 local attestation registry is not an input to organization enforcement because
 its compact entries intentionally omit the source evidence needed for a fresh
 suite verification.
+## Storage telemetry collectors
+
+`src/flashpilot/telemetry/` sits outside the verdict path entirely. It has no
+import from, and no caller inside, the Recovery Gate, the attestation builder,
+or the policy engines.
+
+Collection is strictly read-only. Each collector runs a fixed argument array —
+never a shell string and never an interpolated one — under a ten-second timeout
+and a 256 KiB output cap, and never escalates privileges. Linux reads
+`nvme smart-log --output-format=json`; Windows reads storage reliability
+counters through a fixed non-interactive PowerShell expression. Any failure
+mode — missing tool, unsupported platform, insufficient rights, non-zero exit,
+unparsable output, unrecognised counters — resolves to an explicit
+"unavailable" artifact rather than a partial reading.
+
+The artifact is written as `storage-telemetry.json` beside a run's other
+outputs. It is deliberately not part of the verdict-bearing evidence inventory.

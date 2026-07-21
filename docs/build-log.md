@@ -4616,3 +4616,74 @@ new Recovery Gate and cannot upgrade underlying evidence. The optional compact
 registry is not used because it omits source evidence required for complete
 suite reverification. Windows directory fsync remains best-effort. No live API
 call or package publication occurred.
+## V1.0 item 9 — storage telemetry as supporting evidence
+
+Implements the final unimplemented point of the VNext master plan's V1.0
+roadmap: "SMART/NVMe telemetry only as supporting evidence, not the product
+core."
+
+### Changed files
+
+```text
+src/flashpilot/telemetry/__init__.py      new
+src/flashpilot/telemetry/models.py        new — typed schemas, structural guarantees
+src/flashpilot/telemetry/collectors.py    new — read-only Linux/Windows collectors
+src/flashpilot/telemetry/service.py       new — capture window, delta, artifact IO
+src/flashpilot/telemetry/schema.py        new — public JSON Schema emission
+schemas/storage-telemetry-v1.schema.json  new — generated
+src/flashpilot/cli.py                     collect-storage-telemetry command
+pyproject.toml                            package the new schema
+tests/unit/test_storage_telemetry.py      new — 23 cases
+tests/unit/test_packaging.py              assert the new schema ships
+docs/decisions.md, docs/architecture.md   rationale and component placement
+```
+
+### Commands executed
+
+```text
+python -m flashpilot.cli collect-storage-telemetry --run-dir ./runs/telemetry-smoke
+python -m pytest tests/unit/test_storage_telemetry.py -q
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest -q
+```
+
+### Actual output
+
+Focused suite:
+
+```text
+23 passed in 0.21s
+```
+
+CLI smoke run on a non-elevated Windows session — the honest path, since these
+counters normally require elevation:
+
+```text
+STORAGE TELEMETRY UNAVAILABLE: insufficient-privileges
+Get-StorageReliabilityCounter returned no data; it normally requires an elevated session
+Storage telemetry: ...\runs\telemetry-smoke\storage-telemetry.json
+```
+
+The emitted artifact records the reason rather than an estimate, and carries
+`"evidence_class": "supporting-only"` with `"influences_verdict": false`.
+
+### Acceptance criteria
+
+- Telemetry cannot contribute to a verdict — **PASS** (enforced by frozen
+  literals; `test_influences_verdict_cannot_be_set_true` proves the type rejects
+  it, and the package has no caller inside the gate, attestation, or policy
+  paths)
+- No NAND wear, write amplification, or lifetime claim — **PASS** (no such field
+  exists; `test_limitations_state_what_is_not_measured` asserts the disclaimers)
+- No fabricated metrics — **PASS** (byte figures must derive from a measured unit
+  delta; backwards counters drop the delta rather than clamping; ambiguous
+  values are dropped, not approximated)
+- Device-wide counters are never attributed to the run — **PASS**
+  (`attribution` has one permitted value; `test_attribution_cannot_claim_process_attribution`)
+- Read-only, no shell interpolation, no privilege escalation — **PASS** (fixed
+  argument arrays, `shell=False`, timeout and output caps)
+- Unavailability never blocks a run — **PASS** (explicit unavailable artifact;
+  verified live on this Windows host)
+- v0.1 fixture demo unchanged — **PASS** (no existing module was modified other
+  than adding one CLI command and one packaging entry)
