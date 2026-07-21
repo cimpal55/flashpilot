@@ -188,21 +188,33 @@ function policyPanel(run) {
     );
   }
 
-  // Every field below is copied verbatim from the recorded evaluation.
+  // Every field below is copied verbatim from the recorded evaluation. Where
+  // the core recorded nothing, this reports that rather than deriving a value:
+  // a page that computes its own merge decision is deciding policy.
   const passed = evaluation.passed === true;
   const state = passed ? "pass" : "fail";
   const requirements = Array.isArray(evaluation.requirements) ? evaluation.requirements : [];
+  const recordedExit = Number.isInteger(evaluation.exit_code) ? String(evaluation.exit_code) : null;
+  const recordedMerge =
+    evaluation.merge_decision === "allowed" || evaluation.merge_decision === "blocked"
+      ? evaluation.merge_decision
+      : null;
 
   return panel(
     "Organization policy",
     { actions: pill(passed ? "PASS" : "FAIL", state) },
     metricGrid(
       metric("Policy verdict", passed ? "PASS" : "FAIL", { state }),
-      metric("Exit code", String(evaluation.exit_code ?? "—"), { state }),
+      metric("Exit code", recordedExit ?? "not recorded", {
+        state: recordedExit ? state : "unknown",
+      }),
       metric("Requirements", `${requirements.filter((r) => r.passed).length}/${requirements.length}`, {
         state,
       }),
-      metric("Merge", evaluation.merge_decision ?? (passed ? "allowed" : "blocked"), { state }),
+      metric("Merge", recordedMerge ?? "not recorded", {
+        state: recordedMerge ? state : "unknown",
+        note: recordedMerge ? null : "recorded merge decision unavailable",
+      }),
     ),
     h(
       "div",

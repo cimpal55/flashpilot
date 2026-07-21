@@ -1,6 +1,6 @@
 {
   "checkpoint_path": "crash/checkpoints/checkpoint-4",
-  "emitted_at": "2026-07-20T01:29:46.973424Z",
+  "emitted_at": "2026-07-21T15:47:26.136630Z",
   "event": "checkpoint_committed",
   "global_step": 4,
   "model_present": true,
@@ -10,5 +10,5 @@
   "scheduler_present": true,
   "schema_version": "flashpilot-hf-checkpoint-event-v1",
   "trainer_state_present": true,
-  "worker_pid": 32392
+  "worker_pid": 23704
 }

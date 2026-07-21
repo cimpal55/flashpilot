@@ -8,7 +8,7 @@
 import { h, shortHash } from "../lib/dom.js";
 import { panel, btn, verdictStamp, metric, metricGrid, banner, stateClass } from "../components/kit.js";
 import { evidenceTable } from "../components/blocks.js";
-import { STATUS, verifyManifest, verifyManifestBinding } from "../lib/hash.js";
+import { BINDING, STATUS, verifyManifest, verifyManifestBinding } from "../lib/hash.js";
 import { trustLadder } from "../components/trustladder.js";
 
 const OVERALL_STATE = {
@@ -189,7 +189,20 @@ async function runVerification(run, manifest, evidence, tampered, table, slots) 
       ),
     );
     metricsSlot.replaceChildren();
-    ladderSlot.replaceChildren(trustLadder(run, { overall: STATUS.VOID, rows: [], reason: "no manifest" }, null));
+    // An explicit unavailable binding, not null: leaving it null would render a
+    // permanent "checking…" that never resolves.
+    ladderSlot.replaceChildren(
+      trustLadder(
+        run,
+        { overall: STATUS.VOID, rows: [], reason: "no closed inventory was shipped with this run" },
+        {
+          status: BINDING.UNAVAILABLE,
+          reason: "there is no manifest to bind to an attestation",
+          expected: null,
+          computed: null,
+        },
+      ),
+    );
     progress.textContent = "";
     return;
   }

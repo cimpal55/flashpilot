@@ -32,22 +32,27 @@ class Sample:
     subtitle: str
     kind: str  # qualification | repair | audit
     copy: tuple[str, ...] = field(default=())
+    # Optional run-relative directory holding a real organization-policy
+    # evaluation produced by `flashpilot enforce-organization-policy`. Never a
+    # hand-written file: the UI only renders what the CLI actually wrote.
+    policy_source: str | None = None
 
 
 SAMPLES_SPEC: tuple[Sample, ...] = (
     Sample(
         sample_id="hf-model-only",
-        source="milestone13-hf-model-only",
+        source="final-hf-model-only",
         title="Hugging Face — model-only checkpoint",
         subtitle="Loads without error. Provably cannot resume the same run.",
         kind="qualification",
         copy=("result.json", "junit.xml", "job-summary.md", "report.md"),
+        policy_source="final-policy/fail",
     ),
     Sample(
         sample_id="hf-complete",
-        source="milestone13-hf-complete",
+        source="final-hf-complete",
         title="Hugging Face — complete checkpoint",
-        subtitle="Real kill, new process, identical trajectory, attestation issued.",
+        subtitle="Real kill, new process, identical trajectory, signed attestation issued.",
         kind="qualification",
         copy=(
             "result.json",
@@ -56,10 +61,12 @@ SAMPLES_SPEC: tuple[Sample, ...] = (
             "job-summary.md",
             "report.md",
             "recovery.attestation.json",
+            "recovery.attestation.signature.json",
             "evidence-manifest.json",
             "persistence-contract.json",
             "environment.json",
         ),
+        policy_source="final-policy/pass",
     ),
     Sample(
         sample_id="native-repair",
@@ -191,9 +198,27 @@ def copy_sample(spec: Sample, runs_root: Path) -> Path:
     # newline="\n" everywhere: samples/ and bundles.js are marked -text in
     # .gitattributes, so a platform-dependent line ending would make
     # regeneration produce a spurious diff on Linux CI.
+    if spec.policy_source is not None:
+        policy_root = (runs_root / spec.policy_source).resolve()
+        if not policy_root.is_dir():
+            raise SystemExit(f"missing policy evaluation directory: {policy_root}")
+        for name, target_name in (
+            ("organization-policy-evaluation.json", "organization-policy-evaluation.json"),
+            ("junit.xml", "organization-policy.junit.xml"),
+        ):
+            origin = policy_root / name
+            if origin.is_file():
+                shutil.copy2(origin, dest / target_name)
+
     (dest / "SOURCE.txt").write_text(
         f"Copied verbatim from runs/{spec.source} of the FlashPilot core repository.\n"
-        "No value in this directory was edited, regenerated, or synthesised.\n",
+        + (
+            f"Organization-policy evaluation copied from runs/{spec.policy_source},\n"
+            "produced by `flashpilot enforce-organization-policy`.\n"
+            if spec.policy_source
+            else ""
+        )
+        + "No value in this directory was edited, regenerated, or synthesised.\n",
         encoding="utf-8",
         newline="\n",
     )
@@ -233,6 +258,9 @@ def build_bundle(spec: Sample, dest: Path) -> dict:
         "result": core,
         "attestation": read_json(dest / "recovery.attestation.json"),
         "attestation_raw": attestation_raw,
+        # Presence only. The UI reports that a detached signature exists; it
+        # never claims to have verified one.
+        "signature": read_json(dest / "recovery.attestation.signature.json"),
         "manifest_raw": manifest_raw,
         "manifest": manifest,
         "contract": read_json(dest / "persistence-contract.json"),

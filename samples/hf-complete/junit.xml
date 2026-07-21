@@ -5,7 +5,7 @@
     <property name="framework" value="huggingface-trainer" />
     <property name="qualification_profile" value="exact-training-resume" />
     <property name="rpo_steps" value="0" />
-    <property name="rto_seconds" value="6.887749" />
+    <property name="rto_seconds" value="8.751604" />
   </properties>
   <testcase classname="flashpilot.huggingface-trainer" name="checkpoint.model">
     <system-out>Model state is present Expected=present; actual=present.</system-out>
@@ -26,7 +26,7 @@
     <system-out>Checkpoint worker was really terminated Expected=verified nonzero exit; actual=verified=True, exit=1.</system-out>
   </testcase>
   <testcase classname="flashpilot.huggingface-trainer" name="process.distinct-recovery">
-    <system-out>Recovery ran in a new process Expected=distinct PIDs; actual=32392 -&gt; 17736.</system-out>
+    <system-out>Recovery ran in a new process Expected=distinct PIDs; actual=23704 -&gt; 18972.</system-out>
   </testcase>
   <testcase classname="flashpilot.huggingface-trainer" name="progress.global-step">
     <system-out>Recovered global step matches control Expected=8; actual=8.</system-out>

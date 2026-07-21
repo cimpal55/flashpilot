@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="flashpilot.organization-policy.sandbox-production-baseline" tests="11" failures="3" errors="0" skipped="0">
+  <properties>
+    <property name="organization_id" value="flashpilot-sandbox-organization" />
+    <property name="policy_id" value="sandbox-production-baseline" />
+    <property name="scope_id" value="sandbox-repository" />
+    <property name="organization_policy_sha256" value="01a81227c84656aaf798090341d5debe9ce969b0869f70cb2191d3b4127c9d81" />
+    <property name="repository_policy_id" value="sandbox-repository-suite" />
+    <property name="repository_policy_sha256" value="8f869a6a76fc055fedab8e4c69dd7be03e798aefd54131916ce34e3bfd376370" />
+    <property name="passed" value="false" />
+    <property name="exit_code" value="3" />
+    <property name="merge_decision" value="blocked" />
+  </properties>
+  <testcase classname="flashpilot.organization.policy" name="organization.requirement-inventory">
+    <system-out>The repository policy must implement the exact organization scenario inventory. Expected=1; actual=1.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.policy" name="organization.repository-policy-identity">
+    <system-out>The repository evaluation must bind the exact supplied repository policy source. Expected=sandbox-repository-suite:8f869a6a76fc055fedab8e4c69dd7be03e798aefd54131916ce34e3bfd376370; actual=sandbox-repository-suite:8f869a6a76fc055fedab8e4c69dd7be03e798aefd54131916ce34e3bfd376370.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.policy" name="organization.repository-policy-verdict">
+    <failure message="The complete deterministic repository suite policy must pass." type="organization-policy-requirement">The complete deterministic repository suite policy must pass. Expected=true; actual=false.</failure>
+    <system-out>The complete deterministic repository suite policy must pass. Expected=true; actual=false.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.hf-process-termination" name="organization.hf-process-termination.repository-requirement-present" repository_requirement_id="hf-process-termination">
+    <system-out>The repository policy must contain this exact closed scenario selector. Expected=present; actual=present.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.hf-process-termination" name="organization.hf-process-termination.repository-evidence-present" repository_requirement_id="hf-process-termination">
+    <system-out>The repository suite evaluation must include its matched requirement. Expected=hf-process-termination; actual=hf-process-termination.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.hf-process-termination" name="organization.hf-process-termination.max-rpo-policy" repository_requirement_id="hf-process-termination">
+    <system-out>The repository RPO bound may only equal or tighten the organization bound. Expected=&lt;= 0; actual=0.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.hf-process-termination" name="organization.hf-process-termination.max-rto-policy" repository_requirement_id="hf-process-termination">
+    <system-out>The repository RTO bound may only equal or tighten the organization bound. Expected=&lt;= 60.0; actual=60.0.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.hf-process-termination" name="organization.hf-process-termination.signed-attestation-policy" repository_requirement_id="hf-process-termination">
+    <system-out>The repository policy must require a verified detached signature. Expected=true; actual=true.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.hf-process-termination" name="organization.hf-process-termination.repository-evidence-pass" repository_requirement_id="hf-process-termination">
+    <failure message="The matched deterministic repository requirement must pass." type="organization-policy-requirement">The matched deterministic repository requirement must pass. Expected=true; actual=false.</failure>
+    <system-out>The matched deterministic repository requirement must pass. Expected=true; actual=false.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.hf-process-termination" name="organization.hf-process-termination.exact-recovery-evidence" repository_requirement_id="hf-process-termination">
+    <system-out>Runtime evidence must retain exact zero-tolerance recovery. Expected=atol=0.0,rtol=0.0; actual=atol=0.0,rtol=0.0.</system-out>
+  </testcase>
+  <testcase classname="flashpilot.organization.hf-process-termination" name="organization.hf-process-termination.signed-attestation-evidence" repository_requirement_id="hf-process-termination">
+    <failure message="Runtime evidence must contain verified detached-signature evidence." type="organization-policy-requirement">Runtime evidence must contain verified detached-signature evidence. Expected=verified; actual=missing.</failure>
+    <system-out>Runtime evidence must contain verified detached-signature evidence. Expected=verified; actual=missing.</system-out>
+  </testcase>
+</testsuite>

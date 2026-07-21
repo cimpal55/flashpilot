@@ -122,22 +122,24 @@ function assess(id, run, inventory, binding) {
   }
 
   if (id === "signature") {
-    const status = run.attestation?.signature_status ?? null;
     if (!run.attestation) {
-      return { state: "void", value: "NO ATTESTATION", note: "no attestation was issued for this run" };
+      return { state: "void", value: "NOT PRESENT", note: "no attestation was issued for this run" };
     }
-    if (status === "unsigned" || status === null) {
+    // A detached Ed25519 signature is a separate artifact, so the attestation
+    // payload legitimately still reads "unsigned": signing must not alter the
+    // bytes that were verified. Presence of the artifact is what to report —
+    // and only as recorded, because this page runs no signature check.
+    if (run.signature) {
       return {
         state: "unknown",
-        value: "UNSIGNED",
-        note: "the attestation records itself as unsigned; this page performs no signature check either way",
+        value: "RECORDED, NOT CHECKED",
+        note: "a detached Ed25519 signature artifact is present; this page does not verify signatures, and no OIDC identity is checked here",
       };
     }
-    // A signature may be *recorded*, but this page still does not verify it.
     return {
       state: "unknown",
-      value: String(status).toUpperCase(),
-      note: "recorded by the core — NOT verified by this page; no signature or OIDC check is performed here",
+      value: "UNSIGNED",
+      note: "no detached signature artifact accompanies this attestation; this page performs no signature check either way",
     };
   }
 

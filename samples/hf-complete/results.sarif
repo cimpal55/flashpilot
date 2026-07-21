@@ -1,0 +1,346 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "automationDetails": {
+        "id": "flashpilot/hf-qualification/huggingface-trainer"
+      },
+      "results": [],
+      "tool": {
+        "driver": {
+          "informationUri": "https://github.com/cimpal55/flashpilot",
+          "name": "FlashPilot",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement checkpoint.model."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "checkpoint.model",
+              "name": "checkpoint.model",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement checkpoint.model."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement checkpoint.trainer-state."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "checkpoint.trainer-state",
+              "name": "checkpoint.trainer-state",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement checkpoint.trainer-state."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement checkpoint.optimizer."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "checkpoint.optimizer",
+              "name": "checkpoint.optimizer",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement checkpoint.optimizer."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement checkpoint.scheduler."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "checkpoint.scheduler",
+              "name": "checkpoint.scheduler",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement checkpoint.scheduler."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement checkpoint.rng."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "checkpoint.rng",
+              "name": "checkpoint.rng",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement checkpoint.rng."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement process.real-termination."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "process.real-termination",
+              "name": "process.real-termination",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement process.real-termination."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement process.distinct-recovery."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "process.distinct-recovery",
+              "name": "process.distinct-recovery",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement process.distinct-recovery."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement progress.global-step."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "progress.global-step",
+              "name": "progress.global-step",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement progress.global-step."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement trajectory.loss-history."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "trajectory.loss-history",
+              "name": "trajectory.loss-history",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement trajectory.loss-history."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement state.trainable."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "state.trainable",
+              "name": "state.trainable",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement state.trainable."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement state.evaluation."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "state.evaluation",
+              "name": "state.evaluation",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement state.evaluation."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement state.optimizer."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "state.optimizer",
+              "name": "state.optimizer",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement state.optimizer."
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Deterministic FlashPilot checkpoint evidence requirement state.scheduler."
+              },
+              "help": {
+                "text": "Inspect the referenced typed FlashPilot evidence artifact."
+              },
+              "id": "state.scheduler",
+              "name": "state.scheduler",
+              "properties": {
+                "precision": "very-high",
+                "problem.severity": "error",
+                "tags": [
+                  "reliability",
+                  "checkpoint-recovery",
+                  "hf-qualification"
+                ]
+              },
+              "shortDescription": {
+                "text": "FlashPilot requirement state.scheduler."
+              }
+            }
+          ],
+          "semanticVersion": "0.2.0"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

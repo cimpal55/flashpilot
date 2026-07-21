@@ -6,7 +6,7 @@
 - Qualification profile: `exact-training-resume`
 - Checks: `5/13` non-failing
 - RPO: `0` steps
-- RTO: `6.757010` seconds
+- RTO: `8.392313` seconds
 
 ## Exact failed requirements
 

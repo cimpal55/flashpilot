@@ -23,5 +23,5 @@
   "trainable_state_sha256": "834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3",
   "trainer_global_step": 8,
   "transformers_version": "5.14.1",
-  "worker_pid": 31380
+  "worker_pid": 23532
 }

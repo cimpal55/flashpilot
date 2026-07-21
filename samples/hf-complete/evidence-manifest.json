@@ -2,7 +2,7 @@
   "entries": [
     {
       "path": "control/result.json",
-      "sha256": "e95c1fcc449c3d2ad4b7f6cfbeeeba8989c96f6489ec5455643720a1664177b3",
+      "sha256": "ede3a6cff6bb6e4aa21535bf042026482a7daa8cd80f589ed713d05b428516b2",
       "size_bytes": 929
     },
     {
@@ -12,8 +12,13 @@
     },
     {
       "path": "crash/checkpoints/checkpoint-4/flashpilot-callback.json",
-      "sha256": "01fd157fb4d2399664cd6edf022b698f86ec34b179f7db82482fa783e7cbb23b",
+      "sha256": "0b82fcc7dd76f2d0435dc20a5ac886199267c1d2f9b4721ea6bc1bca0dc3c0a6",
       "size_bytes": 411
+    },
+    {
+      "path": "crash/checkpoints/checkpoint-4/flashpilot-rng-metadata.json",
+      "sha256": "38e2925f3dbd7bed9979f2153501f3090b8f5af2d859a7daa327466656dc7594",
+      "size_bytes": 312
     },
     {
       "path": "crash/checkpoints/checkpoint-4/model.safetensors",
@@ -42,7 +47,7 @@
     },
     {
       "path": "crash/checkpoints/checkpoint-4/training_args.bin",
-      "sha256": "4a05da750bc0fc619e815c3cd0a1ec5e2e02ef5d2094dcdb9ba736d71ae16cd0",
+      "sha256": "49cf8e941abadd3050b0bbf8986c8d2d14a8576140f739f0c7b2cf4c7df2b25a",
       "size_bytes": 5201
     },
     {
@@ -52,22 +57,22 @@
     },
     {
       "path": "environment.json",
-      "sha256": "eae21da0cd622432aa2a76b4de6c69dc195b584cdff04b2b8bc68308bca71af0",
+      "sha256": "9c66ec9f873b63a346860a0bf301da5b6d62f7fbbc61dd968efbc2df95098998",
       "size_bytes": 913
     },
     {
       "path": "inputs/train.py",
-      "sha256": "3d4c303a5894ac145d791fa06e756abc3a54230d44350b0f85940d288f1041dc",
-      "size_bytes": 159
+      "sha256": "64a2127b6dcf73d4d2f2c4fe0f5906b4493795ff6fdd3bac25620174e444b36f",
+      "size_bytes": 7407
     },
     {
       "path": "job-summary.md",
-      "sha256": "70ac502bb5dc427bab31a1c70cd3d6d8cd30ef065546033c441c1580b9f5925c",
+      "sha256": "f222c3363bd91a66de70b98168699986e578453227a19e93f4c2ff70cd8b7004",
       "size_bytes": 357
     },
     {
       "path": "junit.xml",
-      "sha256": "f464eaf5912da99d0be3cb8f667710f9100f9b59a484e35e9df83f2c4d8650a3",
+      "sha256": "c833b4e4e1667bbf60c3894cda37cc49e6a07aca35595539ec7bc604195ee5bb",
       "size_bytes": 3490
     },
     {
@@ -77,18 +82,18 @@
     },
     {
       "path": "logs/control.stdout.log",
-      "sha256": "706927d643011725410cc43dabcb7cace60d5abee2a2cc339c107ed8d853b540",
-      "size_bytes": 815
+      "sha256": "09ae6cf9170daf5f101e854be51c2900d573058002f75ec4b9d251dae78bde4e",
+      "size_bytes": 987
     },
     {
       "path": "logs/crash.stderr.log",
-      "sha256": "6533ba74765525aa34d53961ae98c977f3b1900e8d31fdb3dc22058dec69267e",
-      "size_bytes": 121
+      "sha256": "714f00efb3a9426a28b0691697fa47253250502e74c7976a3ee178aeeb374595",
+      "size_bytes": 130
     },
     {
       "path": "logs/crash.stdout.log",
-      "sha256": "a126ffd8891c6ee25031aa7a164bd44cc94f18db7ec466ff61eba25091669bee",
-      "size_bytes": 702
+      "sha256": "65a4260c8cc7c97fccb80daf59246dd833942951d44730953f04b1c9e7cb518c",
+      "size_bytes": 875
     },
     {
       "path": "logs/recovery.stderr.log",
@@ -97,8 +102,8 @@
     },
     {
       "path": "logs/recovery.stdout.log",
-      "sha256": "d7837afd05bcb017be75b7f7782a2aea1cab8e07ede909ce8653c61592e54fee",
-      "size_bytes": 475
+      "sha256": "a433922508b1df82b5c8a61abea134f76e72855777d3f8990d5f5f54b9c32549",
+      "size_bytes": 648
     },
     {
       "path": "persistence-contract.json",
@@ -107,29 +112,35 @@
     },
     {
       "path": "recovery/result.json",
-      "sha256": "316ecafaad51df90a7c982e94fe511584897e53728d99fe0961edd8a2b0ea07a",
+      "sha256": "90a0c1d3cc829caae1b84d29012d55d75c7110deeb2e6b62773f2ea1c405e435",
       "size_bytes": 928
     },
     {
       "path": "report.html",
-      "sha256": "95894478c0c259b0ffad430d1e3e014c90bf4292fca6006597cc9273669739e9",
-      "size_bytes": 2066
+      "sha256": "1a91b5928db85638c3dc659c84a118569d0cd58b738154033e46c6dbeaf82f50",
+      "size_bytes": 2108
     },
     {
       "path": "report.md",
-      "sha256": "9075c4decb858d9806c1e752ccbe9ded7f925b1ab303a972098db27bd2659a2f",
-      "size_bytes": 1522
+      "sha256": "aeed0f51e2ac4906bbdccc780aba11a459261483dec8d0c84cd2163636fc1c48",
+      "size_bytes": 1564
     },
     {
       "path": "result.json",
-      "sha256": "a7d92c4d72c0a55d8c3104d24a548b27baad49e3e14a77604025e53eadd844c3",
-      "size_bytes": 7981
+      "sha256": "1e38f6e61320ad2b2e902c28633b8766aaf42dfda7b3f83c8c0d4c60352256d1",
+      "size_bytes": 8059
+    },
+    {
+      "path": "results.sarif",
+      "sha256": "e7d9ac3d6570e092d07caff1aa2018b9c27fdce8965bc5a60ba8c5a673d45041",
+      "size_bytes": 12210
     }
   ],
   "excluded_statement_artifacts": [
     "attestation.junit.xml",
     "evidence-manifest.json",
-    "recovery.attestation.json"
+    "recovery.attestation.json",
+    "recovery.attestation.signature.json"
   ],
   "root_scope": "attestation-directory",
   "schema_version": "flashpilot-evidence-manifest-v1"

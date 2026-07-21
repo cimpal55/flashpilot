@@ -1,5 +1,6 @@
+[2026-07-21 18:47:32,382] [WARNING] [real_accelerator.py:199:get_accelerator] Setting accelerator to CPU. If you have GPU or other accelerator, we were unable to detect it.
 {'loss': '1.597', 'grad_norm': '0.4169', 'learning_rate': '0.005', 'epoch': '0.625'}
 {'loss': '1.591', 'grad_norm': '0.413', 'learning_rate': '0.00375', 'epoch': '0.75'}
 {'loss': '1.591', 'grad_norm': '0.4155', 'learning_rate': '0.0025', 'epoch': '0.875'}
 {'loss': '1.59', 'grad_norm': '0.5429', 'learning_rate': '0.00125', 'epoch': '1'}
-{'train_runtime': '0.0317', 'train_samples_per_second': '1011', 'train_steps_per_second': '252.6', 'train_loss': '0.7961', 'epoch': '1'}
+{'train_runtime': '0.0182', 'train_samples_per_second': '1761', 'train_steps_per_second': '440.2', 'train_loss': '0.7961', 'epoch': '1'}

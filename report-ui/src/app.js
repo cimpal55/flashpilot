@@ -198,6 +198,23 @@ export function mount(root) {
     chipSlot,
   );
 
+  const copyLink = btn("Copy link", {
+    onClick: async (event) => {
+      const button = event.currentTarget;
+      const original = button.textContent;
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        button.textContent = "Link copied";
+      } catch {
+        // Clipboard access can be denied; say so rather than appear to succeed.
+        button.textContent = "Copy blocked";
+      }
+      setTimeout(() => {
+        button.textContent = original;
+      }, 1600);
+    },
+  });
+
   const restart = btn("Restart guided tour", {
     onClick: () => {
       sessionStorage.removeItem(GUIDE_KEY);
@@ -213,6 +230,7 @@ export function mount(root) {
     h(
       "span",
       { class: "row" },
+      copyLink,
       restart,
       pill("static · no backend", "neutral"),
       pill("verdicts copied, never computed", "data"),

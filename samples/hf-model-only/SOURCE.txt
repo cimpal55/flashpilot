@@ -1,2 +1,4 @@
-Copied verbatim from runs/milestone13-hf-model-only of the FlashPilot core repository.
+Copied verbatim from runs/final-hf-model-only of the FlashPilot core repository.
+Organization-policy evaluation copied from runs/final-policy/fail,
+produced by `flashpilot enforce-organization-policy`.
 No value in this directory was edited, regenerated, or synthesised.

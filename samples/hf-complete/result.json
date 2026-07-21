@@ -2,7 +2,7 @@
   "adapter": "huggingface-trainer",
   "checkpoint_event": {
     "checkpoint_path": "crash/checkpoints/checkpoint-4",
-    "emitted_at": "2026-07-20T01:29:46.973424Z",
+    "emitted_at": "2026-07-21T15:47:26.136630Z",
     "event": "checkpoint_committed",
     "global_step": 4,
     "model_present": true,
@@ -12,11 +12,12 @@
     "scheduler_present": true,
     "schema_version": "flashpilot-hf-checkpoint-event-v1",
     "trainer_state_present": true,
-    "worker_pid": 32392
+    "worker_pid": 23704
   },
   "checkpoint_inventory": [
     "config.json",
     "flashpilot-callback.json",
+    "flashpilot-rng-metadata.json",
     "model.safetensors",
     "optimizer.pt",
     "rng_state.pth",
@@ -50,23 +51,23 @@
     "trainable_state_sha256": "834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3",
     "trainer_global_step": 8,
     "transformers_version": "5.14.1",
-    "worker_pid": 31380
+    "worker_pid": 23532
   },
   "control_process": {
-    "completed_at": "2026-07-20T01:29:39.990458Z",
+    "completed_at": "2026-07-21T15:47:18.234983Z",
     "exit_code": 0,
     "exit_verified": true,
-    "started_at": "2026-07-20T01:29:28.150015Z",
-    "worker_pid": 31380
+    "started_at": "2026-07-21T15:47:09.668144Z",
+    "worker_pid": 23532
   },
   "crash_process": {
-    "completed_at": "2026-07-20T01:29:47.021299Z",
+    "completed_at": "2026-07-21T15:47:26.212483Z",
     "exit_code": 1,
     "exit_verified": true,
-    "started_at": "2026-07-20T01:29:40.025057Z",
-    "worker_pid": 32392
+    "started_at": "2026-07-21T15:47:18.258585Z",
+    "worker_pid": 23704
   },
-  "created_at": "2026-07-20T01:29:53.947653Z",
+  "created_at": "2026-07-21T15:47:35.015362Z",
   "fault_scenario": "process-kill",
   "final_verdict": "VERIFIED",
   "forwarded_arguments": [],
@@ -124,7 +125,7 @@
         "status": "pass"
       },
       {
-        "actual": "32392 -> 17736",
+        "actual": "23704 -> 18972",
         "category": "process",
         "check_id": "process.distinct-recovery",
         "expected": "distinct PIDs",
@@ -190,7 +191,7 @@
   "limitations": [
     "Qualification covers the included local CPU Trainer contract, not arbitrary scripts.",
     "Offline environment controls prevent library-mediated Hub access; this is not an OS network sandbox.",
-    "The attestation is unsigned and provides integrity, not publisher authentication."
+    "The attestation payload has no embedded signature; detached Ed25519 verification requires an explicitly trusted public key."
   ],
   "model_checkpoint_load_succeeded": true,
   "model_only_diverged": false,
@@ -220,20 +221,20 @@
     "trainable_state_sha256": "834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3",
     "trainer_global_step": 8,
     "transformers_version": "5.14.1",
-    "worker_pid": 17736
+    "worker_pid": 18972
   },
   "recovery_process": {
-    "completed_at": "2026-07-20T01:29:53.931964Z",
+    "completed_at": "2026-07-21T15:47:34.981997Z",
     "exit_code": 0,
     "exit_verified": true,
-    "started_at": "2026-07-20T01:29:47.044215Z",
-    "worker_pid": 17736
+    "started_at": "2026-07-21T15:47:26.230393Z",
+    "worker_pid": 18972
   },
   "report_path": "report.md",
   "result_path": "result.json",
-  "run_id": "30498446481a4d779ccc9c84417daf76",
+  "run_id": "c3e278ae171e40eba03e47c21e4f26b2",
   "scenario": "complete",
   "schema_version": "flashpilot-hf-qualification-v1",
   "script_path": "inputs/train.py",
-  "verified_persisted_bytes": 41635
+  "verified_persisted_bytes": 41947
 }

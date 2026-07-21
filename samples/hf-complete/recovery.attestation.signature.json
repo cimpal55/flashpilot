@@ -1,0 +1,10 @@
+{
+  "algorithm": "ed25519",
+  "public_key_sha256": "468bee444aefca78ae893b2c17012c88bcf375d0455478c8ae8fca072548f3f0",
+  "schema_version": "flashpilot-attestation-signature-v1",
+  "signature": "t7dhxIUiVQpINlHOFSJZgyCN7AjXxC74UG2fszlfTyKuXC30ty6OVIAZphYHdwFOn63fqHEQZa/mCKMytdssCA==",
+  "signature_encoding": "base64",
+  "signature_scope": "domain-separated-exact-file-bytes",
+  "signed_artifact_path": "recovery.attestation.json",
+  "signed_artifact_sha256": "e83c9e8799efbdab76e90895ccc3caf6f6024d53798d6cf834233df73b7086af"
+}

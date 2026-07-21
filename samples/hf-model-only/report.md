@@ -3,9 +3,9 @@
 - Verdict: **FAILED**
 - Scenario: `model-only`
 - Adapter: `huggingface-trainer`
-- Control PID: `21448`
-- Terminated PID: `29604`
-- Recovery PID: `28232`
+- Control PID: `22864`
+- Terminated PID: `17432`
+- Recovery PID: `6272`
 - Exact comparison: `atol=0.0`, `rtol=0.0`
 - Verified persisted bytes: not reported because recovery did not pass
 
@@ -29,4 +29,4 @@
 
 - Qualification covers the included local CPU Trainer contract, not arbitrary scripts.
 - Offline environment controls prevent library-mediated Hub access; this is not an OS network sandbox.
-- The attestation is unsigned and provides integrity, not publisher authentication.
+- The attestation payload has no embedded signature; detached Ed25519 verification requires an explicitly trusted public key.

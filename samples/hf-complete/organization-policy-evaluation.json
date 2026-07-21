@@ -1,0 +1,339 @@
+{
+  "checks": [
+    {
+      "actual": "1",
+      "check_id": "organization.requirement-inventory",
+      "expected": "1",
+      "status": "PASS",
+      "summary": "The repository policy must implement the exact organization scenario inventory."
+    },
+    {
+      "actual": "sandbox-repository-suite:8f869a6a76fc055fedab8e4c69dd7be03e798aefd54131916ce34e3bfd376370",
+      "check_id": "organization.repository-policy-identity",
+      "expected": "sandbox-repository-suite:8f869a6a76fc055fedab8e4c69dd7be03e798aefd54131916ce34e3bfd376370",
+      "status": "PASS",
+      "summary": "The repository evaluation must bind the exact supplied repository policy source."
+    },
+    {
+      "actual": "true",
+      "check_id": "organization.repository-policy-verdict",
+      "expected": "true",
+      "status": "PASS",
+      "summary": "The complete deterministic repository suite policy must pass."
+    }
+  ],
+  "exit_code": 0,
+  "failed_check_ids": [],
+  "merge_decision": "allowed",
+  "organization_id": "flashpilot-sandbox-organization",
+  "organization_policy_sha256": "01a81227c84656aaf798090341d5debe9ce969b0869f70cb2191d3b4127c9d81",
+  "passed": true,
+  "policy_id": "sandbox-production-baseline",
+  "repository_policy_evaluation": {
+    "failed_requirement_ids": [],
+    "passed": true,
+    "policy_id": "sandbox-repository-suite",
+    "policy_sha256": "8f869a6a76fc055fedab8e4c69dd7be03e798aefd54131916ce34e3bfd376370",
+    "requirements": [
+      {
+        "checks": [
+          {
+            "actual": "present",
+            "check_id": "policy.hf-process-termination.evidence-present",
+            "expected": "present",
+            "status": "PASS",
+            "summary": "An explicit run binding is present for this policy requirement."
+          },
+          {
+            "actual": "hf-qualification",
+            "check_id": "policy.hf-process-termination.kind",
+            "expected": "hf-qualification",
+            "status": "PASS",
+            "summary": "Evidence kind matches policy."
+          },
+          {
+            "actual": "huggingface-trainer",
+            "check_id": "policy.hf-process-termination.framework",
+            "expected": "huggingface-trainer",
+            "status": "PASS",
+            "summary": "Framework identity matches policy."
+          },
+          {
+            "actual": "exact-training-resume",
+            "check_id": "policy.hf-process-termination.qualification-profile",
+            "expected": "exact-training-resume",
+            "status": "PASS",
+            "summary": "Qualification profile matches policy."
+          },
+          {
+            "actual": "VERIFIED",
+            "check_id": "policy.hf-process-termination.unknown-state",
+            "expected": "not UNKNOWN",
+            "status": "PASS",
+            "summary": "UNKNOWN evidence fails closed and can never satisfy policy."
+          },
+          {
+            "actual": "VERIFIED",
+            "check_id": "policy.hf-process-termination.required-status",
+            "expected": "VERIFIED",
+            "status": "PASS",
+            "summary": "Deterministic evidence status matches the required policy status."
+          },
+          {
+            "actual": "PASS",
+            "check_id": "policy.hf-process-termination.checks",
+            "expected": "PASS or NOT_APPLICABLE",
+            "status": "PASS",
+            "summary": "Every underlying deterministic evidence check must be non-failing."
+          },
+          {
+            "actual": "huggingface-trainer",
+            "check_id": "policy.hf-process-termination.adapter",
+            "expected": "huggingface-trainer",
+            "status": "PASS",
+            "summary": "Adapter identity matches policy."
+          },
+          {
+            "actual": "process_termination",
+            "check_id": "policy.hf-process-termination.fault",
+            "expected": "process_termination",
+            "status": "PASS",
+            "summary": "Fault identity matches policy."
+          },
+          {
+            "actual": "atol=0.0,rtol=0.0",
+            "check_id": "policy.hf-process-termination.exact-recovery",
+            "expected": "atol=0.0,rtol=0.0",
+            "status": "PASS",
+            "summary": "Recovery comparison remains exact with zero tolerances."
+          },
+          {
+            "actual": "0",
+            "check_id": "policy.hf-process-termination.max-rpo",
+            "expected": "0",
+            "status": "PASS",
+            "summary": "Observed RPO stays within the typed policy bound."
+          },
+          {
+            "actual": "8.751604",
+            "check_id": "policy.hf-process-termination.max-rto",
+            "expected": "60.0",
+            "status": "PASS",
+            "summary": "Observed RTO stays within the typed policy bound."
+          },
+          {
+            "actual": "verified",
+            "check_id": "policy.hf-process-termination.attestation",
+            "expected": "verified",
+            "status": "PASS",
+            "summary": "A verified run requires an integrity-verified local attestation."
+          },
+          {
+            "actual": "verified",
+            "check_id": "policy.hf-process-termination.signed-attestation",
+            "expected": "verified",
+            "status": "PASS",
+            "summary": "A signed-attestation policy requires the explicitly trusted key."
+          }
+        ],
+        "evidence": {
+          "attestation_sha256": "e83c9e8799efbdab76e90895ccc3caf6f6024d53798d6cf834233df73b7086af",
+          "attestation_signature_status": "verified",
+          "attestation_status": "verified",
+          "evidence": {
+            "adapter": "huggingface-trainer",
+            "atol": 0.0,
+            "backend": null,
+            "checks": [
+              {
+                "actual": "present",
+                "check_id": "checkpoint.model",
+                "expected": "present",
+                "status": "PASS",
+                "summary": "Model state is present"
+              },
+              {
+                "actual": "present",
+                "check_id": "checkpoint.trainer-state",
+                "expected": "present",
+                "status": "PASS",
+                "summary": "Trainer state is present"
+              },
+              {
+                "actual": "present",
+                "check_id": "checkpoint.optimizer",
+                "expected": "present",
+                "status": "PASS",
+                "summary": "Optimizer state is present"
+              },
+              {
+                "actual": "present",
+                "check_id": "checkpoint.scheduler",
+                "expected": "present",
+                "status": "PASS",
+                "summary": "Scheduler state is present"
+              },
+              {
+                "actual": "present",
+                "check_id": "checkpoint.rng",
+                "expected": "present",
+                "status": "PASS",
+                "summary": "RNG state is present"
+              },
+              {
+                "actual": "verified=True, exit=1",
+                "check_id": "process.real-termination",
+                "expected": "verified nonzero exit",
+                "status": "PASS",
+                "summary": "Checkpoint worker was really terminated"
+              },
+              {
+                "actual": "23704 -> 18972",
+                "check_id": "process.distinct-recovery",
+                "expected": "distinct PIDs",
+                "status": "PASS",
+                "summary": "Recovery ran in a new process"
+              },
+              {
+                "actual": "8",
+                "check_id": "progress.global-step",
+                "expected": "8",
+                "status": "PASS",
+                "summary": "Recovered global step matches control"
+              },
+              {
+                "actual": "exact match",
+                "check_id": "trajectory.loss-history",
+                "expected": "exact control loss history",
+                "status": "PASS",
+                "summary": "Loss history exactly matches control"
+              },
+              {
+                "actual": "834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3",
+                "check_id": "state.trainable",
+                "expected": "834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3",
+                "status": "PASS",
+                "summary": "Trainable state digest exactly matches control"
+              },
+              {
+                "actual": "0e2baf1f2c06964cc38cbfd3b4278dd50423475af83bb435195c815174ec63c9",
+                "check_id": "state.evaluation",
+                "expected": "0e2baf1f2c06964cc38cbfd3b4278dd50423475af83bb435195c815174ec63c9",
+                "status": "PASS",
+                "summary": "Evaluation digest exactly matches control"
+              },
+              {
+                "actual": "6973dbbf26f14b71755dfa998029c9895283c450703c9fd4827fc2b351beaa63",
+                "check_id": "state.optimizer",
+                "expected": "6973dbbf26f14b71755dfa998029c9895283c450703c9fd4827fc2b351beaa63",
+                "status": "PASS",
+                "summary": "Optimizer digest exactly matches control"
+              },
+              {
+                "actual": "7b9e523d685a2faf6a45c0c4ff59aa618d900ddfa1255f1d4cf934a8dd733d41",
+                "check_id": "state.scheduler",
+                "expected": "7b9e523d685a2faf6a45c0c4ff59aa618d900ddfa1255f1d4cf934a8dd733d41",
+                "status": "PASS",
+                "summary": "Scheduler digest exactly matches control"
+              }
+            ],
+            "fault": "process_termination",
+            "fault_target_rank": null,
+            "framework": "huggingface-trainer",
+            "implementation": null,
+            "kind": "hf-qualification",
+            "qualification_profile": "exact-training-resume",
+            "rpo_steps": 0,
+            "rto_seconds": 8.751604,
+            "rtol": 0.0,
+            "schema_version": "flashpilot-ci-run-evidence-v1",
+            "status": "VERIFIED",
+            "strategy": null,
+            "world_size": null,
+            "zero_stage": null
+          },
+          "schema_version": "flashpilot-qualification-policy-evidence-v1",
+          "signature_artifact_sha256": "6ecba399e3871e19e6c7759b8d45481d5644fe0849d635503cb1c2d806f845a3",
+          "signing_key_sha256": "468bee444aefca78ae893b2c17012c88bcf375d0455478c8ae8fca072548f3f0",
+          "source_artifact": "result.json",
+          "source_sha256": "1e38f6e61320ad2b2e902c28633b8766aaf42dfda7b3f83c8c0d4c60352256d1"
+        },
+        "failed_check_ids": [],
+        "passed": true,
+        "requirement_id": "hf-process-termination"
+      }
+    ],
+    "schema_version": "flashpilot-qualification-policy-evaluation-v1"
+  },
+  "repository_policy_evaluation_sha256": "610f33c8d77655db53abeb35246096f80e307114d48081b8215cd6a546a39c93",
+  "repository_policy_id": "sandbox-repository-suite",
+  "repository_policy_sha256": "8f869a6a76fc055fedab8e4c69dd7be03e798aefd54131916ce34e3bfd376370",
+  "requirements": [
+    {
+      "checks": [
+        {
+          "actual": "present",
+          "check_id": "organization.hf-process-termination.repository-requirement-present",
+          "expected": "present",
+          "status": "PASS",
+          "summary": "The repository policy must contain this exact closed scenario selector."
+        },
+        {
+          "actual": "hf-process-termination",
+          "check_id": "organization.hf-process-termination.repository-evidence-present",
+          "expected": "hf-process-termination",
+          "status": "PASS",
+          "summary": "The repository suite evaluation must include its matched requirement."
+        },
+        {
+          "actual": "0",
+          "check_id": "organization.hf-process-termination.max-rpo-policy",
+          "expected": "<= 0",
+          "status": "PASS",
+          "summary": "The repository RPO bound may only equal or tighten the organization bound."
+        },
+        {
+          "actual": "60.0",
+          "check_id": "organization.hf-process-termination.max-rto-policy",
+          "expected": "<= 60.0",
+          "status": "PASS",
+          "summary": "The repository RTO bound may only equal or tighten the organization bound."
+        },
+        {
+          "actual": "true",
+          "check_id": "organization.hf-process-termination.signed-attestation-policy",
+          "expected": "true",
+          "status": "PASS",
+          "summary": "The repository policy must require a verified detached signature."
+        },
+        {
+          "actual": "true",
+          "check_id": "organization.hf-process-termination.repository-evidence-pass",
+          "expected": "true",
+          "status": "PASS",
+          "summary": "The matched deterministic repository requirement must pass."
+        },
+        {
+          "actual": "atol=0.0,rtol=0.0",
+          "check_id": "organization.hf-process-termination.exact-recovery-evidence",
+          "expected": "atol=0.0,rtol=0.0",
+          "status": "PASS",
+          "summary": "Runtime evidence must retain exact zero-tolerance recovery."
+        },
+        {
+          "actual": "verified",
+          "check_id": "organization.hf-process-termination.signed-attestation-evidence",
+          "expected": "verified",
+          "status": "PASS",
+          "summary": "Runtime evidence must contain verified detached-signature evidence."
+        }
+      ],
+      "failed_check_ids": [],
+      "passed": true,
+      "repository_requirement_id": "hf-process-termination",
+      "requirement_id": "hf-process-termination"
+    }
+  ],
+  "schema_version": "flashpilot-organization-policy-evaluation-v1",
+  "scope_id": "sandbox-repository"
+}

@@ -1,5 +1,5 @@
 {
-  "code_commit": "97267a3515c9b9add31a63487149d5757a758f0d",
+  "code_commit": "f020b1e2c04e762e885a5ca4d7ea2c61d50fa5d0",
   "cpu_only": true,
   "dependencies": [
     {
@@ -8,7 +8,7 @@
     },
     {
       "name": "flashpilot",
-      "version": "0.1.0"
+      "version": "0.2.0"
     },
     {
       "name": "numpy",
@@ -43,6 +43,6 @@
   "platform": "Windows-11-10.0.26200-SP0",
   "python_version": "3.12.13",
   "schema_version": "flashpilot-dependency-environment-v1",
-  "source_tree_state": "dirty",
+  "source_tree_state": "clean",
   "torch_threads": 6
 }

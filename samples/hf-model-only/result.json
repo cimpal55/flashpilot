@@ -2,7 +2,7 @@
   "adapter": "huggingface-trainer",
   "checkpoint_event": {
     "checkpoint_path": "crash/checkpoints/checkpoint-4",
-    "emitted_at": "2026-07-20T01:36:28.656247Z",
+    "emitted_at": "2026-07-21T15:48:42.197587Z",
     "event": "checkpoint_committed",
     "global_step": 4,
     "model_present": true,
@@ -12,7 +12,7 @@
     "scheduler_present": false,
     "schema_version": "flashpilot-hf-checkpoint-event-v1",
     "trainer_state_present": true,
-    "worker_pid": 29604
+    "worker_pid": 17432
   },
   "checkpoint_inventory": [
     "config.json",
@@ -47,23 +47,23 @@
     "trainable_state_sha256": "834764124dbded98a265dfc56aa6b0f3489d55cb121bc3f870c35aa0ec7f1cc3",
     "trainer_global_step": 8,
     "transformers_version": "5.14.1",
-    "worker_pid": 21448
+    "worker_pid": 22864
   },
   "control_process": {
-    "completed_at": "2026-07-20T01:36:21.934079Z",
+    "completed_at": "2026-07-21T15:48:34.054634Z",
     "exit_code": 0,
     "exit_verified": true,
-    "started_at": "2026-07-20T01:36:09.187745Z",
-    "worker_pid": 21448
+    "started_at": "2026-07-21T15:48:25.313625Z",
+    "worker_pid": 22864
   },
   "crash_process": {
-    "completed_at": "2026-07-20T01:36:28.688732Z",
+    "completed_at": "2026-07-21T15:48:42.245878Z",
     "exit_code": 1,
     "exit_verified": true,
-    "started_at": "2026-07-20T01:36:21.967916Z",
-    "worker_pid": 29604
+    "started_at": "2026-07-21T15:48:34.088167Z",
+    "worker_pid": 17432
   },
-  "created_at": "2026-07-20T01:36:35.520100Z",
+  "created_at": "2026-07-21T15:48:50.688662Z",
   "fault_scenario": "process-kill",
   "final_verdict": "FAILED",
   "forwarded_arguments": [],
@@ -121,7 +121,7 @@
         "status": "pass"
       },
       {
-        "actual": "29604 -> 28232",
+        "actual": "17432 -> 6272",
         "category": "process",
         "check_id": "process.distinct-recovery",
         "expected": "distinct PIDs",
@@ -196,7 +196,7 @@
   "limitations": [
     "Qualification covers the included local CPU Trainer contract, not arbitrary scripts.",
     "Offline environment controls prevent library-mediated Hub access; this is not an OS network sandbox.",
-    "The attestation is unsigned and provides integrity, not publisher authentication."
+    "The attestation payload has no embedded signature; detached Ed25519 verification requires an explicitly trusted public key."
   ],
   "model_checkpoint_load_succeeded": true,
   "model_only_diverged": true,
@@ -226,18 +226,18 @@
     "trainable_state_sha256": "8bd5001c874e89bbb60af70bc002e290c84aeeec0918d5d804f3a4ec151a5dfc",
     "trainer_global_step": 8,
     "transformers_version": "5.14.1",
-    "worker_pid": 28232
+    "worker_pid": 6272
   },
   "recovery_process": {
-    "completed_at": "2026-07-20T01:36:35.482644Z",
+    "completed_at": "2026-07-21T15:48:50.651679Z",
     "exit_code": 0,
     "exit_verified": true,
-    "started_at": "2026-07-20T01:36:28.725634Z",
-    "worker_pid": 28232
+    "started_at": "2026-07-21T15:48:42.259366Z",
+    "worker_pid": 6272
   },
   "report_path": "report.md",
   "result_path": "result.json",
-  "run_id": "5e498f4ba3ca45868cfe5413c56bde6b",
+  "run_id": "620ee9a36bdb4759bc0ec9d41ff16001",
   "scenario": "model-only",
   "schema_version": "flashpilot-hf-qualification-v1",
   "script_path": "inputs/train.py",

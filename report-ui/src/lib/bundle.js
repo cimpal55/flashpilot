@@ -212,6 +212,7 @@ function buildRun(raw) {
     checkpointEvent: result.checkpoint_event ?? null,
 
     attestation: raw.attestation,
+    signature: raw.signature ?? null,
     attestationBytes: raw.attestation_raw ? decodeBase64(raw.attestation_raw) : null,
     manifest: raw.manifest,
     manifestBytes: raw.manifest_raw ? decodeBase64(raw.manifest_raw) : null,

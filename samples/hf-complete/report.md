@@ -3,11 +3,11 @@
 - Verdict: **VERIFIED**
 - Scenario: `complete`
 - Adapter: `huggingface-trainer`
-- Control PID: `31380`
-- Terminated PID: `32392`
-- Recovery PID: `17736`
+- Control PID: `23532`
+- Terminated PID: `23704`
+- Recovery PID: `18972`
 - Exact comparison: `atol=0.0`, `rtol=0.0`
-- Verified persisted bytes: 41635 bytes
+- Verified persisted bytes: 41947 bytes
 
 ## Deterministic gate
 
@@ -29,4 +29,4 @@
 
 - Qualification covers the included local CPU Trainer contract, not arbitrary scripts.
 - Offline environment controls prevent library-mediated Hub access; this is not an OS network sandbox.
-- The attestation is unsigned and provides integrity, not publisher authentication.
+- The attestation payload has no embedded signature; detached Ed25519 verification requires an explicitly trusted public key.
