@@ -2,9 +2,9 @@
 
 **Your checkpoint loads. That does not mean it can resume.** FlashPilot kills a
 real training process, resumes it in a new one, and compares the two runs step
-by step — then issues a portable, independently re-verifiable attestation.
+by step then issues a portable, independently re-verifiable attestation.
 
-## Try it — no install
+## Try it
 
 **[Open the FlashPilot sandbox →](https://cimpal55.github.io/flashpilot/)**
 
@@ -59,7 +59,7 @@ real crash, then `VERIFIED 24/24`.
 
 ### 1. 60-second fixture demo
 
-Install the release-candidate wheel in a clean Python environment and run the
+Install the release in a clean Python environment and run the
 short CPU profile:
 
 ```bash
@@ -892,8 +892,6 @@ identity, inheritance trees, waivers, exceptions, and a hosted policy service
 remain unimplemented.
 
 ## Repository and license
-
-Repository: <https://github.com/cimpal55/flashpilot>
 
 Licensed under Apache-2.0. See [LICENSE](LICENSE).
 
